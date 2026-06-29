@@ -1,0 +1,603 @@
+Title: Need to Know: Contextual-Integrity-Grounded Query Rewriting for Privacy-Conscious LLM Delegation
+
+URL Source: https://arxiv.org/pdf/2606.04067v1
+
+Published Time: Thu, 04 Jun 2026 00:04:44 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+# Need to Know: Contextual-Integrity-Grounded Query Rewriting for Privacy-Conscious LLM Delegation 
+
+Xinyue Huang, Xiaochun Cao, Wenyuan Yang *
+
+Sun Yat-sen University 
+
+huangxy625@mail2.sysu.edu.cn {caoxiaochun,yangwy56}@mail.sysu.edu.cn 
+
+Abstract 
+
+As LLMs become increasingly woven into ev-eryday workflows, user queries sent to cloud-hosted LLMs routinely mix task-essential con-tent with task-non-essential sensitive disclo-sures, yet type-based PII redaction is context-agnostic and may raise two issues: over-disclosing untyped sensitive context and over-removing answer-bearing spans. We recast privacy-preserving query rewriting under Con-textual Integrity : a span should be forwarded only if it is necessary for the task. We introduce 
+
+DelegateCI-Bench , the first task-based Contex-tual Integrity benchmark for privacy-conscious delegation, comprising 3,167 samples that com-bine high-quality synthetic data spanning 11 tasks and 20 task types, WildChat-based real-user queries, and a medical challenge set with dense sensitive information. Building on this benchmark, we propose a CI-guided reinforce-ment learning framework that converts essen-tial and non-essential sensitive spans into ver-ifiable optimization signals, and train a query rewriter to preserve task-critical information while suppressing unnecessary sensitive dis-closure. Experiments show that our learned rewriter achieves the best privacy–utility trade-off, achieving up to +10 .1 average utility over on-device baselines. 
+
+1 Introduction 
+
+Users increasingly turn to powerful cloud-hosted LLMs to complete everyday tasks, but their raw re-quests rarely contain only the information that the task requires: alongside the actual question, users routinely reveal health conditions, family relation-ships, financial pressure, or third-party identities. Forwarding such requests verbatim to an untrusted remote model creates unnecessary privacy expo-sure that is wholly extraneous to what the user asked for. (Neel and Chang, 2023) 
+
+> *Corresponding author. Preprint. Work in progress.
+
+Figure 1: Why type-based PII redaction is insufficient for Privacy-Conscious Delegation. 
+
+We study Privacy-Conscious Delegation , in which a trusted on-device small model acts as a pri-vacy proxy: it (i) reads the user’s original request, (ii) rewrites it into a less-revealing prompt that still carries the context required to solve the task and forwards only this prompt to the remote LLM, and (iii) combines the original request with the returned remote answer to produce the final response (Siyan et al., 2025). This goes beyond standard PII redac-tion (Microsoft, 2021; Pilán et al., 2022): the local model performs task-aware context selection and rewriting rather than scrubbing identifiers by type. The central difficulty of this rewriting step is task dependence: whether a span should be disclosed is determined not by whether it is sensitive in isola-tion, but by whether it is useful for the current task. As shown in Figure 1, “ I’m allergic to peanuts ”must be preserved when asking for hike-friendly snacks, yet should be removed when asking for a Python file-renaming script. Type-based PII redac-1
+
+> arXiv:2606.04067v1 [cs.CR] 2 Jun 2026
+
+tion, which strips spans by category regardless of context, cannot make this distinction and systemat-ically errs in both directions. We therefore adopt Contextual Integrity 
+
+(CI) (Nissenbaum, 2010) as our guiding principle. CI holds that privacy is not determined by informa-tion type alone, but by whether information flows appropriately given the actors, context, and purpose involved. We operationalize CI for our setting as task necessity for remote assistance: a span should be disclosed to the remote model if and only if that model needs it to provide effective task support. To make this criterion directly measurable, we build a CI-grounded benchmark in which ev-ery request is annotated with two complemen-tary span sets: task-essential spans E and task-non-essential sensitive spans N . These two sets pin down two dual failure modes: forwarding any span in N is over-disclosure , while strip-ping any span in E is over-removal . The bench-mark draws on three complementary sources. The general-domain split is built by reverse synthesis— a sampler-generator-judge closed loop that fixes the 
+
+(E, N ) partition before rendering the surface query, yielding labels correct by construction. We further anchor the distribution with a natural slice from WildChat (Zhao et al., 2024) and add a medical challenge set that stresses over-removal. We further turn (E, N ) into a verifiable RL re-ward and train the delegation agent with Group Relative Policy Optimization (GRPO) (Shao et al., 2024b). The composite reward treats privacy as a 
+
+hard constraint —any disclosure of a span in N
+
+saturates the reward to its lower bound—rewards retention of E via a smoothed recall term, and adds a brevity penalty against reward hacking. A single rewriter checkpoint is shared across heterogeneous downstream aggregators, so the learned behaviour is a backbone-agnostic, context-dependent disclo-sure policy. We summarize our contributions as follows: • We recast Privacy-Conscious Delegation through the lens of Contextual Integrity, shift-ing the operative criterion from type-based “is this span PII?” to task-conditioned “does this span carry task-solving context for the remote LLM?”. • We construct DelegateCI-Bench , the first task-based CI benchmark for Privacy-Conscious Delegation, spanning broad controllable general-domain queries, natural-istic privacy leakage in real user prompts, and challenge cases where sensitive information is itself task-bearing evidence, thereby testing whether a rewriter can preserve task-critical context while removing or generalizing unnecessary sensitive disclosures. • We show that the span partition in DelegateCI-Bench can directly supervise a privacy-aware query rewriter. This converts contextual in-tegrity from an evaluation principle into a trainable objective, yielding a single GRPO-trained rewriter with the strongest privacy– utility trade-off. 
+
+2 Related Work 
+
+2.1 Privacy Protection for User Prompts 
+
+One line of work mitigates prompt-side leakage via input anonymization or perturbation, sanitiz-ing the request locally and optionally restoring redacted entities after the cloud call (Kan et al., 2023; Chen et al., 2023); such pipelines act on predefined sensitive categories and cannot judge whether a span is sensitive given the current task. A parallel differential-privacy thread provides for-mal guarantees but is largely confined to ICL with reusable demonstrations and does not extend to free-form requests (Tang et al., 2024; Hong et al., 2024). Closest to our setting, Siyan et al. (2025) for-mulate Privacy-Conscious Delegation via a trusted local proxy, but reduce privacy to PII leakage. We retain the delegation paradigm but reframe disclosure through Contextual Integrity, supervis-ing the rewriter with a verifiable (E, N ) parti-tion (Sec. 4) and jointly evaluating over-disclosure of non-essential spans and over-removal of task-essential ones. 
+
+2.2 Contextual Integrity for LLM Privacy 
+
+Existing CI-grounded benchmarks (Nissenbaum, 2010) primarily diagnose the output side, asking whether a remote model relays information to in-appropriate recipients (Mireshghallah et al., 2024; Shao et al., 2024a; Cheng et al., 2024). Ngong et al. (2025) shift attention to the input side and propose inference-time local rewriting. We adopt this stance but operationalise CI as a span-level 
+
+(E, N ) partition that doubles as a verifiable training reward and a benchmark axis, enabling end-to-end learned disclosure and the first joint evaluation of over-disclosure and over-removal. 23 DelegateCI-Bench Construction 
+
+Existing privacy benchmarks for LLMs are largely PII-centric and treat sensitivity as a property of in-formation types (Pilán et al., 2022; Lukas et al., 2023). This type-based view is insufficient for Privacy-Conscious Delegation, where the privacy decision is not simply whether a piece of infor-mation is sensitive, but whether it is necessary to disclose for the delegated task. Building on the Contextual Integrity (CI) framing introduced there, we focus on task-conditioned information disclosure: whether a sensitive attribute should flow to the remote LLM under the task’s trans-mission principle. We operationalize this idea as a concrete sample-level annotation protocol and construct DelegateCI-Bench, the first task-based CI benchmark for Privacy-Conscious Delegation. 
+
+Contextual integrity for delegation. A CI dis-closure decision is governed by five parame-ters (Nissenbaum, 2010): the sender, recipient, sub-ject, information type, and transmission principle. In Privacy-Conscious Delegation, these correspond respectively to the user, the remote LLM, the per-son whom the information is about, the sensitive attribute being disclosed, and task necessity. Con-cretely, every sample is annotated with two disjoint attribute sets: essential spans E = {ei}ni=1 , which are necessary for the task and should be forwarded, and non-essential spans N = {cj }Kj=1 , which are sensitive but not task-relevant and should be re-moved or generalized. 
+
+Complementary benchmark design. To cover both CI failure modes (over-disclosure and over-removal) with reliable labels and realistic distri-butions, we assemble (i) a reverse-synthesised general-domain subset (§3.1) for large-scale, con-trollable coverage with labels correct by construc-tion; (ii) a WildChat-anchored OOD slice of or-ganic single-turn prompts (§3.1); and (iii) a med-ical challenge set (§3.2) that stress-tests over-removal where sensitive clinical spans are them-selves the answer-bearing evidence. Detailed prompts and value banks are deferred to the ap-pendix. Table 2 summarises the benchmark, com-prising 3,167 samples across two groups— General 
+
+(reverse-synthesised samples plus the WildChat-anchored OOD probe; §3.1) and Medical .
+
+3.1 General-Domain Samples Why reverse synthesis. Prior work (Ngong et al., 2025) identified only 2,849 queries containing task-irrelevant sensitive information from 11,305 filtered single-turn ShareGPT (ShareGPT, 2023) conversations. This sparsity becomes more pro-nounced when further requiring coverage across diverse domains, task types, sensitive attributes, information subjects, and contrastive necessity variations of the same attribute across different tasks. We therefore adopt data synthesis to con-struct multi-domain, multi-task, multi-attribute, and contrastive-necessity samples in a controllable manner. To prevent the synthesized data from deviat-ing from real user distributions, we additionally curate a real-world validation subset from Wild-Chat (Zhao et al., 2024): starting with ∼50K single-turn English queries filtered from 352K real conver-sations, a GPT-4o-mini scorer selects 656 queries exhibiting task-irrelevant privacy exposure, which are then annotated by GPT-4o with (E, N ), yield-ing 345 final samples. Rather than exhaustively covering all parameter combinations, this real sub-set serves as an independent authenticity and ro-bustness validation set. 
+
+Structured sampler. The sampler jointly varies five axes that determine when a sensitive disclosure is contextually appropriate (Table 1); the taxonomy follows Ngong et al. (2025).                
+
+> Table 1: Coverage axes of the structured sampler. Each generated sample is a joint draw over these axes; the CI judgement is then rendered into natural language and re-checked by an independent judge (§3.1).
+> Axis #Examples
+> Domain 11 health, finance, employment, edu-cation, . . . Task type 20 summarisation, translation, code generation, . . . Sensitive attribute 30 family history, medication, salary, religion, . . . Subject 5self, family, friend, colleague, third party Disclosure style 4direct, narrative, implicit, multi-sentence dispersed
+
+Generator and consistency judge. A generator LLM is conditioned on the sampled CI skeleton and instructed to render the instance as a natu-ral prompt while embedding the non-essential at-tributes. To reduce co-adaptation, we use hetero-3Table 2: DelegateCI-Bench statistics.              
+
+> General Medical
+> # samples 2,217 950 Avg. |E| (spans) 3.94 3.83 Avg. |N | (spans) 4.78 3.34 Avg. query length (words) 98.3 89.3
+
+geneous models, with Claude Sonnet 4.6 as the generator and GPT-4o as the consistency judge. The judge observes only the surface prompt and re-extracts ( ˆE, ˆN ); only samples whose re-extracted partition agrees with the sampled partition are re-tained. Detailed judging prompts, matching rules, thresholds, and human agreement results are re-ported in Appendix C. 
+
+3.2 Medical Challenge Set 
+
+To keep medical facts grounded, we build the over-removal stress test on board-exam-style multiple-choice items drawn from the 
+
+> MEDICAL
+
+-O1-REASONING -SFT corpus released with HuatuoGPT-o1 (Chen et al., 2024), rather than synthesising clinical stems from scratch. For each item we use its existing chain-of-thought solution and verified answer to drive GPT-4o to verbatim extract from the original question stem the spans E that are decisive for the final di-agnosis or option choice. We then use GPT-4o to rewrite each item under a strictly constrained instruction that appends or embeds synthetic, clini-cally inert disclosures forming N .
+
+4 Method 
+
+In this section, we formalize the privacy-preserving query rewriting task as a reinforcement learning (RL) problem (§4.1), present a composite reward that jointly enforces non-essential privacy non-disclosure and task utility (§4.2), and describe the on-policy training procedure based on Group Rel-ative Policy Optimization (GRPO) (Shao et al., 2024b)(§4.3). 
+
+4.1 Framework Overview Problem setup. Given a user query x, which may contain both information necessary to complete the task and sensitive information unrelated to the task, the policy model πθ generates a rewritten query 
+
+y ∼ πθ(· | x). This rewritten query is forwarded to an external untrusted retriever or a remote LLM, as shown in Figure 2. The optimization objective is to retain as much of the information required to com-plete the original task as possible while minimizing the leakage of unnecessary sensitive information. We frame this problem as a single-step contex-tual bandit (Langford and Zhang, 2007): each roll-out produces a complete rewrite y that is evaluated by a sequence-level reward R(y), with no interme-diate states or bootstrapped value estimates. Al-though y is generated autoregressively at the token level, the reward in §4.2 is intrinsically a holistic property of the full rewrite (a single leaked span suffices to violate Contextual Integrity), so we as-sign the same group-relative advantage uniformly to every token of y during policy optimization. 
+
+Pipeline. At inference time, the rewritten query y
+
+is sent to an untrustworthy external large language model; the retrieved evidence is then recombined with the original x on the trusted side to produce the final answer. Our scope is limited to learning 
+
+πθ that produces y; the downstream answerer is frozen and is not part of the optimization loop. 
+
+4.2 Reward Design 
+
+The reward has three components targeting the two Contextual Integrity failure modes from §1 and one RL-specific failure: Rpriv for over-disclosure, Ress 
+
+for over-removal, and a multiplicative brevity factor 
+
+Lbrev against reward hacking (Skalse et al., 2022) by padding the rewrite with extraneous content to opportunistically cover E.
+
+Notation. Given an input query x and a rewritten query y, let E = {ei}ni=1 be the set of essential 
+
+spans and N = {cj }Kj=1 the set of non-essential 
+
+spans. For two strings a, b , define the token-level Jaccard coverage 
+
+cov( a, b ) = |T (a) ∩ T (b)||T (b)| , (1) where T (·) is the lowercased, stop-word-filtered, al-phanumeric token multiset. Let Pr(a, b ) ∈ [−1, 1] 
+
+denote the rescaled BERTScore precision (Zhang et al., 2020) computed with a roberta-large 
+
+backbone. 
+
+Privacy reward Rpriv . Relying on a single match criterion leaves the model vulnerable to evasion via paraphrasing or verbatim insertion of short tokens. Thus, we penalize leakage using a disjunction of strict lexical coverage and semantic similarity. To prevent the over-removal of spans that are both sensitive and answer-bearing (§1), we first remove 4Figure 2: Overview of our framework. Training (left): rollouts from πθ are scored by a composite reward combining a hard privacy term Rpriv , a concave essential term Ress , and a one-sided length penalty Lbrev , which drives a GRPO update of πθ . Inference (right): the frozen πθ rewrites the query on the trusted side; only the rewrite is sent to the untrusted remote LLM, whose response is recombined locally to produce the final answer. 
+
+any c ∈ N that lexically overlaps with spans in 
+
+E, yielding a filtered set N ′ ⊆ N . The reward is formulated as:            
+
+> Rpriv (y) =
+> 
+> −1,∃c∈ N ′:cov( y, c )≥1.0∨Pr(y, c )> τ priv ,
+> 0,otherwise .
+
+(2) We use a strict lexical threshold of 1.0 to avoid penalizing benign partial overlaps (e.g., common function words). The semantic threshold τpriv =0.3 is empirically calibrated on a held-out develop-ment set. Finally, an empty sequence y is penalized with Rpriv = −1 to discourage trivial silent behav-iors. 
+
+Essential-preservation reward. Conditional on 
+
+Rpriv (y) = 0 , we measure utility by the fraction of 
+
+E retained by y:
+
+ρ(y) = 1
+
+|E| 
+
+X
+
+> e∈E
+
+ϕ(y, e ), (3) where ϕ(y, e ) = 1[cov( y, e ) ≥ 1.0 ∨ Pr(y, e ) >τpriv ]. With a linear reward ρ, recovering one ad-ditional essential span is worth a constant 1/|E| ,which can become vanishingly small when |E| is large. As a result, early-stage training may receive only a weak learning signal. We therefore reshape 
+
+ρ with a concave exponent: 
+
+Ress (y) = ρ(y) α, α ∈ (0 , 1) , (4) which by construction (a) is monotonically increas-ing in ρ, so the global optimum still lies at full recall; and (b) has strictly decreasing marginal returns, ∂R ess /∂ρ = α ρ α−1, which diverges as 
+
+ρ → 0+ and decays to α at ρ = 1 . This amplifies credit for the first few recovered spans and densifies the early-training signal. 
+
+Length penalty. A policy can pad a leak-free rewrite with task-irrelevant but privacy-safe mate-rial to maximize ρ(y). We block this with a one-sided, multiplicative brevity factor anchored at a per-example target length ℓ⋆(x) = |y⋆(x)|, where 
+
+y⋆(x) is the target rewrite pre-annotated by an ad-vanced model during benchmark construction and used as the desired upper bound on length. This up-per bound adapts to query length and information density. The brevity factor is 
+
+Lbrev (y) = min 
+
+
+
+1, exp 
+
+
+
+1 − |y|
+
+> ℓ⋆(x)
+
+ 
+
+∈ (0 , 1] .
+
+(5) The penalty is intentionally one-sided: overly long rewrites are penalized. 
+
+Final reward. Combining the three terms, 
+
+R(y) = 
+
+(Ress (y) Lbrev (y), Rpriv (y) = 0 ,
+
+−1, Rpriv (y) = −1.
+
+(6) The multiplicative form ensures brevity can only 
+
+discount retained utility, and any leak forces 
+
+R(y)= −1 regardless of recall or length. 
+
+4.3 Policy Training 
+
+We optimize πθ with GRPO (Shao et al., 2024b), which adopts a PPO-style clipped surrogate objec-5tive (Schulman et al., 2017), using reward R(y).For each query x we draw G rollouts {yi}Gi=1 from 
+
+πθ and compute their rewards {Ri}Gi=1 . The group-relative advantage is 
+
+ˆAi = Ri − mean( {Rj }Gj=1 )std( {Rj }Gj=1 ) + ϵ . (7) Let ri(θ) = πθ(yi | x)/π θold (yi | x), the GRPO objective is         
+
+> LGRPO =−E
+> h1
+> GGX
+> i=1
+> min  riˆAi,clip( ri,1±ϵc) ˆAi
+> 
+> −βD KL (πθ∥πref )
+> i
+> .
+> (8)
+
+where ϵc is the clipping range and β the KL coefficient. Per the contextual-bandit framing, 
+
+log πθ(yi | x) factorizes over tokens and the same 
+
+ˆAi applies to each token of yi.
+
+5 Experiments 
+
+We evaluate the proposed privacy-preserving query rewriter on two complementary axes. Privacy 
+
+measures how much task-non-essential sensitive content survives in the rewritten query that is ex-posed to the remote LLM, while utility measures whether the rewrite is still informative enough for a frozen local aggregator to produce a high-quality response. 
+
+5.1 Experimental Setup Models. We instantiate the policy rewriter πθ
+
+from Q WEN -2.5-3B-I NSTRUCT and train it with GRPO under the reward of §4.2. A single rewriter checkpoint is shared across all evaluation settings, testing whether the learned rewriting behaviour generalises beyond a particular backbone. The remote answerer is GPT-4 O, accessed through an internal proxy. On the trusted side, we eval-uate three frozen local aggregators of increasing scale: Q WEN -2.5-1.5B-I NSTRUCT , Q WEN -2.5-7B-I NSTRUCT , and L LAMA -3.1-8B-I NSTRUCT .Training details are reported in Appendix A. 
+
+Evaluation data. We evaluate on DelegateCI-Bench §3, in which every test instance carries an explicit (E, N ) partition of essential and non-essential sensitive spans. For evaluation, we report results on 1600 held-out portions of two comple-mentary groups: General and Medical .
+
+Evaluation metrics. Privacy. An item c ∈ N 
+
+is flagged as leaked in a rewrite y if it is recover-able from y via either token-level Jaccard cover-age or rescaled BERTScore precision (Zhang et al., 2020), capturing both verbatim and paraphrastic disclosure; items already in E are excluded. We report SLR (sample-level non-essential leak rate, our headline privacy score), NE (per-item leak rate over N ), and EA (per-item retention rate over E). Lower SLR/NE and higher EA are better. 
+
+Utility. On General we use the pairwise-with-swap judge of Siyan et al. (2025): the local-pipeline answer CL (driven by the rewrite y) is compared in both orderings against the unprotected GPT-4 O
+
+ceiling answer CT , and Util. is the swap-consistent win-or-tie rate. On Medical , where each item has a verified gold option, Util. is exact-match accuracy. 
+
+Baselines. Direct LLM forwards the unprotected query to GPT-4 O and serves as the utility ceil-ing (not comparable on the privacy axis). Lo-cal Only runs the original query entirely on the frozen local aggregator and serves as utility floor. We further compare against two query-side de-fences: Presidio (Microsoft, 2021), a rule-based PII redactor, and PAPILLON (Siyan et al., 2025), a PII-oriented privacy-conscious delegation baseline; and PUFT (Ngong et al., 2025), a conversational-agent-oriented local reformulation method that re-moves or rewrites non-essential sensitive informa-tion while preserving user intent. Details are in Appendix B. 
+
+5.2 Main Results on Privacy-Preserving Query Rewriting 
+
+Table 3 reports the privacy–utility trade-off across three aggregator scales. Our rewriter achieves the best average utility among protected methods in every block, peaking at 80 .5 with L LAMA -3.1-8B and yielding the largest gain over Local Only (+12 .5) in the most constrained Q WEN -2.5-1.5B setting. Because the same rewriter checkpoint is reused across all aggregators, these gains are not tied to a specific downstream backbone. The improvement is most pronounced on the 
+
+Medical split. With Q WEN -2.5-7B, our method lifts Medical utility from 47 .3 (Local Only) to 62 .0,while reducing leakage relative to PAPILLON; with L LAMA -3.1-8B, it reaches 66 .7, versus 60 .7
+
+for Local Only and 62 .8 for PUFT. This pattern reflects the structure of the Medical split: answer-decisive information is often concentrated in essen-6Table 3: Privacy–utility comparison of query rewriting strategies under three frozen local aggregators. Bold 
+
+and underline mark the best and second-best protected results within each aggregator block.                                                                                                                                                                       
+
+> Methods Rewriter General Medical Avg. Util. ↑∆vs. Local ↑
+> SLR ↓NE ↓EA ↑Util. ↑SLR ↓NE ↓EA ↑Util. ↑
+> Direct LLM raw query unprotected 100.0 ⋆unprotected 79.5 89.8 —Presidio(PII Only) rule-based PII 89.6 53.7 96.2 89.2 1.8 0.6 95.3 64.2 76.7 —
+> Local aggregator: Qwen-2.5-1.5B-Instruct
+> Local Only original query on-device 71.8 on-device 34.0 52.9 0.0 Papillon Qwen-2.5-1.5B 38.5 25.5 61.5 80.3 62.7 40.8 61.5 35.0 57.7 +4.8 PUFT Qwen-2.5-1.5B 19.8 12.0 44.5 80.0 16.7 9.9 13.1 32.5 56.3 +3.4
+> Ours Qwen-2.5-3B ( shared )8.0 2.2 59.8 89.5 4.2 1.5 71.0 41.2 65.4 +12.5 Local aggregator: Qwen-2.5-7B-Instruct
+> Local Only original query on-device 89.9 on-device 47.3 68.6 0.0 Papillon Qwen-2.5-7B 6.9 2.0 63.4 93.5 55.0 23.9 80.6 59.0 76.3 +7.7 PUFT Qwen-2.5-7B 7.6 2.5 50.1 96.0 20.3 7.2 27.8 49.0 72.5 +3.9
+> Ours Qwen-2.5-3B ( shared )8.0 2.2 59.8 95.3 4.2 1.5 71.0 62.0 78.7 +10.1 Local aggregator: Llama-3.1-8B-Instruct
+> Local Only original query on-device 87.2 on-device 60.7 74.0 0.0 Papillon Llama-3.1-8B 3.0 4.6 52.4 92.2 46.7 16.7 61.7 49.2 70.7 −3.3 PUFT Llama-3.1-8B 5.1 2.4 40.6 92.7 28.5 9.5 41.9 62.8 77.8 +3.8
+> Ours Qwen-2.5-3B ( shared )8.0 2.2 59.8 94.3 4.2 1.5 71.0 66.7 80.5 +6.6
+> ⋆Utility ceiling, not a protected method. “on-device ” indicates that no information is exposed off-device, so privacy metrics are not applicable.
+
+Table 4: Privacy-leak rates (%) by category. Direct, se-mantic, inferential, and combination leaks denote verba-tim retention, recoverable paraphrase, contextual infer-ence, and re-identification from combined cues, respec-tively. ≥ 1 / ≥ 2 denote rewrites with at least one / two leak categories. 
+
+System direct semantic infer. comb. ≥ 1 ≥ 2
+
+Papillon 15.8 4.2 12.8 50.8 76.4 7.2 Prediax 51.8 2.6 10.6 34.6 86.2 12.2 PUFT 21.0 2.4 7.5 39.2 70.4 6.9 
+
+Ours 23.0 2.2 8.0 39.6 68.4 4.2 
+
+tial sensitive spans. Since our rewriter is trained to preserve E while removing N , it can retain the clin-ical context needed for the correct answer. PAPIL-LON can reduce surface leakage in larger-model settings, but its aggressive paraphrasing makes per-formance less consistent across aggregator scales. PUFT is more privacy-conservative, yet often re-moves task-relevant evidence, particularly on Med-ical where essential information overlaps with sen-sitive spans. Overall, these results highlight the need to jointly preserve essential information and suppress non-essential private content. 
+
+5.3 LLM-as-a-Judge Assessment Protocol. We conduct a fine-grained LLM-as-a-Judge evaluation (GPT-4 O-MINI ) to capture fail-ures including semantic, inferential or combina-tional leakage, and subtle utility loss. Given the original question and the rewritten query, the judge 
+
+Figure 3: Joint distribution of utility score u and re-identification risk score r across the three systems. 
+
+produces flags for four privacy-leak , and returns a re-identification risk score r ∈ [0 , 1] and a utility score u ∈ [0 , 1] . Category definitions and prompts are in Appendix D. 
+
+Aggregate results. As shown in Figure 3, we ob-serve a clear negative correlation between r and u
+
+(Pearson −0.43 overall), confirming the expected privacy–utility tension. Within this tension, our rewrites occupy the most balanced region of the score space: 11 .2% of our samples fall into the ideal high-utility / low-risk quadrant ( u > 0.7
+
+and r ≤ 0.5) — comparable to Presidio ( 14 .8% )— while our worst-case quadrant (low utility and high risk) contains only 3.6% of samples, less than half of Presidio’s 9.0% . This suggests that our method produces fewer catastrophic rewrites than Presidio while remaining more informative than PAPILLON. 7Table 5: Qualitative case study comparing the original Question with the generated Privacy Query . Case 1 shows that utility-critical PII-bearing context can be retained, while Case 2 illustrates a failure mode where the rewriter introduces an unentailed sensitive span.  
+
+> Question Privacy Query
+> My father has schizophrenia, and I’m terrified about how that might affect my relationship with my partner. On top of everything, I’m between jobs and burning through savings right now. How do I even start a conversation with my partner about my dad’s condition without scaring them off? How do I approach discussing my father’s schizophrenia with my partner without causing them distress? In a young child who suddenly became pale and stopped running, then recovered after 30 minutes and has never been cyanotic, with a normal physical examination, chest x-ray, and echocardiogram, what does an ECG pattern suggest? In a child suddenly becoming pale and stopping while playing with a pet Chihuahua, no previous episodes, never cyanotic, physical and chest x-ray normal, echocardiogram normal, ECG showing the pattern on the next page, what is the diagnosis?
+
+Privacy-failure mode analysis. Breaking the privacy-issue rate down by leak type (Table 4) shows that the three systems fail in qualitatively dif-ferent ways. Presidio relies heavily on placeholder substitution (e.g., <PERSON> , <DATE_TIME> ) and consequently exhibits the highest direct_leak 
+
+rate ( 51 .8% of samples), because non-name tokens such as identifiers, diagnoses, or device names are left untouched. PAPILLON performs the most ag-gressive paraphrasing and therefore reduces direct leakage to 15 .8% , but its rewrites retain enough correlated context to trigger combination_leak 
+
+in 50 .8% of samples. Our method sits between these two regimes, with the lowest severe leakage rate (direct + semantic combined) and the lowest fraction of multi-issue privacy failures ( 4.2% vs. 
+
+7.2% / 12 .2% / 6.9% ). 
+
+5.4 Qualitative Analysis 
+
+Table 5 illustrates two representative behaviors of our privacy rewriter. In Case 1, the model preserves the answer-critical clinical PII-bearing span, schizophrenia , while removing incidental self-disclosures. Our method makes the trade-off explicit instead of over-redacting by default. In Case 2, however, the rewriter introduces an unen-tailed sensitive detail, “pet Chihuahua”, despite re-taining all diagnosis-critical evidence; this exposes a failure mode. A non-trivial 7.2% of all rewrites introduce sensitive attributes that are not entailed by the original question, The rate is comparable across methods (PAPILLON 9.2% , Ours 6.6% ), suggesting this is a general hazard of LLM-driven rewriting and motivates explicit constraints against attribute hallucination in future work. 
+
+Table 6: Reward ablation with LLAMA -3.1-8B-INSTRUCT as local aggregator.                             
+
+> Util. (%) General Medical Variant Gen Med SLR ↓EA ↑SLR ↓EA ↑
+> Full reward 94.3 66.7 8.0 59.8 4.2 71.0 w/o Rpriv 94.7 65.8 49.7 79.1 21.5 83.0
+> w/o Ress 91.8 62.5 3.3 30.0 2.8 29.9
+
+5.5 Ablation Study 
+
+We retrain the rewriter under two reduced rewards: 
+
+w/o Rpriv and w/o Ress . As shown in Table 6, each reduced reward isolates one Contextual Integrity failure mode from §1. Without Rpriv , copying the input becomes dominant: EA peaks but SLR in-flates 6–8× (over-disclosure ). Without Ress , near-empty rewrites are optimal: SLR hits its floor but EA roughly halves on General and collapses on Medical ( 71 .0 → 29 .9) ( over-removal ). The full reward avoids both degenerate solutions. This sup-ports the reward design as a constrained utility ob-jective rather than a simple linear privacy–utility trade-off. 
+
+6 Conclusion 
+
+We present a Contextual-Integrity-based frame-work for Privacy-Conscious Delegation , where query rewriting is guided by whether informa-tion is necessary for remote assistance. We built DelegateCI-Bench, a CI-grounded bench-mark whose every instance is annotated with ex-plicit task-essential and task-non-essential sensitive spans, and we turned this partition into a verifi-able reward that trains a rewriter with GRPO. The learned rewriter jointly suppresses non-essential disclosure and preserves answer-decisive context 8beyond prior rewriting baselines. 
+
+Limitations 
+
+Operationalisation of Contextual Integrity. 
+
+We operationalise CI as a sample-level binary par-tition into essential ( E) and non-essential sensitive (N ) spans, conditioned on a single recipient (a remote LLM) and a single transmission principle (task necessity). This necessarily flattens richer CI norms that are graded, recipient-, role-, and purpose-dependent, and that may evolve across multi-turn interactions. Our framework therefore does not directly model contested or ambiguous disclosures, downstream re-sharing, or norms that depend on the user’s broader social context. 
+
+Reward design and threat model. Our pri-vacy reward Rpriv flags leakage through strict lex-ical coverage and BERTScore-precision similar-ity against annotated N spans. It is therefore pri-marily sensitive to surface and near-paraphrase leakage of pre-identified sensitive content, and is weaker against (i) inferential leakage, where a non-sensitive rewrite still allows the remote LLM to infer protected attributes; (ii) cross-query linkage and longitudinal de-anonymisation across sessions. 
+
+References 
+
+Junying Chen, Zhenyang Cai, Ke Ji, Xidong Wang, Wanlong Liu, Rongsheng Wang, Jianye Hou, and Benyou Wang. 2024. HuatuoGPT-o1: Towards med-ical complex reasoning with LLMs. arXiv preprint arXiv:2412.18925 .Yu Chen, Tingxin Li, Huiming Liu, and Yang Yu. 2023. Hide and seek (HaS): A lightweight frame-work for prompt privacy protection. In arXiv preprint arXiv:2309.03057 .Zhao Cheng, Diane Bouchacourt, and Mark Ibrahim. 2024. CI-Bench: Benchmarking contextual integrity of AI assistants on synthetic data. arXiv preprint arXiv:2409.13903 .Tri Dao. 2024. FlashAttention-2: Faster attention with better parallelism and work partitioning. In Proceed-ings of the International Conference on Learning Representations (ICLR) .Junyuan Hong, Jiachen T. Wang, Chenhui Zhang, Zhangheng Li, Bo Li, and Zhangyang Wang. 2024. DP-OPT: Make large language model your privacy-preserving prompt engineer. In Proceedings of the International Conference on Learning Representa-tions (ICLR) .Zhigang Kan, Linbo Qiao, Hao Yu, Liwen Peng, Yifu Gao, and Dongsheng Li. 2023. Protecting user pri-vacy in remote conversational systems: A privacy-preserving framework based on text sanitization. In 
+
+arXiv preprint arXiv:2306.08223 .Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E. Gon-zalez, Hao Zhang, and Ion Stoica. 2023. Efficient memory management for large language model serv-ing with PagedAttention. In Proceedings of the 29th ACM Symposium on Operating Systems Principles (SOSP) .John Langford and Tong Zhang. 2007. The epoch-greedy algorithm for multi-armed bandits with side information. In Advances in Neural Information Pro-cessing Systems (NeurIPS) .Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-dar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. 2019. RoBERTa: A robustly optimized BERT pretraining approach. arXiv preprint arXiv:1907.11692 .Nils Lukas, Ahmed Salem, Robert Sim, Shruti Tople, Lukas Wutschitz, and Santiago Zanella-Béguelin. 2023. Analyzing leakage of personally identifiable information in language models. In Proceedings of the IEEE Symposium on Security and Privacy (SP) ,pages 346–363. Microsoft. 2021. Microsoft Presidio: Context-aware, pluggable and customizable PII anonymization ser-vice for text and images. https://microsoft. github.io/presidio/ .Niloofar Mireshghallah, Hyunwoo Kim, Xuhui Zhou, Yulia Tsvetkov, Maarten Sap, Reza Shokri, and Yejin Choi. 2024. Can LLMs keep a secret? Testing pri-vacy implications of language models via contextual integrity theory. In Proceedings of the International Conference on Learning Representations (ICLR) .Philipp Moritz, Robert Nishihara, Stephanie Wang, Alexey Tumanov, Richard Liaw, Eric Liang, Melih Elibol, Zongheng Yang, William Paul, Michael I. Jordan, and Ion Stoica. 2018. Ray: A distributed framework for emerging AI applications. In Proceed-ings of the 13th USENIX Symposium on Operating Systems Design and Implementation (OSDI) , pages 561–577. Seth Neel and Peter Chang. 2023. Privacy issues in large language models: A survey. arXiv preprint arXiv:2312.06717 .Ivoline Ngong, Swanand Kadhe, Hao Wang, Keerthiram Murugesan, Justin D. Weisz, Amit Dhurandhar, and Karthikeyan Natesan Ramamurthy. 2025. Protecting user privacy in online settings via supervised learn-ing guided by contextual integrity. In Findings of the Association for Computational Linguistics: ACL 2025 . Association for Computational Linguistics. 
+
+9Helen Nissenbaum. 2010. Privacy in Context: Technol-ogy, Policy, and the Integrity of Social Life . Stanford University Press, Stanford, CA. Ildikó Pilán, Pierre Lison, Lilja Øvrelid, Anthi Pa-padopoulou, David Sánchez, and Montserrat Batet. 2022. The text anonymization benchmark (TAB): A dedicated corpus and evaluation framework for text anonymization. Computational Linguistics ,48(4):1053–1101. Qwen Team, An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, Huan Lin, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jingren Zhou, Junyang Lin, and 24 others. 2025. Qwen2.5 technical report. arXiv preprint arXiv:2412.15115 .John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. 2017. Proxi-mal policy optimization algorithms. arXiv preprint arXiv:1707.06347 .Yijia Shao, Tianshi Li, Weiyan Shi, Yanchen Liu, and Diyi Yang. 2024a. PrivacyLens: Evaluating privacy norm awareness of language models in action. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) .Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Mingchuan Zhang, Y. K. Li, Y. Wu, and Daya Guo. 2024b. DeepSeekMath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300 .ShareGPT. 2023. ShareGPT: Share your wildest ChatGPT conversations with one click. https: //sharegpt.com/ . Accessed: 2025-05-24. Guangming Sheng, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2025. HybridFlow: A flexible and efficient RLHF framework. In Proceedings of the Twentieth European Conference on Computer Systems (EuroSys ’25) .Li Siyan, Vethavikashini Chithrra Raghuram, Omar Khattab, Julia Hirschberg, and Zhou Yu. 2025. PA-PILLON: Privacy preservation from Internet-based and Local Language ModelOrchestratioN. In Pro-ceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Compu-tational Linguistics (NAACL) .Joar Skalse, Nikolaus H. R. Howe, Dmitrii Krashenin-nikov, and David Krueger. 2022. Defining and char-acterizing reward hacking. In Advances in Neural Information Processing Systems (NeurIPS) .Xinyu Tang, Richard Shin, Huseyin A. Inan, Andre Manoel, Fatemehsadat Mireshghallah, Zinan Lin, Sivakanth Gopi, Janardhan Kulkarni, and Robert Sim. 2024. Privacy-preserving in-context learning with differentially private few-shot generation. In Pro-ceedings of the International Conference on Learning Representations (ICLR) .Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q. Weinberger, and Yoav Artzi. 2020. BERTScore: Evaluating text generation with BERT. In Proceed-ings of the International Conference on Learning Representations (ICLR) .Wenting Zhao, Xiang Ren, Jack Hessel, Claire Cardie, Yejin Choi, and Yuntian Deng. 2024. WildChat: 1M ChatGPT interaction logs in the wild. In Proceed-ings of the International Conference on Learning Representations (ICLR) .
+
+A Setup Details 
+
+Hardware and software. All training and eval-uation are run on a single node with 4× NVIDIA A100 80GB PCIe GPUs. Our implementa-tion is built on the VERL framework (Sheng et al., 2025) for reinforcement learning, with vLLM (Kwon et al., 2023) as the rollout engine and Ray (Moritz et al., 2018) for distributed orches-tration. The actor is sharded with PyTorch native FSDP and uses FlashAttention 2 (Dao, 2024) to-gether with gradient checkpointing. The reward module uses bert-score (Zhang et al., 2020) with RoBERTa-large (Liu et al., 2019), layer 17, and 
+
+rescale_with_baseline=True , following the of-ficial recommendation for English. Exact library versions are released with our code. 
+
+Model parameters. We fine-tune Qwen2.5-3B-Instruct (Qwen Team et al., 2025) using Group Relative Policy Optimization (GRPO) (Shao et al., 2024b). Training uses a global batch size of 24 
+
+prompts, a PPO mini-batch size of 24 , and a per-GPU micro-batch size of 6. For each prompt we sample n=8 rollouts with a generation temperature of 0.7. The actor learning rate is 1×10 −6 with a 
+
+3% linear warm-up and a constant schedule after-wards, weight decay 0.01 , and gradient clipping at 1.0. We adopt the low-variance KL estimator (low_var_kl ) between the actor and a frozen ref-erence policy, with a KL loss coefficient of 0.005 ,applied only to the policy loss and not to the reward. The PPO clip ratio is 0.2 and the entropy coefficient is 0. The context window is set to 1,024 tokens for the prompt and 512 tokens for the response. The batched reward function (§4.2) is invoked with a BERTScore batch size of 128 . We train for a maxi-mum of 10 epochs and select the best checkpoint by validation performance evaluated every 80 opti-mizer steps. 10 B Baseline Implementation Details 
+
+Direct LLM. Direct LLM directly sends the orig-inal, unmodified user query to the remote model and uses the remote response as the final answer. This setting does not provide privacy protection and is therefore not included as a protected method on the privacy axis. Instead, it serves as an upper-bound reference for remote-model utility. 
+
+Local Only. Local Only keeps the entire inter-action on the trusted side by sending the original user query directly to the frozen local aggregator, without query rewriting or remote-model access. This setting exposes no query content to the remote model and serves as a lower-bound reference for utility under fully local inference. We provide implementation details for all base-lines compared in Section 5.2. Unless otherwise specified, all baselines share the same remote model (GPT-4 O) and the same evaluation proto-col to ensure a fair comparison; only the local privacy-preserving component differs across sys-tems. For baselines that involve a local model (PAPILLON and PUFT), we sweep over the same three local aggregators used in our main experiments (§5.1): Q WEN -2.5-1.5B-I NSTRUCT ,QWEN -2.5-7B-I NSTRUCT , and L LAMA -3.1-8B-INSTRUCT .
+
+Presidio (Microsoft, 2021). Presidio is a rule-and NER-based PII detection and anonymization baseline. We use the off-the-shelf Presidio Ana-lyzer to detect sensitive entities in the input query and the Presidio Anonymizer to replace detected spans with anonymized placeholders before send-ing the query to the remote model. The same re-mote model is then queried with the anonymized prompt, and its output is used as the final response. This baseline evaluates whether standard automatic PII redaction is sufficient to preserve privacy while maintaining downstream response quality. 
+
+PAPILLON (Siyan et al., 2025). PAPILLON is a privacy-preserving model-ensemble baseline for privacy-conscious delegation. It is a prompting-based pipeline and does not involve additional train-ing or fine-tuning. Following the original imple-mentation, we instantiate two local-model mod-ules: a Prompt Creator , which rewrites the user query into a privacy-preserving prompt for the re-mote model, and an Information Aggregator , which combines the original user query with the remote model’s response to produce the final answer. In our experiments, we keep the original PAPILLON prompts unchanged and only vary the local back-bone model used for both the creator and aggrega-tor. The remote model is fixed across runs for fair comparison. 
+
+PUFT (Ngong et al., 2025). PUFT is a prompt-based local LLM method for privacy-preserving prompt reformulation, without any training or fine-tuning. Following the original framework, we im-plement it as a local intermediary between the user prompt and the target conversational agent. Each in-put is processed through three stages: context iden-tification, sensitive information classification, and prompt reformulation. The model first infers the in-teraction domain and user task, then separates sen-sitive attributes into essential information required for task completion and non-essential information that should be protected. When non-essential sen-sitive information is detected, the model removes, generalizes, or rewrites such content while preserv-ing the original intent. As with PAPILLON, we vary only the local backbone over the three aggre-gators listed above and keep all prompts and the remote model fixed. 
+
+C DelegateCI-Bench Construction Details 
+
+This appendix enumerates the sampler axes (Ta-bles 7 and 8), lists the generator/judge/reformula-tor prompt templates, and defines the consistency-judge acceptance rule for comparing ( ˆE, ˆN ) with the sampled partition (E, N ).
+
+C.1 Coverage of the structured sampler 
+
+Each sample is a joint draw (d, t, SE , SN , s, y, τ )
+
+over the axes in Tables 7 and 8; SE and SN come from the 30-attribute pool, and τ is generator-only. 
+
+Domain → essential pool and task essen-tial policy. Two side-tables determine whether an attribute may be essential: adomain pool PE (d) and a task policy 
+
+π(t) ∈ { NONE , DOMAIN , ADDRESSED -PERSON }. 
+
+> NONE
+
+(Code Generation, Translation, Summari-sation, MCQ, Information Retrieval) sets E = ∅; 
+
+> DOMAIN
+
+(Personal Advice, Problem Solving) draws |E| ∈ { 1, 2} from PE (d); ADDRESSED - 
+
+> PERSON
+
+(Communication, Story/Poem, Character Description) forces name into E and may add one domain-pool attribute. 
+
+Confusion injection. With probability 
+
+ρconf =0 .15 the sampler emits a confusion 11 Table 7: Domain, task and stylistic axes used by the sampler. 
+
+Axis (#) Values 
+
+Domain (11) Health & Wellness, Financial & Corporate, Employment & Applications, Aca-demic & Education, Legal, Personal Relationships, Travel, Hobbies & Habits, Sexual & Erotic, Politics, Religion. Task type (20) Summarisation, Prompt Generation for AI Models, Story & Script Generation, Song & Poem Generation, Character De-scription Generation, Code Generation, Code Editing & Debugging, Communi-cation Generation, Non-Fictional Doc-ument Generation, Text Editing, Com-parison/Ranking/Recommendation, Brain-storming & Idea Generation, Information Retrieval, Problem Solving, Explana-tion & Practical Advice, Personal Advice, Back-and-forth Role Playing, Multiple-Choice QA, Translation, General Chitchat. Subject (5) self , family , friend , coworker , third party .Disclosure style (4) 
+
+direct (short factual statements), narra-tive (mini-story), implicit (inferable details), 
+
+multi-sentence (scattered details). Tone (6) neutral, frustrated, casual, urgent, formal, anxious. 
+
+specification. SHARED -ATTRIBUTE (60% ) places the same attribute type in both E and N with distinct subjects, tagging the N side with a third-party relation. OVER -REMOVAL -TRAP 
+
+(40% ) forces the task to ADDRESSED -PERSON ,making an otherwise sensitive-looking attribute answer-bearing. 
+
+C.2 Generator, judge and reformulator prompts 
+
+Generator runs use Claude Sonnet 4.6 at temper-ature 0.95 ; the judge uses GPT-4o at temperature 
+
+0.0 in JSON mode; the reformulator uses GPT-4o at temperature 0.2.
+
+C.3 Generator prompt. Generator prompt. 
+
+System 
+
+You are a data-synthesis assistant that crafts realistic, natural-sounding user queries for an AI chatbot. Output ONLY the user query text – no preamble, JSON, quotes, or labels. 
+
+User 
+
+Compose a single realistic user message. 
+
+Context 
+
+domain {domain} , task {task} (or task brief 
+
+{task_brief} when no sensitive attribute is essential), subject framing {subject} , writing style {style} ,
+
+Table 8: Sensitive-attribute taxonomy inherited from Ngong et al., 2025. 
+
+Family Attributes 
+
+Identifiers name, email, phone_number, address, ssn, driver_license, dates. Demographics age, gender, ethnicity. Health physical_health, mental_health, medica-tions, allergies, disabilities, family_history, exercise_hours, smoker, diet_type. Beliefs/Identity religious_beliefs, sexual_orientation. Lifestyle favorite_food, favorite_hobbies, pet_ownership, movie_prefs, vaca-tion_prefs. Socio-economic financial_situation, employment, legal, re-lationship_status. tone {tone} .
+
+Constraints 
+
+• The query MUST naturally include EVERY es-sential and non-essential item listed; values may be rephrased but the underlying facts must stay inferable. • Essential items are necessary to answer; remov-ing them breaks the request. Non-essential items are user “oversharing” and must be safely remov-able. • Do NOT add new PII beyond the listed items. Length 30–150 words; sound like a real user. • Output ONLY the final message text. 
+
+Confusion cues (conditional) 
+
+shared_attr : the same attribute type appears in both buckets; a [SUBJECT NOTE] marks the third-party owner, and the writing must disambiguate ownership. 
+
+over_removal_trap : attributes that look sensitive (e.g., a name) are essential because the task is addressed to that person; stripping them must break the request. 
+
+Inputs appended to the prompt 
+
+ESSENTIAL information: {e_list} 
+
+NON-ESSENTIAL sensitive information: {ne_list} 
+
+Each item is formatted as - attr (desc): "value" [SUBJECT NOTE: ...] .
+
+C.4 Consistency judge prompt. Consistency judge prompt. 
+
+System 
+
+You are an evaluator for question-answering systems. 
+
+Criteria 
+
+Determine whether the system-generated answer aligns with the provided gold (reference) answers. Mark as 
+
+1 if the answer (i) contains the same key information, (ii) expresses the same meaning even with different wording, and (iii) is factually consistent with the gold answers; otherwise 0.
+
+Output 
+
+Reply with "1" or "0" only. 
+
+12 C.5 Reformulator prompt. Reformulator prompt.                        
+
+> System
+> You are a privacy-conscious assistant that reformulates user prompts to preserve contextual privacy while keep-ing the original intent and structure. Output the refor-mulated prompt only – one line, no JSON, quotes, or labels.
+> User
+> Reformulate the message so that: (i) the request type is preserved (question stays a question); (ii) ALL essen-tial information is kept, possibly generalized but still informative; (iii) non-essential information is removed or generalized away; (iv) the model rewrites only, never answers; (v) the output is fluent and natural.
+> Few-shot examples
+> •Orig: “What’s a message that I, as a cool col-lege student, can say to someone whom I want to meet?” →Ref: “What’s a good way to initiate a conversation with someone I’d like to connect with?” •Orig: “I need help writing an email to Professor Smith about missing class yesterday due to food poisoning.” →Ref: “I need help writing an email about a class absence due to illness.” •Orig: “Looking for advice on managing my dia-betes. I take Metformin twice daily and my sister suggested trying a keto diet.” →Ref: “Looking for advice on managing diabetes and considering dietary changes.”
+> Inputs appended to the prompt
+> Original: """{raw_prompt}"""
+> Context (intent / domain): {domain} /{task}
+> Essential information to keep: {e_list} (or, when no sensitive essential exists, “Essential (the task itself, must be preserved): {task_brief} ”) Information to remove or generalize: {ne_list}
+> Provide ONLY the reformulated text.
+
+C.6 Matching rules and acceptance thresholds 
+
+Let SE , SN be the injected attribute–value sets and JE , J N the judge strings re-turned under essential_attributes and 
+
+nonessential_attributes . We accept agenerated sample in three steps. 
+
+Step 1: value matching. A sampled value v
+
+matches a judge string j if either content-token recall is at least 0.5,
+
+|T (v) ∩ T (j)|/|T (v)| ≥ 0.5,
+
+or, optionally, sentence-embedding cosine similar-ity is at least 0.65 . Attribute types are ignored, so paraphrases and tense changes can still match. The token-only and embedding-augmented settings agree on 97 .4% of a 500-sample dev split. 
+
+Step 2: side recall. We score how many sampled values the judge placed on the correct side: 
+
+brE = |{ v ∈ S E : ∃j ∈ JE , match (v, j )}| |S E | ,
+
+brN = |{ v ∈ S N : ∃j ∈ JN , match (v, j )}| |S N | .
+
+For NONE -policy samples, where SE = ∅, we set 
+
+brE ≡ 1. We separately log swapped assignments and residual judge-flagged spans ∆N = JN \(SE ∪SN ); the latter are treated as model-leaked PII and folded into N .
+
+Step 3: acceptance. The final score is 
+
+ϕ =
+
+(
+
+min( brE , brN ), SE̸ = ∅,
+
+brN
+
+ 1 − 0.5 · promotion-rate , SE = ∅.
+
+Samples with ϕ ≥ 0.8 are accepted ( PASS ); sam-ples with 0.5 ≤ ϕ < 0.8 are kept only for hard mining ( SOFT -FAIL ); the rest are discarded ( HARD -
+
+> FAIL
+
+). 
+
+Pipeline yield. With Claude Sonnet 4.6 as gen-erator and GPT-4o as judge, the thresholds above yield an ≈ 85% PASS rate and < 5% HARD -FAIL ;the reverse-synthesis split of B keeps only PASS 
+
+samples. 
+
+D LLM-as-a-Judge Rubric 
+
+This appendix specifies the LLM-as-a-Judge pro-tocol used in §5.3: judge model and decoding, the inputs given to the judge, the leak and utility tax-onomies, the scoring scales, and the full judge prompt. The same prompt and decoding config-uration are used for all three systems compared in the main paper ( Ours , PAPILLON and Presidio ); only the rewritten query priv_query differs across systems. 
+
+Judge model and decoding. The judge is GPT-4 O-MINI accessed through an internal proxy. We use temperature = 0.1, default 
+
+top_p , and a single sample per item. The model is queried in JSON-object mode with 
+
+response_format={"type":"json_object"} ,so the judge must return a strict JSON dictionary; any output that fails to parse is discarded and re-queried up to three times with exponential backoff. The same evaluation prompt is reused across all systems so that the comparison is prompt-invariant. 13 Inputs to the judge. For every test instance the judge receives a JSON payload with four fields: • question : the original user request. • priv_query : the rewritten query produced by the system under evaluation. • ea_items : the set of essential, answer-bearing spans E from the benchmark, used as the primary utility reference. We merge the dataset fields ea , origin_ea and key_spans 
+
+and de-duplicate case-insensitively to obtain a single list. • ne_items : the set of non-essential sensitive spans N , used as a weak hint about what should not survive in priv_query .The judge is explicitly instructed to use ea_items 
+
+as the primary utility reference (paraphrases, gener-alisations and split mentions count as preserved), to use ne_items only as hints rather than as a check-list, and to treat content that is not entailed by 
+
+question as a separate hallucination signal. 
+
+Privacy-leak categories. The judge labels each privacy issue with one of four leak types, applied at the level of individual spans of priv_query :• direct_leak : priv_query contains a sensi-tive identifier or a near-verbatim copy of a sensitive detail from question (names, dates, contact strings, device names, identifiers). • semantic_leak : a sensitive detail is pre-served through paraphrase, translation, abbre-viation or normalisation, so that the span is no longer verbatim but semantically equivalent. • inferential_leak : the sensitive attribute is not explicitly written but is reasonably infer-able from common knowledge given the re-tained context. • combination_leak : several individually in-nocuous clues jointly narrow the user, patient, organisation or situation to a small identifi-able set; flagged only when the combination creates meaningful re-identification risk, not whenever multiple clinical or task details co-occur. Each leak entry carries a span (the exact substring of priv_query , or empty for combination/infer-ential cases with no single responsible span), a 
+
+source string pointing to the sensitive content in 
+
+question , and a brief free-text reason .
+
+Utility-issue categories. A utility issue is raised only when an ea_item (or a clearly indispensable task need that is missing from ea_items ) is ma-terially damaged in a way that would reduce the usefulness of the external response. The five labels are: • lost_constraint : an ea_item or indispens-able task need is absent from priv_query .• weakened_constraint : an ea_item is present but materially less specific (e.g. a pre-cise dose replaced by “a medication”). • over_generalization : priv_query is so broad that it would likely elicit only generic background. • task_drift : priv_query asks for a different kind of support than the original task requires. • added_constraint : priv_query introduces a new task constraint, assumption, diagnosis, preference or framing that is not supported by 
+
+question .For multiple-choice instances, answer options are not required to be preserved unless ea_items 
+
+explicitly require the option set or decision cri-terion. Before flagging lost_constraint or 
+
+weakened_constraint , the judge is required to ask whether the omission would actually break task-grounded support; otherwise no issue is raised. This guards against over-flagging cosmetic rewrites. 
+
+Hallucinated sensitive content. Independently of the leak categories above, the judge lists in a new_sensitive array any span of priv_query 
+
+that introduces sensitive information not entailed by question . This stream is used in §5.3 to esti-mate the attribute-hallucination rate. 
+
+Scoring scales. In addition to the categorical flags, the judge emits four scalar fields: • reid_risk ∈ [0 , 1] : re-identification risk. An-chors: 0.0 – no meaningful identifying cues; 
+
+0.3 – minor residual cues unlikely to identify the case; 0.6 – clearly narrowable or linked to a small identifiable set; 1.0 – directly or almost directly identifiable. • utility_score ∈ [0 , 1] : usefulness for the original task. Anchors: 1.0 – all ea_items are semantically preserved; 0.7 – one ea_item 
+
+mildly weakened or under-specified; 0.4 – a 14 major ea_item or core knowledge need is lost; 
+
+0.0 – different task, unusable rewrite, or too generic. • verdict ∈ { GOOD , ACCEPTABLE , BAD }: a coarse summary verdict. GOOD = low privacy risk and high utility; ACCEPTABLE = minor privacy or utility issues but still usable; BAD 
+
+= clear leak, high re-identification risk, hal-lucinated sensitive content, major utility loss, severe over-generalisation or task drift. • confidence ∈ [0 , 1] : the judge’s self-reported confidence in its labels. Anchors: 
+
+0.3 – limited or ambiguous evidence; 0.6 –moderate evidence; 0.9 – strong evidence. All numerical analyses in §5.3 (quadrant distribu-tions, leak-rate breakdown, multi-issue rate) oper-ate on these fields directly; verdict labels are used only as a coarse summary. 
+
+Bias controls. We adopt two bias controls com-mon in LLM-as-judge work. First, every rewrite is shown to the judge in isolation rather than alongside the output of a competing system, so the judge cannot exhibit position or system-identity bias across our three methods. Sec-ond, the judge is never told which system pro-duced priv_query ; the JSON payload carries only 
+
+question , priv_query , ea_items and ne_items ,with no system tag. To discourage verbosity bias, the rubric explicitly states that preservation can take the form of paraphrases or generalised wording and that issues should be raised only when usefulness is materially reduced. 
+
+Output schema. The judge is required to return exactly the following JSON object, with no sur-rounding prose. The parser used in our analysis pipeline rejects any other shape. 
+
+Judge output schema. 
+
+> {"privacy_issues": [ {"type": "direct_leak | semantic_leak | inferential_leak | combination_leak", "span": "substring from priv_query", "source": "sensitive info", "reason": "brief explanation" }], "utility_issues": [ {"type": "lost_constraint | weakened_constraint
+> | task_drift | over_generalization | added_constraint", "span": "substring from priv_query", "source": "ea_item or task need", "reason": "brief explanation" }], "new_sensitive": [ {"span": "substring from priv_query", "reason": "why not entailed" }], "reid_risk": 0.0, "utility_score": 1.0, "verdict": "good | acceptable | bad", "confidence": 0.0 }
+
+Full judge prompt. The system prompt below is the verbatim instruction we send to GPT-4 O-MINI .The user message is a JSON dump of { question ,
+
+priv_query , ne_items , ea_items } together with the line “Evaluate the following privacy rewrite. Return ONLY the JSON object specified in the system instructions.” 
+
+LLM-as-a-Judge system prompt. 
+
+You are evaluating whether a privacy rewrite turns a user’s original request into a privacy-preserving query for external task support. 
+
+Your goals: 
+
+1. Check whether priv_query leaks sensitive infor-mation from question .2. Check whether priv_query preserves the essen-tial task attributes in ea_items from a semantic perspective. 3. Identify utility loss only when an essential task attribute is missing, weakened, distorted, over-generalised, or changed in a way that would re-duce the usefulness of the external response. 4. Identify newly introduced sensitive information not supported by question .Use ea_items as the primary reference for utility. For each ea_item , decide whether it is still present in priv_query in a semantically equivalent and task-useful form. Exact wording is not required: paraphrases, abbreviations, generalised forms, split mentions, or im-plications by a more specific retained detail can count as preserved. Use question only to understand context, resolve ambiguity, and catch clearly indispensable task needs that are missing from ea_items . Do not freely invent extra utility requirements beyond ea_items .Use ne_items as weak hints for privacy-sensitive infor-mation. Do not mechanically match ne_items , but pay attention to whether priv_query reveals sensitive iden-tifiers, private attributes, or identifying combinations from question , especially when those details are not part of ea_items .
+
+Privacy issue types: 
+
+15 • direct_leak : priv_query directly includes a sensitive identifier or near-verbatim sensitive de-tail. • semantic_leak : sensitive information preserved through paraphrase, translation, abbreviation, nor-malisation, or equivalent wording. • inferential_leak : sensitive information made reasonably inferable from common knowledge. • combination_leak : multiple retained clues jointly narrow the user, patient, organisation or situation to a small identifiable set; the combi-nation must create meaningful re-identification risk. 
+
+Utility issue types: 
+
+• lost_constraint : an ea_item or indispensable task need is absent. • weakened_constraint : an ea_item is present but materially less specific. • over_generalization : priv_query is too broad and would elicit only generic background. • task_drift : priv_query asks for a different kind of support than the original task requires. • added_constraint : priv_query introduces a new task constraint, assumption, diagnosis, pref-erence or framing not supported by question .
+
+Important rules. For multiple-choice questions, answer options need not be preserved unless 
+
+ea_items explicitly require them. Before flag-ging lost_constraint or weakened_constraint ,ask whether the external source would fail to provide useful task-grounded support because of this omission; if not, do not flag it. Evidence spans must be exact sub-strings from priv_query when possible. Output only 
+
+the JSON object specified above; return no text outside the JSON. 
+
+16

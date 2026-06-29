@@ -1,0 +1,792 @@
+Title: Seeing Without Exposing: Adaptive Privacy Control for Open-World, Context-Hungry MLLMs
+
+URL Source: https://arxiv.org/pdf/2606.07175v1
+
+Published Time: Mon, 08 Jun 2026 00:47:31 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# Seeing Without Exposing: Adaptive Privacy Control for Open-World, Context-Hungry MLLMs 
+
+Siyuan Xu ∗
+
+City University of Hong Kong 
+
+siyuanxu333@gmail.com 
+
+Yibing Liu ∗
+
+City University of Hong Kong 
+
+lyibing112@gmail.com 
+
+Peilin Chen 
+
+City University of Hong Kong 
+
+plchen3@cityu.edu.hk 
+
+Yung-Hui Li 
+
+Hon Hai Research Institute 
+
+yunghui.li@foxconn.com 
+
+Shiqi Wang 
+
+City University of Hong Kong 
+
+shiqwang@cityu.edu.hk 
+
+Sam Kwong 
+
+Lingnan University 
+
+samkwong@ln.edu.hk 
+
+Abstract 
+
+Multimodal large language models (MLLMs) have raised new privacy challenges. On the data side, user-provided inputs often include unpredictable sensitive in-formation; while on the downstream task side, model reasoning depends on rich visual context that may itself be privacy-sensitive. Existing privacy protection methods, however, rely on predefined sensitive categories and fixed obfuscation strategies, struggling to tackle such challenges in MLLMs. To address this dilemma, we propose Anchored Privacy Drifting (APD), a training-free method that drifts privacy-sensitive elements toward semantically equivalent alternatives while an-choring contextual cues to the source image. To systematically evaluate this dual objective of privacy protection and contextual preservation, we introduce AdaptShield, a comprehensive benchmark covering 22 privacy categories, which combines conventional privacy metrics with MLLM-based assessments of con-textual utility. Extensive experiments show that our method achieves balanced improvements in both privacy sanitization and content retention, with average gains of 10.4% on textual categories and 8.5% under MLLM-based evaluation across four MLLM series, i.e. , Qwen2.5, Qwen3, InternVL3, and InternVL3.5. 
+
+1 Introduction 
+
+Visual privacy protection for Multimodal Large Language Models (MLLMs) has seen intensified concerns recently [ 48 , 50 , 19 , 16 ]. Unlike conventional definitions of privacy that emphasize limited entities ( e.g., faces), visual privacy in MLLMs presents a distinct user-tailored paradigm – what constitutes sensitive information varies across users, contexts, and intents. A scene, object, or gesture that appears innocuous to one user may carry private or revealing meanings to another [ 8 , 48 , 49 ,31 , 33 , 40 , 9, 32 ]. This personalized nature challenges the one-size-fits-all assumption of traditional anonymization, motivating privacy formulations that incorporate user-provided specifications such as region masks or explicit concealment intents. Beyond concealment, since protected images are further consumed by models for multimodal understanding and reasoning, high-fidelity protection is equally critical in MLLM settings. Severe distortions to scene layout, object relationships, or contextual cues may make an image privacy-safe but ineffective for downstream tasks. However, existing approaches remain largely polarized. Specialized methods such as facial de-identification [ 21 , 20 , 6, 24 ] achieve fine-grained concealment but rely on domain-specific priors [ 37 ,              
+
+> ∗Equal contribution. Preprint.
+> arXiv:2606.07175v1 [cs.CV] 5 Jun 2026 private protected
+> Credit card number
+> private protected
+> License Plates Landmark
+> private protected
+> private protected
+> private protected
+> Faces
+> Ticket
+> private protected
+> Handwriting
+> private protected
+> Student id card
+> private protecte
+> d
+> Driver license
+> private protected
+> Phone
+> Generic obscuration Specialized anonymization
+> Low generality High generality High Fidelity
+> Birth Date
+> private protected
+> Low Fidelity
+> Overfitting to specific domain Over -distorted protected outputs
+> private protected
+
+Anchored Privacy Drifting            
+
+> private protected
+> Riddle
+> Visual obfuscation techniques
+> Falco  private protected
+> G2Face  private protected
+> Simple  private protected
+> Nullface  private protected
+> private protected
+> Faces
+> private protected
+> Ticket
+> private protected
+> Phone
+> private protected
+> License Plate
+> private protected
+> Handwriting
+> private protected
+> Landmark
+> Driver license
+> ICEdit
+> Instructp2p ICEdit  FluxEdit
+
+Figure 1: Anchored Privacy Drifting (APD) defines a new privacy protection paradigm for MLLMs. It preserves content coherence and high perceptual quality while explicitly maintaining information beneficial for downstream tasks and personalized user requirements across diverse inputs. 42 ], limiting scalability to broader privacy scenarios. Universal approaches instead adopt coarse obfuscation strategies [ 25 , 15 ] that suppress sensitive content at the cost of destroying contextual and structural information, rendering protected images unreliable for downstream MLLM understanding and reasoning. Consequently, there still lacks a unified framework that can adaptively balance privacy concealment and content preservation under diverse and personalized privacy requirements. To this end, we propose Anchored Privacy Drifting (APD) , a training-free framework that generates a privacy-safe version of the source image with transformed private content, while preserving the overall visual fidelity. APD operates in a shared multimodal latent space and steers the denoising trajectory with two directional signals to control where the generated image ultimately lands. Under high-level semantic guidance, the latent representation drifts toward a privacy-safe region whose private specifics naturally diverge from the source through inherent semantic stochasticity. In parallel, a source-derived direction, computed directly between the source and the current state, anchors the trajectory against excessive deviation from the original context. By adaptively balancing these two directions across spatial regions and generation steps, APD steers the trajectory toward an endpoint that is structurally faithful to the source yet semantically redirected away from private specifics, achieving controllable privacy concealment with minimal contextual degradation. Given that current assessment protocols remain confined to task-specific indicators [ 24 , 6, 20 , 47 , 21 ](e.g. , face embeddings) or subjective human evaluations [ 45 , 2 ], we further present AdaptShield , a benchmark encompassing 22 types of sensitive content with specified privacy regions and hierarchical evaluation protocols covering both concealment effectiveness and perceptual fidelity. For concealment, AdaptShield employs identity similarity, textual matching, and MLLM probing. For fidelity, it combines perceptual metrics, detection checks, and MLLM scoring. The two are further unified into a F1-Privacy metric to provide a holistic assessment of overall protection and fidelity performance. To mitigate model-specific bias, we employ four representative MLLMs as evaluators (Qwen2.5-VL-7B-Instruct [ 5], Qwen3-VL-8B-Instruct [ 4 ], InternVL3-14B [ 11 ], and InternVL3.5-14B [ 43 ]). Extensive experiments demonstrate that APD achieves state-of-the-art performance across all 22 categories and four MLLM evaluators. In summary, our contributions are as follows: • We introduce Anchored Privacy Drifting (APD) , a training-free, scalable framework that protects privacy by drifting sensitive regions toward privacy-safe alternatives while anchoring them to the source for visual fidelity, enabling adaptive sanitization of sensitive attributes while preserving contextual coherence. • We construct AdaptShield , a comprehensive benchmark covering 22 heterogeneous privacy types with user-specified privacy masks and hierarchical evaluation protocols that jointly assess concealment effectiveness and perceptual fidelity, providing systematic and fine-grained evaluation for privacy protection in MLLM scenarios. • We conduct extensive experimental analyses demonstrating that APD consistently achieves substantial gains across diverse privacy categories, including an average 10.4% improve-ment on textual privacy categories and an average 8.5% improvement under MLLM-based evaluation across four MLLM evaluators. 2perceptual retention 
+
+A: … **Card Number** : The first 6 digits ( 4921 ) are partially visible, and the rest ( 8187 9544 
+
+6718 ) are fully visible. … 
+
+A: 1. The credit card is placed on top of a brown wallet ... 
+
+response plausibility 
+
+Q1: Can you describe the information that can get from the credit card? 
+
+Q2: Can you detect credit card in this image? If yes, reply with the number of credit card and describe 
+
+where each credit card is located. If no credit card is visible, reply exactly with 0. 
+
+> Original
+
+A: … Account Number**: The account number starts with " 4580 
+
+4729 0720 3501 ". The rest of the number is obscured for security 
+
+reasons. … 
+
+A: 1. The credit card is placed on top of a brown leather wallet, 
+
+which is resting on a surface covered with a red and white patterned 
+
+cloth… 
+
+response plausibility 
+
+perceptual retention 
+
+> Ours
+> Q1
+> Q2
+
+A: … The image provided appears to 
+
+be an outline or a representation of a 
+
+credit card, but it does not contain any 
+
+specific information about a real credit 
+
+card… 
+
+A: 0
+
+response plausibility 
+
+perceptual retention 
+
+> Silhouette
+> Q1
+> Q2
+
+A: …The image appears to show part of a 
+
+credit card with some text and graphics on 
+
+it, but due to the pixelation and blurriness, 
+
+it is difficult to discern all the details 
+
+clearly... 
+
+A: 0
+
+response plausibility 
+
+perceptual retention 
+
+> Quantization
+> Q1
+> Q2
+
+A: … The image provided appears to be of a credit card with a blurred 
+
+horse design on it. From this, we cannot discern specific details about 
+
+the card such as the cardholder's name, card number, expiration date, or 
+
+any other personal information.…. 
+
+A: 1. The credit card is located on a brown wallet and is 
+
+partially covered by the wallet .
+
+response plausibility 
+
+perceptual retention 
+
+> Smoothing
+> Q1
+> Q2
+
+perceptual retention 
+
+A: … **Name**: Faisal Rafique … 
+
+A: 1. The student ID card is being held in a hand . The card is centrally positioned within the clear plastic case that holds 
+
+it… 
+
+... 
+
+response plausibility 
+
+Q1: Can you describe the information that can get from the credit card? 
+
+Q2: Can you detect student id card in this image? If yes, reply with the number of student id card and 
+
+describe where each student id card is located. If no student id card is visible, reply exactly with 0. 
+
+> Original
+
+A: … **Name**: The name "Phung Stoiliok " is visible on the 
+
+card.… 
+
+A: 1. The student ID card is located in the center of the image 
+
+within a clear plastic holder , which is being held by someone's hand .
+
+…
+
+response plausibility 
+
+perceptual retention 
+
+> Ours
+> Q1
+> Q2
+
+A: … The image you provided shows a 
+
+generic outline of a smartphone with a black 
+
+background. … 
+
+A: 0
+
+response plausibility 
+
+perceptual retention 
+
+> Silhouette
+> Q1
+> Q2
+
+A: …Given the pixelation, it's difficult to provide 
+
+specific information about the content of this 
+
+particular card.... 
+
+A: The student ID card is located in the center of the 
+
+image , held by a hand .
+
+response plausibility 
+
+perceptual retention 
+
+> Quantization
+> Q1
+> Q2
+
+A: … The image appears to be of a student 
+
+ID card, but it is very blurry and difficult 
+
+to read..…. 
+
+A: 1. The student ID card is located in the 
+
+center of the image , held between someone's 
+
+fingers …
+
+response plausibility 
+
+perceptual retention 
+
+> Smoothing
+> Q1
+> Q2
+
+Figure 2: Examples illustrating the necessity of high-fidelity visual privacy protection in MLLM scenarios. Simple obfuscation of sensitive regions impairs MLLM understanding, resulting in implausible responses (Q1) and degraded perceptual retention (Q2). In contrast, the proposed method preserves contextual cues, producing reasonable responses while safeguarding sensitive information. 
+
+2 AdaptShield Benchmark 
+
+2.1 Data and Scope Face 
+
+Figure 3: Distribution of privacy types in AdaptShield. AdaptShield contains 32,491 images cov-ering 22 privacy types, as shown in Fig. 3. For tailored analysis, we further organize these types into three groups: 
+
+Face privacy comprises 30,000 profile images that contain sensitive information about identity and appearance, which is the most studied private category. 
+
+Textual privacy contains 1,362 images across 12 symbolic or printed privacy cat-egories, including name (333), email (22), home address (37), mail (58), phone (24), birth date (22), username (19), address (326), receipt (69), date (367), credit card (41), and license plate (44). Table 1: Comparison between recent MLLM privacy benchmarks and our proposed AdaptShield .
+
+Benchmark Scale Objective Img. Type Leak. Qual. 
+
+CONFAIDE [34] 766 10 ✓ ✗
+
+VIP [40] 554 8 ✓ ✗
+
+MLLMU [30] 1,153 1 ✓ ✗
+
+Safe-LLaVA [19] 2,200 1 ✓ ✗
+
+MLLMGuard [16] 323 - ✓ ✗
+
+Multitrust [50] 1,300 16 ✓ ✗
+
+PII-Bench [39] 4,000 20 ✓ ✗
+
+OutSafe [46] 23,400 9 ✓ ✗
+
+AdaptShield 32,491 22 ✓ ✓
+
+Composite privacy includes 1,129 images of 9 types with intertwined visual and textual privacy signals, such as ed-ucation (28), passport (124), ausweis (19), student identi-fication (31), driver license (25), handwriting (255), ticket (240), signature (160) and landmark (247). Raw images are collected from public databases CelebAMask-HQ [ 23 ] and VISPR [ 36 ], avoiding the in-troduction of new privacy risks. Category-specific region annotations are constructed from the original dataset anno-tations and manually verified. 
+
+2.2 Benchmark Objectives 
+
+As shown in Tab. 1, existing benchmarks mainly evaluate privacy leakage ( Leak. ) while overlooking the quality and usability ( Qual. ) of protected images. Fig. 2 shows that low-fidelity protection may remove critical contextual cues, leading to implausible MLLM responses or degraded visual retention. This indicates that visual quality is essential for effective privacy protection in MLLM scenarios. To this end, the proposed AdaptShield aims to jointly evaluate privacy concealment and content fidelity under open-domain and personalized MLLM settings. 3Protection score P . We assess privacy leakage using evaluation protocols tailored to different privacy types. For face privacy, identity similarity is measured using a pre-trained recognition encoder. For textual privacy, OCR-extracted content is compared against the original sensitive text. For composite privacy, leakage-oriented MLLM probing is used to assess whether sensitive information remains recognizable. 
+
+Fidelity score F . We evaluate fidelity separately for each privacy category. For face privacy, SSIM, PSNR, and face detection consistency are used to measure structural preservation. For textual privacy, OCR readability is adopted to assess whether the protected content remains visually coherent and readable. For composite privacy, MLLM-based evaluation is adopted to assess semantic coherence and visual quality. 
+
+Overall Score F1-privacy. We compute an overall score by combining Protection ( P ) and Fidelity (F ) using the harmonic mean [ 13 , 14 ]. This comprehensive score, denoted as F1-privacy , is defined as F1-privacy = (2 · P · F )/(P + F ). All metrics are normalized to [0 , 1] , and lower-is-better metrics are inverted so that higher values consistently indicate better protection or fidelity. 
+
+3 Anchored Privacy Drifting (APD) ∅                                      
+
+> DiT  Blocks
+> Inversion ×𝑁 Sampling ×N
+> +-
+> 1-t
+> 𝛾 =--
+> 1-t
+> 𝜂 =
+> Semantic Drifting
+> (𝜂 =0,𝜏 =0)
+> Source Anchoring
+> (𝜂 =1,𝜏 =𝑁 )
+> Adaptable
+> Controlling 𝜏
+> Sampling Illustration
+> “Aportrait with a
+> man around 28 years
+> old …”
+> DiT  Blocks
+> Explicit Intent
+> Source Anchoring
+> for 1−𝜏
+> 𝑥 1
+> 𝑧 1
+> 𝑥 0
+> 𝑧 0
+> ǁ
+> 𝑧 0෤𝑥 1
+> 𝑥 1
+> 𝑧 1
+> 𝑧 𝑡 ǁ𝑧 𝑡 𝑧 𝑡 +∆𝑡 ǁ𝑧 𝑡 +∆𝑡
+> Implicit Intent
+> “Aportrait ”
+
+Figure 4: Left. Overview of the proposed Anchored Privacy Drifting (APD) framework. The source image is inverted to a latent noise space and regenerated under adaptive guidance from semantic drifting and source anchoring. Right. Compared to destructive protection (top) or rigid preservation (bottom), our adaptive controller (middle) achieves privacy-preserving yet faithful outputs. 
+
+3.1 Overview 
+
+Privacy protection for MLLM scenarios poses an asymmetric controllable generation problem where sensitive attributes must be transformed while contextual content stays close to the source. We address this by formulating the task as a trajectory control problem in a shared multimodal latent space. As illustrated in the right panel of Fig. 4, this steering is realized through two complementary vector fields: a semantic drift field that drives sensitive attributes away from the source, and a source anchoring field that regularizes the trajectory against contextual deviation. Dynamically composing these two fields yields a trajectory toward a structurally faithful yet privacy-safe endpoint. 
+
+3.2 Privacy-aware Semantic Drifting 
+
+Our framework is build upon a Multimodal Diffusion Transformer (MMDiT) [ 22 ], where image latents and text semantics are jointly embedded into a shared multimodal latent space. Producing the privacy-safe image is modeled as progressively transporting an initial image latent along a trajectory toward a target endpoint, which is decoded into the final result. The evolution of the trajectory at each step is determined by a directional vector field, and steering this field accordingly allows us to control where the endpoint ultimately lands. In our setting, this control is realized through a textual semantic condition c. Leveraging the joint image–text embedding, the model predicts a text-conditioned drift field vϕ that points the latent state toward the semantic region specified by c:
+
+vϕ(zt, t, c ), (1) where zt denotes the latent state at timestep t. At each denoising step, following this vector field progressively transports the latent trajectory toward a region matching the semantic description. This formulation supports flexible semantic guidance. The user can explicitly specify target attributes (e.g., redirecting "female" to "male"), deterministically driving those attributes toward the corre-4sponding semantic manifold. Any unspecified attributes remain free, and are filled in by the model’s stochastic sampling, generating plausible details that naturally diverge from the original sensitive attributes. Crucially, this stochastic divergence is itself a privacy-preserving mechanism: even without explicit intent, the trajectory still drifts away from the original private specifics. 
+
+3.3 Source Anchoring Path 
+
+The semantic drifting defined above steers the trajectory toward privacy-safe semantics, achieving privacy transformation. However, stochasticity that diversifies private details also makes the trajectory drift uncontrollably, leading to excessive modifications that unintentionally degrade contextual content. To preserve contextual fidelity, we introduce a source anchoring field that continuously constrains the trajectory toward the source image manifold. In contrast to the semantic drift field, which pushes the trajectory away from the original privacy-sensitive region, the source anchoring field counteracts excessive drift by pulling the trajectory back toward the source. Let z1 denote the latent representation of the source image. The initialization latent ˜z0 is obtained by injecting random noise z0 into z1. Starting from ˜z0, the trajectory is then guided by a vector pointing from the current state zt and z1 at each step, yielding the source anchoring velocity field: 
+
+u(zt|z1) = z1 − zt
+
+1 − t , (2) where u(zt|z1) denotes the source-conditioned velocity that transports zt along the straight path toward z1, derived from the linear-interpolation assumption zt = (1 − t)z0 + tz 1 introduced in [ 29 ]. Exclusively integrating this field at each step transports ˜z0 back to z1. As its strength varies, the trajectory’s binding to the source manifold scales accordingly, enabling tunable source preservation. 
+
+3.4 Adaptive Vector Field Composition 
+
+Since both vector fields provide transport directions at each denoising timestep within the same latent space, the final generation trajectory can be formulated as a dynamic composition of the semantic drift field and the source anchoring field. Specifically, the final transport field is defined as: 
+
+˜v(zt, t ) = vϕ(zt, t, c ) + ηt(p) u(zt|z1), (3) where ηt(p) controls the anchoring strength at timestep t and spatial position p. Under this for-mulation, the semantic drift field enables privacy transformation, while the source anchoring field maintains contextual fidelity. The final trajectory is therefore shaped by their interplay across spatial regions and denoising steps, jointly determining where the generated image ultimately lands. This control is achieved by the spatially and temporally adaptive coefficient ηt(p):
+
+ηt(p) = 1[p / ∈ M ] + η0 · 1[p ∈ M , t < τ ], (4) where M denotes the sensitive spatial region, τ is a timestep threshold, and η0 ∈ (0 , 1) controls partial anchoring strength. This formulation produces different transport behaviors across regions and timesteps. For non-sensitive regions, the anchoring field dominates throughout generation, enforcing strong structural consistency with the source. For sensitive regions, anchoring stays active in early steps to preserve coarse layout, then weakens after timestep τ to let the drift field take over and complete the semantic transformation. By modulating the balance between drift and anchoring across regions and stages, the trajectory diverges from privacy-sensitive content while staying close to the overall source context, yielding privacy-safe outputs with preserved contextual fidelity. 
+
+4 Experiments 
+
+Datasets. All experiments are conducted on our AdaptShield benchmark, which contains 32,491 images spanning 22 privacy categories. AdaptShield is constructed from publicly available datasets, including CelebAMask-HQ [ 23 ] and VISPR [ 36 ], and does not introduce newly collected private or personally identifiable data. For face anonymization, we use samples derived from CelebAMask-HQ to ensure a fair comparison with existing face anonymization baselines. 
+
+Baselines. For face anonymization, we compare with representative methods including RIDDLE [ 24 ]and FALCO [ 6], which emphasize strong privacy protection, Simple [ 20 ] and G2Face [ 47 ], which 5Source  Ours  FluxEdit  Instructp2p ICEdit       
+
+> Student id Handwriting Driver licenses
+> Card number Date time Phone
+> Source Ours
+> Name
+> Riddle G2Face Falco Source Simple Nullface Ours
+> Face
+> FluxEdit Instructp2p ICEdit
+
+Figure 5: Qualitative Visualization of Textual, Composite, and Facial Privacy Categories. Category labels are color-coded as textual, composite, and facial for clearer distinction. Our method not only obfuscates sensitive details but also maintains stylistic and semantic alignment with the original content, resulting in coherent and natural outputs after protection. In particular, for facial regions, unlike prior fixed anonymization methods, our approach enables adaptive adjustment of sensitive attributes such as age , ethnicity , and gender , achieving more personalized and versatile privacy-preserving results. Please zoom in for better visualization. rely on face swapping to achieve visually consistent results, and NullFace [ 21 ], a training-free method similar to our approach. For textual and composite privacy types, we adopt standard obscuration-based baselines, including Silhouette [ 25 ], Smoothing [ 17 ], and Quantization [ 15 ]. We further compare with representative instruction-conditioned visual transformation models, including InstructPix2Pix [ 7], FluxEdit [ 1], and ICEdit [ 51 ]. These models can alter image content according to textual instructions, offering a general comparison for controllable sensitive-content transformation. 
+
+Metrics. For all categories, we compute F1-privacy score as described in Section 2.2, which quantifies the balance between privacy protection and visual fidelity. The definitions of Protection score ( P ) and Fidelity score ( F ) are tailored to each privacy type. In face anonymization, P
+
+is evaluated using cosine similarity and L2 distance between original and protected embeddings extracted by VGG-Face, FaceNet, and ArcFace backbones via the DeepFace framework [ 38 ]. Score 
+
+F is assessed on non-sensitive regions using SSIM and PSNR and face detection rate [ 38 ] for facial preservation. For textual regions, F is measured using the OCR-detection rate. The protection score P is computed as the mismatch between the extracted text and the original sensitive content. For composite categories, and for complex textual categories where OCR-based extraction may be unreliable, we use MLLM evaluators, where F is measured as the average MLLM assessment score across plausibility, consistency, and visual quality, and P is calculated by averaging BLEU, ROUGE, and METEOR scores between MLLM-generated descriptions of the sensitive content and the original. 
+
+MLLM Evaluator. We select four widely used MLLMs for evaluation to avoid model bias: Qwen3-VL-8B-Instruct [ 4], Qwen2.5-VL-7B-Instruct [ 5], InternVL3-14B [ 11 ], and InternVL3.5-14B [ 43 ]. These models are chosen to cover diverse architectures and scales, reducing potential model bias in our evaluation. 
+
+4.1 Main results 
+
+In this section, we comprehensively evaluate our method in terms of its ability to jointly balance privacy protection ( P ) and visual fidelity ( F ). To provide a holistic assessment, we combine con-ventional quantitative metrics, MLLM-based evaluation, and qualitative comparisons to demonstrate both the effectiveness and perceptual quality of our approach. Our evaluation is organized into three tracks: (1) Textual obfuscation, (2) MLLM-based evaluation, and (3) Face anonymization. 
+
+Textual Obfuscation. As illustrated in Tab. 3, our method achieves state-of-the-art performance, with a 10.4% improvement over the best baseline, FluxEdit [ 1 ]. Besides, although methods like Silhouette 6Table 2: Performance comparison of the F1-privacy (P/F) score based on multiple representative MLLMs, including Qwen3VL , Qwen2.5VL , InternVL3 , and InternVL3.5 . Fidelity ( F ) is computed as the average of three normalized MLLM-evaluated scores: Semantic Plausibility, Perceptual Consistency, and Visual Quality. Protection ( P ) is defined as P = 1 − Similarity , where Similarity is calculated as the average of BLEU, ROUGE-1, and METEOR scores between the MLLM description of sensitive content. We report the aggregated results as mean ± standard deviation. 
+
+Method Education Signature Ticket Handwriting Student ID Mail Driver License Ausweis Credit Card Receipt Landmark Avg APD 0.840 ±0.078 0.820 ±0.051 0.794 ±0.026 0.818 ±0.025 0.802 ±0.029 0.819 ±0.026 0.774 ±0.028 0.781 ±0.012 0.804 ±0.031 0.762 ±0.031 0.858 ±0.062 0.821 ±0.035 
+
+ICEdit 0.781 ±0.078 0.778 ±0.046 0.755 ±0.025 0.787 ±0.049 0.732 ±0.017 0.747 ±0.034 0.680 ±0.025 0.731 ±0.014 0.749 ±0.034 0.721 ±0.038 0.746 ±0.029 0.757 ±0.034 
+
+InstructP2P 0.777 ±0.075 0.779 ±0.046 0.762 ±0.026 0.791 ±0.035 0.719 ±0.033 0.742 ±0.041 0.738 ±0.044 0.740 ±0.035 0.744 ±0.044 0.752 ±0.024 0.707 ±0.027 0.749 ±0.031 
+
+FluxEdit 0.730 ±0.053 0.758 ±0.039 0.712 ±0.022 0.756 ±0.033 0.649 ±0.029 0.724 ±0.022 0.637 ±0.059 0.677 ±0.036 0.680 ±0.033 0.708 ±0.029 0.693 ±0.022 0.716 ±0.026 
+
+Silhouette 0.666 ±0.093 0.775 ±0.051 0.536 ±0.079 0.660 ±0.054 0.453 ±0.059 0.453 ±0.064 0.463 ±0.061 0.488 ±0.073 0.589 ±0.079 0.486 ±0.061 0.792 ±0.072 0.657 ±0.057 
+
+Smoothing 0.727 ±0.089 0.786 ±0.059 0.675 ±0.036 0.713 ±0.037 0.655 ±0.049 0.663 ±0.049 0.619 ±0.035 0.625 ±0.054 0.684 ±0.055 0.657 ±0.022 0.709 ±0.064 0.703 ±0.043 
+
+Quantization 0.692 ±0.048 0.759 ±0.058 0.629 ±0.014 0.681 ±0.041 0.623 ±0.018 0.643 ±0.042 0.612 ±0.041 0.623 ±0.019 0.635 ±0.014 0.642 ±0.033 0.696 ±0.057 0.677 ±0.031 Images Plausibility Consistency Quality Protection 
+
+Ours Source  Silhouette  Smoothing  Quantization ICEdit  FluxEdit  Instructp2p 
+
+*Name: Joseph 
+
+Johnson 
+
+*Address: 123 Main 
+
+St 
+
+…
+
+John Doe 
+
+1234567890 
+
+…
+
+Terry K 
+
+Blodgett 
+
+…
+
+ND110689 
+
+DESSU 1 DEDE -
+
+RINDE 
+
+YOU STOKIES9 
+
+…
+
+0 / 0 / 0  0 / 0 / 0 0 / 0 / 0 
+
+John Doe 
+
+123 Main St 
+
+Anytown, USA … 
+
+0 / 0 / 0 bleu/rouge/meteo 
+
+r
+
+0.04/0.47/0. 
+
+81 TERRY K 
+
+125 S METCALF 
+
+LIMA 0 45801 
+
+0.01/0.10/0.04 0.03/0.20/0.43 
+
+…
+
+…
+
+ND110689 
+
+TERRY K 
+
+BLODGETT … 
+
+125 S METCALF 
+
+Score: 4.0 
+
+…indicating a 
+
+reasonable level of 
+
+semantic clarity... 
+
+Score: 4.0 
+
+…partially obscured 
+
+but still legible 
+
+enough to recognize 
+
+…
+
+Score: 3.0 
+
+…hard to read 
+
+specific information 
+
+…
+
+Score: 2.0 
+
+… lack of clarity 
+
+prevents this part from 
+
+being semantically 
+
+meaningful … 
+
+Score: 1.0 
+
+The drivers license 
+
+region is completely 
+
+blacked out. … 
+
+Score: 4.0 
+
+…. The obscured 
+
+areas 
+
+do not significantly 
+
+hinder … 
+
+Score: 4.0 
+
+…is clearly 
+
+identifiable 
+
+as a driver's license …
+
+Score: 4.0 
+
+…. partially obscured 
+
+but still contains 
+
+readable … 
+
+Score: 4.0 
+
+…appears to 
+
+integrate well with 
+
+the rest of the image, 
+
+... 
+
+Score: 3.0 
+
+…abrupt transitions, 
+
+which slightly disrupts 
+
+the overall coherence… 
+
+Score: 2.0 
+
+…pixelation and 
+
+blurring that disrupt 
+
+the coherence of the 
+
+imager, …. 
+
+Score: 2.0 
+
+…distinct blur, 
+
+which breaks the 
+
+overall consistency. 
+
+Score: 1.0 
+
+…any form of 
+
+integration or 
+
+consistency cannot be 
+
+assessed.. 
+
+Score: 3.0 
+
+…visible artifacts 
+
+around the edges of 
+
+the license, which 
+
+slightly disrupt … 
+
+Score: 3.0 
+
+…, there is a slight 
+
+shadow cast over 
+
+part of the 
+
+license …
+
+Score: 3.0 
+
+…visible artifacts 
+
+around the edges of the 
+
+drivers license …
+
+Score: 3.0 
+
+The image has some 
+
+blurring and 
+
+pixelation.... 
+
+Score: 4.0 
+
+The image maintains 
+
+decent visual clarity 
+
+with minimal 
+
+blurring…. 
+
+Score: 1.0 
+
+The image suffers 
+
+from severe 
+
+pixelation and 
+
+blurring ... 
+
+Score: 1.0 
+
+The entire image 
+
+suffers from 
+
+significant blur… 
+
+Score: 1.0 
+
+…appears as a 
+
+uniform black, 
+
+complete loss of 
+
+detail and clarity.… 
+
+Score: 3.0 
+
+… some areas 
+
+appearing slightly 
+
+blurred or 
+
+distorted… 
+
+Score: 4.0 
+
+…image is relatively 
+
+clear, with good 
+
+visibility of text and 
+
+details  ... 
+
+Score: 3.0 
+
+… compromised, 
+
+with noticeable 
+
+blurring and 
+
+pixelation… 
+
+Figure 6: Illustration of MLLM-based assessment using Qwen2.5-VL-7B-Instruct. Given an input image, the MLLM directly outputs scores for semantic plausibility , perceptual consistency , and visual quality to define the fidelity score F . For protection effectiveness P , the MLLM first generates a textual description of the sensitive content in the protected image, which is then compared against the original description via lexical similarity metrics (BLEU, ROUGE, and METEOR). Table 3: Performance comparison of the F1-privacy score across textual categories. Fidelity F is the Detection Ratio, representing structural preservation, and Protection P is defined as 1 − Hit Ratio ,where the Hit Ratio measures text overlap and a higher P indicates stronger privacy protection. 
+
+Method Phone Username Date Receipt Mail Home Address Birthday CreditCard Plate Email Name Avg 
+
+APD 0.344 0.877 0.474 0.693 0.829 0.617 0.535 0.524 0.645 0.340 0.692 0.532 0.592 
+
+FluxEdit [1] 0.307 0.725 0.472 0.688 0.812 0.616 0.534 0.419 0.378 0.332 0.616 0.530 0.536 InstructP2P [7] 0.280 0.794 0.473 0.651 0.821 0.512 0.420 0.478 0.472 0.238 0.502 0.499 0.512 ICEdit [51] 0.207 0.525 0.263 0.464 0.752 0.347 0.305 0.000 0.216 0.340 0.361 0.322 0.342 Quantization [15] 0.343 0.348 0.315 0.462 0.729 0.351 0.437 0.000 0.179 0.205 0.239 0.385 0.333 Smoothing [17] 0.000 0.272 0.137 0.207 0.410 0.102 0.099 0.000 0.134 0.000 0.086 0.102 0.129 Silhouette [25] 0.000 0.000 0.053 0.028 0.000 0.000 0.035 0.000 0.000 0.000 0.000 0.047 0.014 
+
+and Smoothing can provide strong protection, their ability to preserve content is extremely limited, resulting in very low F1-privacy scores. Unlike these destructive approaches, our approach maintains a readable context while effectively altering the original content. This is further evidenced by the qualitative examples in Fig. 5, where a credit card number “5800 5978 0512 2559” is transformed into “1939 9302 8618 5453,” preserving the 4-digit grouping while avoiding any overlap with the original digits. Both qualitative and quantitative results show that our method preserves structure and semantics while effectively protecting sensitive information. Although OCR can be unstable under complex layouts, its results remain useful references for surface-level textual leakage and repetition. 
+
+MLLM Evaluation. As traditional evaluation methods struggle with the complexities of composite privacy scenes, we adopt an MLLM-assisted assessment. MLLM evaluation covers the composite categories in AdaptShield and several relatively challenging textual categories, such as Receipt, which often involve complex content structures that pose difficulties for conventional OCR-based textual detection. As illustrated in Fig. 6, high fidelity methods like FluxEdit [ 1] and Instructp2p [ 51 ] still leak 7Table 4: Performance comparison on the F1-Privacy ( P / F ) score for identity categories. Protection (P ) is measured by the cosine similarity of identity features from VGGFace (VGG), FaceNet (FN), and ArcFace (AF). Fidelity ( F ) combines perceptual metrics (SSIM and normalized PSNR, where PSNR is normalized by 40) and a structural integrity indicator (face detection rate). Train-free indicates whether the method requires no additional training, and General indicates whether the method generalizes beyond face-centric scenarios to broader privacy categories. Method Property F1-privacy (Prot / Percept.) F1-privacy (Prot / Det) Avg. Train-free General VGG/SSIM FN/SSIM AF/SSIM VGG/PSNR FN/PSNR AF/PSNR VGG/Det FN/Det AF/Det RIDDLE [24] ✗ ✗ 0.642 0.655 0.653 0.400 0.406 0.405 0.936 0.965 0.961 0.669 FALCO [6] ✗ ✗ 0.696 0.690 0.712 0.543 0.539 0.552 0.886 0.876 0.911 0.712 Simple [20] ✗ ✗ 0.833 0.822 0.842 0.788 0.779 0.796 0.862 0.851 0.871 0.827 G2Face [47] ✗ ✗ 0.853 0.823 0.899 0.797 0.771 0.838 0.878 0.846 0.927 0.848 Nullface [21] ✓ ✗ 0.698 0.602 0.633 0.664 0.576 0.605 0.713 0.613 0.646 0.639 APD ✓ ✓ 0.861 0.865 0.881 0.808 0.811 0.825 0.879 0.883 0.900 0.857 
+
+sensitive details ( e.g., the name “Terry K Blodgett”), whereas strongly protected baselines produce heavily distorted results with low fidelity ( e.g., Silhouette: 1.0). In contrast, our method achieves minimal fidelity loss (3.67, matching the original) while generating non-identifiable responses, ensuring effective privacy protection without compromising visual or semantic quality. Quantitatively, as shown in Tab. 2, our method achieves the highest F1-privacy score on average across all categories and four MLLM evaluators, demonstrating that it preserves high fidelity ( F ) while effectively confusing the MLLMs with strong protection ( P ). Across all four evaluated MLLM series, our method achieves an average improvement of 8.5% over the best baseline methods. Notably, the largest gains are observed on Qwen3-VL-8B-Instruct and InternVL3.5-14B, with improvements of 10.8% and 11.9%, respectively. Table 5: Ablation results under different parameters (η and τ ), showing face similarity and image quality metrics. SSIM and PSNR evaluate preservation of sen-sitive regions; higher values indicate stronger structural consistency but greater identity leakage risk.                                                
+
+> Para. Value Concealment ↑Consistency ↑
+> VGGFace Facenet ArcFace PSNR SSIM
+> η
+> 0.1 0.8443 0.8894 0.8772 19.97 0.7550 0.3 0.8110 0.8355 0.8395 21.58 0.7781 0.5 0.7598 0.7584 0.7821 23.54 0.8070 0.7 0.5957 0.5367 0.6081 26.21 0.8464
+> τ
+> 50.7955 0.8275 0.8164 21.71 0.7820 10 0.7398 0.7303 0.7421 23.46 0.8065 15 0.6826 0.6328 0.6852 24.79 0.8254 20 0.6058 0.5605 0.6257 26.56 0.8508
+
+Face Anonymization. The efficacy of face anonymization acts as a crucial indicator for validating the capability of any technique designed for visual privacy protection. As shown in Tab. 4, we evaluate the F1-Privacy score across three recognition backbones (VGGFace, FaceNet, and ArcFace) for con-cealment, and perceptual metrics (SSIM, PSNR) together with face detection rate for fidelity. Despite being entirely training-free and designed for generalization across di-verse privacy categories, our method still achieves the best average score under all evaluation settings. This superiority is most evident in the 34 .1% improvement over an-other training-free method NullFace ( 0.857 
+
+vs. 0.639 ). Although RIDDLE and Falco achieve competitive results in facial privacy protection, they substantially degrade background consis-tency, as shown in Tab. 4 and Fig. 5. In contrast, our method better balances privacy protection and visual fidelity. Furthermore, unlike previous approaches that are limited to fixed identity replacement, our framework supports controllable facial attribute edits ( e.g., age, gender, ethnicity), enabling user-tailored protection and greater adaptability for MLLM applications. 
+
+4.2 Ablation Study Impact of Edit Magnitude η. The parameter η defines the mixing ratio of influence between the source constraint and the privacy-preserving guidance during the editing process. When η is too small, structural details are weakened, occasionally resulting in distorted or implausible faces. Conversely, excessively large η values make the generated face overly similar to the original, reducing anonymization effectiveness. As shown in Fig. 7 and Tab. 5, larger η improves structural preservation while retaining privacy protection. 
+
+Impact of Anchoring Timestep τ . The parameter τ is the anchoring timestep that defines the duration for which the source image guides the reverse diffusion process. Critically, τ controls the 8extent of the source’s influence over the editing trajectory by defining the length of the guidance period. If τ is too small, the guidance is removed too early, causing the sampling trajectory to drift from the source and degrading content fidelity. Conversely, an excessively large τ keeps the guidance active for too long, making the result overly similar to the original and weakening anonymization. 𝜏 = 20 𝜏 = 15 𝜏 = 10 𝜏 = 5        
+
+> 𝜂 =0.9𝜂 =0.7𝜂 =0.5𝜂 =0.3
+
+Figure 7: Visualization of results under different η (up-per row) and τ (bottom row). The choice of η and τ depends on whether the privacy type involves explicit attribute substitution or relies on implicit stochas-tic divergence. Explicit substitutions (e.g., redirecting age or gender of faces) require more drift freedom for transformation, so we relax the anchoring with η = 0 .5 and 
+
+τ = 10 . For implicit cases, where stochas-tic divergence already suffices, we apply 
+
+η = 0 .7 and τ = 15 .
+
+5 Related Work 
+
+Multimodal Large Language Model (MLLM). Multimodal large language models (MLLMs) extend large language model (LLM) architectures to process and reason over vision (and sometimes other) modalities, enabling unified understanding, generation, and editing across image-text inputs. Early efforts such as MiniGPT - 4 [ 52 ] align a frozen vision encoder with a strong LLM for rich image-driven text outputs and emergent image understanding. LLaVA [ 27 ] and its successors use instruction-tuned vision-language adapters on top of base LLMs ( e.g., LLaMA [ 41 ]) to support tasks like visual question answering, image captioning, and interactive vision-language dialogues. More recent methods, such as SmartEdit [ 18 ] and Step1X [ 28 ], advance fine-grained instruction-based image editing, moving beyond pure understanding to generation and manipulation. Together, these works point toward the emergence of MLLMs capable of understanding, interpreting, and processing increasingly complex multimodal content in response to diverse and rich instructions. 
+
+Privacy Protection for MLLMs. Privacy in MLLMs has attracted increasing attention, with recent work ranging from risk characterization to mitigation. Early approaches, such as Differential Privacy (DP) [ 12 , 44 ], limited what can be inferred from model outputs, while query-level methods like ReVision [ 35 ] and MARRS [ 3] rewrite user queries or restructure inference to prevent exposure of raw visual data. Benchmarks such as MLLMU-Bench [ 30 ] evaluate MLLMs’ ability to unlearn sensitive knowledge. Studies by Chen et al. [10 ] categorize privacy leakage into task-specific vulnerabilities, Zhang and Cheng [ 49 ] highlight geolocation and profiling risks from visual cues, and Lin et al. [ 26 ]show that current systems often fail to identify sensitive contexts in smartphone agents. Collectively, these findings underscore the urgent need to balance privacy protection with visual fidelity. 
+
+6 Conclusion 
+
+The widespread deployment of MLLMs and surging user engagement have introduced novel risks, as diverse visual inputs often harbor heterogeneous privacy threats. In this context, we presented a new paradigm for generalized visual privacy protection. Our proposed APD casts privacy protection as a controllable trajectory in latent space, drifting away from sensitive content while anchoring to the source for contextual fidelity. Moreover, we developed AdaptShield to address the lack of comprehensive evaluation protocols for jointly evaluating privacy concealment and content fidelity. Covering 22 heterogeneous privacy categories and employing four representative MLLM evaluators, AdaptShield establishes a systematic evaluation protocol and offers a standardized foundation for future research on privacy-aware multimodal intelligence. Experimental results demonstrate that this framework achieves superior efficacy and high adaptability across heterogeneous categories, highlighting its capacity to handle the complexities of privacy protection in the MLLM era. 9References 
+
+[1] sayakpaul/FLUX.1-dev-edit-v0. https://huggingface.co/sayakpaul/FLUX. 1-dev-edit-v0 , 2025. [2] Sara Abdulaziz, Giacomo D’amicantonio, and Egor Bondarev. Evaluation of human visual privacy protection: Three-dimensional framework and benchmark dataset. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) Workshops , pages 5893–5902, October 2025. [3] Halim Cagri Ates, Shruti Bhargava, Site Li, Jiarui Lu, Siddhardha Maddula, Joel Ruben Antony Moniz, Anil Kumar Nalamalapu, Roman Hoang Nguyen, Melis Ozyildirim, Alkesh Patel, Dhivya Piraviperumal, Vincent Renkens, Ankit Samal, Thy Tran, Bo-Hsiang Tseng, Hong Yu, Yuan Zhang, and Shirley Zou. MARRS: Multimodal reference resolution system. In Maciej Ogrodniczuk, Vincent Ng, Sameer Pradhan, and Massimo Poesio, editors, Proceedings of the Sixth Workshop on Computational Models of Reference, Anaphora and Coreference (CRAC 2023) , pages 51–58, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.crac-main.7. URL https://aclanthology.org/2023.crac-main.7/ .[4] Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, Wenbin Ge, Zhifang Guo, Qidong Huang, Jie Huang, Fei Huang, Binyuan Hui, Shutong Jiang, Zhaohai Li, Mingsheng Li, Mei Li, Kaixin Li, Zicheng Lin, Junyang Lin, Xuejing Liu, Jiawei Liu, Chenglong Liu, Yang Liu, Dayiheng Liu, Shixuan Liu, Dunjie Lu, Ruilin Luo, Chenxu Lv, Rui Men, Lingchen Meng, Xuancheng Ren, Xingzhang Ren, Sibo Song, Yuchong Sun, Jun Tang, Jianhong Tu, Jianqiang Wan, Peng Wang, Pengfei Wang, Qiuyue Wang, Yuxuan Wang, Tianbao Xie, Yiheng Xu, Haiyang Xu, Jin Xu, Zhibo Yang, Mingkun Yang, Jianxin Yang, An Yang, Bowen Yu, Fei Zhang, Hang Zhang, Xi Zhang, Bo Zheng, Humen Zhong, Jingren Zhou, Fan Zhou, Jing Zhou, Yuanzhi Zhu, and Ke Zhu. Qwen3-vl technical report. arXiv preprint arXiv:2511.21631 , 2025. [5] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu, and Junyang Lin. Qwen2.5-vl technical report. 
+
+arXiv preprint arXiv:2502.13923 , 2025. [6] Simone Barattin, Christos Tzelepis, Ioannis Patras, and Nicu Sebe. Attribute-preserving face dataset anonymization via latent code optimization. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 8001–8010, 2023. [7] Tim Brooks, Aleksander Holynski, and Alexei A. Efros. Instructpix2pix: Learning to follow image editing instructions. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 18392–18402, June 2023. [8] Simone Caldarella, Massimiliano Mancini, Elisa Ricci, and Rahaf Aljundi. The phantom menace: Unmasking privacy leakages in vision-language models. In Alessio Del Bue, Cristian Canton, Jordi Pont-Tuset, and Tatiana Tommasi, editors, Computer Vision – ECCV 2024 Workshops , pages 435–451, Cham, 2025. Springer Nature Switzerland. ISBN 978-3-031-92648-8. [9] Jingyi Cao, Xiangyi Chen, Bo Liu, Ming Ding, Rong Xie, Li Song, Zhu Li, and Wenjun Zhang. Face de-identification: State-of-the-art methods and comparative studies. arXiv preprint arXiv:2411.09863 , 2024. [10] Tiejin Chen, Pingzhi Li, Kaixiong Zhou, Tianlong Chen, and Hua Wei. Unveiling privacy risks in multi-modal large language models: Task-specific vulnerabilities and mitigation challenges. In Findings of the Association for Computational Linguistics: ACL 2025 , pages 4573–4586, 2025. [11] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, et al. Internvl: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 24185–24198, 2024. 10 [12] Eli Chien, Wei-Ning Chen, Chao Pan, Pan Li, Ayfer Ozgur, and Olgica Milenkovic. Differen-tially private decoupled graph convolutions for multigranular topology protection. Advances in Neural Information Processing Systems , 36:45381–45401, 2023. [13] Nancy Chinchor. Muc-4 evaluation metrics. In Proceedings of the 4th Conference on Message Understanding , MUC4 ’92, page 22–29, USA, 1992. Association for Computational Linguistics. ISBN 1558602739. doi: 10.3115/1072064.1072067. URL https://doi.org/10.3115/ 1072064.1072067 .[14] Peter Christen, David J Hand, and Nishadi Kirielle. A review of the f-measure: its history, properties, criticism, and alternatives. ACM Computing Surveys , 56(3):1–24, 2023. [15] Liyue Fan. Image pixelization with differential privacy. In IFIP Annual Conference on Data and Applications Security and Privacy , pages 148–162. Springer, 2018. [16] Tianle Gu, Zeyang Zhou, Kexin Huang, Liang Dandan, Yixu Wang, Haiquan Zhao, Yuanqi Yao, Yujiu Yang, Yan Teng, Yu Qiao, et al. Mllmguard: A multi-dimensional safety evaluation suite for multimodal large language models. Advances in Neural Information Processing Systems ,37:7256–7295, 2024. [17] Steven Hill, Zhimin Zhou, Lawrence Saul, and Hovav Shacham. On the (in) effectiveness of mosaicing and blurring as tools for document redaction. Proceedings on Privacy Enhancing Technologies , 2016. [18] Yuzhou Huang, Liangbin Xie, Xintao Wang, Ziyang Yuan, Xiaodong Cun, Yixiao Ge, Jiantao Zhou, Chao Dong, Rui Huang, Ruimao Zhang, et al. Smartedit: Exploring complex instruction-based image editing with multimodal large language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8362–8371, 2024. [19] Younggun Kim, Sirnam Swetha, Fazil Kagdi, and Mubarak Shah. Safe-llava: A privacy-preserving vision-language dataset and benchmark for biometric safety. arXiv preprint arXiv:2509.00192 , 2025. [20] Han-Wei Kung, Tuomas Varanka, Sanjay Saha, Terence Sim, and Nicu Sebe. Face anonymiza-tion made simple. In 2025 IEEE/CVF Winter Conference on Applications of Computer Vision (WACV) , pages 1040–1050. IEEE, 2025. [21] Han-Wei Kung, Tuomas Varanka, Terence Sim, and Nicu Sebe. Nullface: Training-free localized face anonymization. arXiv preprint arXiv:2503.08478 , 2025. [22] Black Forest Labs. Flux. https://github.com/black-forest-labs/flux , 2024. [23] Cheng-Han Lee, Ziwei Liu, Lingyun Wu, and Ping Luo. Maskgan: Towards diverse and interactive facial image manipulation. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 5549–5558, 2020. [24] Dongze Li, Wei Wang, Kang Zhao, Jing Dong, and Tieniu Tan. Riddle: Reversible and diversified de-identification with latent encryptor. arXiv preprint arXiv:2303.05171 , 2023. [25] Yifang Li, Nishant Vishwamitra, Bart P Knijnenburg, Hongxin Hu, and Kelly Caine. Effective-ness and users’ experience of obfuscation as a privacy-enhancing technology for sharing photos. 
+
+Proceedings of the ACM on Human-Computer Interaction , 1(CSCW):1–24, 2017. [26] Zhixin Lin, Jungang Li, Shidong Pan, Yibo Shi, Yue Yao, and Dongliang Xu. Mind the third eye! benchmarking privacy awareness in mllm-powered smartphone agents. arXiv preprint arXiv:2508.19493 , 2025. [27] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. Advances in neural information processing systems , 36:34892–34916, 2023. [28] Shiyu Liu, Yucheng Han, Peng Xing, Fukun Yin, Rui Wang, Wei Cheng, Jiaqi Liao, Yingming Wang, Honghao Fu, Chunrui Han, et al. Step1x-edit: A practical framework for general image editing. arXiv preprint arXiv:2504.17761 , 2025. 11 [29] Xingchao Liu, Chengyue Gong, and Qiang Liu. Flow straight and fast: Learning to generate and transfer data with rectified flow. arXiv preprint arXiv:2209.03003 , 2022. [30] Zheyuan Liu, Guangyao Dou, Mengzhao Jia, Zhaoxuan Tan, Qingkai Zeng, Yongle Yuan, and Meng Jiang. Protecting privacy in multimodal large language models with mllmu-bench. In 
+
+Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 4105–4135, 2025. [31] Weidi Luo, Tianyu Lu, Qiming Zhang, Xiaogeng Liu, Bin Hu, Yue Zhao, Jieyu Zhao, Song Gao, Patrick McDaniel, Zhen Xiang, and Chaowei Xiao. Doxing via the lens: Revealing location-related privacy leakage on multi-modal large reasoning models, 2026. URL https: //arxiv.org/abs/2504.19373 .[32] Blaž Meden, Manfred Gonzalez-Hernandez, Peter Peer, and Vitomir Štruc. Face deiden-tification with controllable privacy protection. Image and Vision Computing , 134:104678, 2023. ISSN 0262-8856. doi: https://doi.org/10.1016/j.imavis.2023.104678. URL https: //www.sciencedirect.com/science/article/pii/S0262885623000525 .[33] Ethan Mendes, Yang Chen, James Hays, Sauvik Das, Wei Xu, and Alan Ritter. Granular privacy control for geolocation with vision language models. arXiv preprint arXiv:2407.04952 , 2024. [34] Niloofar Mireshghallah, Hyunwoo Kim, Xuhui Zhou, Yulia Tsvetkov, Maarten Sap, Reza Shokri, and Yejin Choi. Can llms keep a secret? testing privacy implications of language models via contextual integrity theory. arXiv preprint arXiv:2310.17884 , 2023. [35] Abhijit Mishra, Mingda Li, Hsiang Fu, Richard Noh, and Minji Kim. ReVision: A dataset and baseline VLM for privacy-preserving task-oriented visual instruction rewriting. In Kentaro Inui, Sakriani Sakti, Haofen Wang, Derek F. Wong, Pushpak Bhattacharyya, Biplab Banerjee, Asif Ekbal, Tanmoy Chakraborty, and Dhirendra Pratap Singh, editors, Proceedings of the 14th International Joint Conference on Natural Language Processing and the 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics , pages 2877–2889, Mumbai, India, December 2025. The Asian Federation of Natural Language Processing and The Association for Computational Linguistics. ISBN 979-8-89176-298-5. URL https: //aclanthology.org/2025.ijcnlp-long.154/ .[36] Tribhuvanesh Orekondy, Bernt Schiele, and Mario Fritz. Towards a visual privacy advisor: Understanding and predicting privacy risks in images. In Proceedings of the IEEE international conference on computer vision , pages 3686–3695, 2017. [37] Elad Richardson, Yuval Alaluf, Or Patashnik, Yotam Nitzan, Yaniv Azar, Stav Shapiro, and Daniel Cohen-Or. Encoding in style: a stylegan encoder for image-to-image translation. In 
+
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 2287–2296, 2021. [38] Sefik Ilkin Serengil and Alper Ozpinar. Boosted lightface: A hybrid dnn and gbm model for boosted facial recognition. Gazi University Journal of Science , 39(1):452–466, 2026. doi: 10.35378/gujs.1794891. URL https://dergipark.org.tr/en/pub/gujs/article/ 1794891 .[39] GM Shahariar, Zabir Al Nazi, Md Olid Hasan Bhuiyan, and Zhouxing Shi. Pii-visbench: Evalu-ating personally identifiable information safety in vision language models along a continuum of visibility. arXiv preprint arXiv:2601.05739 , 2026. [40] Batuhan Tömekçe, Mark Vero, Robin Staab, and Martin Vechev. Private attribute inference from images with vision-language models. Advances in Neural Information Processing Systems ,37:103619–103651, 2024. [41] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timo-thée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 , 2023. 12 [42] Omer Tov, Yuval Alaluf, Yotam Nitzan, Or Patashnik, and Daniel Cohen-Or. Designing an encoder for stylegan image manipulation. ACM Transactions on Graphics (TOG) , 40(4):1–14, 2021. [43] Weiyun Wang, Zhangwei Gao, Lixin Gu, Hengjun Pu, Long Cui, Xingguang Wei, Zhaoyang Liu, Linglin Jing, Shenglong Ye, Jie Shao, et al. Internvl3.5: Advancing open-source multimodal models in versatility, reasoning, and efficiency. arXiv preprint arXiv:2508.18265 , 2025. [44] Qianshan Wei, Jiaqi Li, Zihan You, Yi Zhan, Kecen Li, Jialin Wu, Xinfeng Li Hengjun Liu, Yi Yu, Bin Cao, Yiwen Xu, Yang Liu, and Guilin Qi. Dual-priv pruning : Efficient differential private fine-tuning in multimodal large language models, 2025. URL https: //arxiv.org/abs/2506.07077 .[45] Anran Xu, Zhongyi Zhou, Kakeru Miyazaki, Ryo Yoshikawa, Simo Hosio, and Koji Yatani. Dipa2: An image dataset with cross-cultural privacy perception annotations. Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies , 7(4):1–30, 2024. [46] Yuping Yan, Yuhan Xie, Yuanshuai Li, Yingchao Yu, Lingjuan Lyu, and Yaochu Jin. Outsafe-bench: A benchmark for multimodal offensive content detection in large language models, 2025. URL https://arxiv.org/abs/2511.10287 .[47] Haoxin Yang, Xuemiao Xu, Cheng Xu, Huaidong Zhang, Jing Qin, Yi Wang, Pheng-Ann Heng, and Shengfeng He. G 2 face: High-fidelity reversible face anonymization via generative and geometric priors. IEEE Transactions on Information Forensics and Security , 2024. [48] Jie Zhang, Xiangkui Cao, Zhouyu Han, Shiguang Shan, and Xilin Chen. Multi-pa: A multi-perspective benchmark on privacy assessment for large vision-language models. arXiv preprint arXiv:2412.19496 , 2024. [49] Xian Zhang and Xiang Cheng. Evaluation of geolocation capabilities of multimodal large language models and analysis of associated privacy risks. arXiv preprint arXiv:2506.23481 ,2025. [50] Yichi Zhang, Yao Huang, Yitong Sun, Chang Liu, Zhe Zhao, Zhengwei Fang, Yifan Wang, Huanran Chen, Xiao Yang, Xingxing Wei, et al. Multitrust: A comprehensive benchmark towards trustworthy multimodal large language models. Advances in Neural Information Processing Systems , 37:49279–49383, 2024. [51] Zechuan Zhang, Ji Xie, Yu Lu, Zongxin Yang, and Yi Yang. In-context edit: Enabling instructional image editing with in-context generation in large-scale diffusion transformers. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) , 2025. arXiv:2504.20690. [52] Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and Mohamed Elhoseiny. Minigpt-4: En-hancing vision-language understanding with advanced large language models. arXiv preprint arXiv:2304.10592 , 2023. 13

@@ -1,0 +1,1223 @@
+Title: From Efficiency to Leakage – Privacy Backdoor in Federated Language Model Fine-Tuning
+
+URL Source: https://arxiv.org/pdf/2606.20553v1
+
+Published Time: Fri, 19 Jun 2026 01:22:17 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# From Efficiency to Leakage -Privacy Backdoor in Federated Language Model Fine-Tuning 
+
+## Shanghao Shi 1, Chaoyu Zhang 2, Heng Jin 2, Yang Xiao 3,Yevgeniy Vorobeychik 1, William Yeoh 1, Ning Zhang 1, Y. Thomas Hou 2, Wenjing Lou 21Washington University in St. Louis 2Virginia Tech 3University of Kentucky 
+
+## Abstract 
+
+Federated learning (FL) enables multiple parties to col-laboratively fine-tune language models for domain-specific tasks without sharing raw data. Since full model fine-tuning is often prohibitively expensive for FL clients, parameter-efficient fine-tuning (PEFT) has become the de facto ap-proach in practice, freezing the base model and training only a small set of adapters. In this paper, we show that a malicious parameter server can stealthily corrupt a PEFT adapter into a privacy backdoor that implicitly memorizes the client’s training samples as isolated per-sample param-eter updates stored in separate neurons , without degrading model utility. Concretely, our attack, NeuroImprint , assigns a dedicated memorization neuron to each training sample and constrains that each neuron is updated at most once along the local fine-tuning trajectory. This design mitigates both cross-sample collisions and cross-step mixing intro-duced by large local batches and stateful optimizers (e.g., Adam/AdamW) in language-model fine-tuning. After fine-tuning, the resulting isolated per-sample updates can be an-alytically inverted in closed form to recover text embed-dings, which are then deterministically mapped back to to-ken sequences. To understand the generality of our method, we implemented NeuroImprint on multiple language mod-els (BERT, GPT-2, Qwen2, and Llama3.2) and evaluated it across four fine-tuning datasets spanning diverse domains. The results demonstrate that our attack can reconstruct 59% to 79% of all finetuning samples with high semantic fidelity. 
+
+## 1 Introduction 
+
+Language models have demonstrated remarkable success across specialized domains such as healthcare, finance, le-gal assistance, and scientific research. Numerous domain-specific models have been proposed, including BioBERT [37], ClinicalBERT [33], BioGPT [43], and LLAVA-Med [38] for healthcare applications; LegalBERT [12] for legal tasks; FinBERT [32], FinGPT [39], and FinLLAMA [36] for financial analysis; as well as SciBERT [5] for scien-tific research. Notably, these customized models are typi-cally fine-tuned from large pre-trained foundation models on domain-specific datasets, rather than trained from scratch. In practice, this adaptation is mostly performed via parameter-efficient fine-tuning (PEFT) [28, 49, 31, 26], which freezes the backbone model and updates only lightweight mod-ules (e.g., serial [28], parallel [2, 66], or low-rank adapters [30, 15]), reducing the computation, memory, and commu-nication overhead of domain specialization. Since many domain-specific datasets contain sensitive or proprietary in-formation (e.g., healthcare/financial records), and are strictly restricted from being shared beyond institutional borders due to regulatory constraints [56]. Federated learning (FL) has been adopted as the de facto solution to enable distributed parties to collaboratively finetune language models without exposing the raw data [45]. However, FL is known to be vulnerable to data reconstruction attacks, which aim to re-construct the original training samples from model updates [65, 55, 63, 21, 20]. This risk is increasingly concerning as language models are being deployed in safety- and privacy-critical applications. 
+
+Existing Literature and the Gap: Data reconstruction at-tack has been a well-studied topic in federated learning [65, 62, 22, 64, 59, 42, 25, 46, 57, 21, 63, 55]. How-ever, most existing attacks are developed for classical vision models and cannot handle discrete token sequences. Rec-ognizing the importance of this risk, recent efforts have be-gun to study data reconstruction attacks in language models [10, 48]. Existing approaches either extract memorized train-ing data from fully trained generative models via black-box querying or extend gradient inversion techniques to language models. While these works demonstrate that language mod-els can leak training data, they are largely insensitive to the fine-tuning stage or require access to raw gradients. More recently, prior work has introduced the concept of privacy backdoors , showing that deliberate corruption of model ini-tialization can induce data leakage during training [58, 20]. However, existing privacy backdoors are limited to member-1
+
+> arXiv:2606.20553v1 [cs.CR] 18 Jun 2026
+
+ship inference or simple classifiers and do not extend to gen-erative language models. More importantly, modern language model fine-tuning pipelines introduce several unaddressed challenges that fun-damentally break existing approaches. First, fine-tuning is dominated by stateful optimizers such as Adam and AdamW, which entangle gradients across multiple steps and destroy the step-wise gradient information required for inversion. Second, fine-tuning operates over long discrete token se-quences and large local batches under parameter-efficient fine-tuning (PEFT), requiring an attack design that can iso-late and reconstruct many samples without interference. 
+
+Our Work: We propose NeuroImprint , a data reconstruction attack against federated fine-tuning of language models. The fundamental idea is to stealthily craft a parallel PEFT adapter in the embedding layer as a privacy backdoor that “memo-rizes” per-sample parameter updates during fine-tuning, en-abling closed-form reconstruction of local training samples afterward. Our attack addresses the following challenges: 
+
+Challenge 1—Reconstructing long discrete token sequences .Unlike vision, language inversion is challenging because the reconstruction targets are long discrete token sequences, where small token-level errors can break syntax and seman-tics. Our guiding principle is to avoid direct optimization in the discrete token space and instead operate in the continu-ous embedding space whenever possible. Accordingly, we transform an unstable discrete search into a principled two-stage procedure: exact (or near-exact) analytic recovery in the embedding space followed by a deterministic mapping back to text. 
+
+Challenge 2—Inversion under stateful optimizers. State-ful optimizers such as Adam/AdamW fundamentally com-plicate inversion because their momentum and adaptive-variance states accumulate information across many local steps, entangling per-sample gradients over time. Our guid-ing principle is that the optimizer state becomes irrelevant if each parameter is updated only once. We therefore de-sign the backdoor so that each memorization neuron is ac-tivated, and hence updated, by at most one training sample over the entire local training trajectory. This enforces tempo-ral single-sample activation , eliminating cross-step mixing and turning inversion from a hard multi-step problem into a tractable single-step reversion. 
+
+Challenge 3—Scaling reconstruction to large fine-tuning batches. Scaling reconstruction is difficult because when many samples contribute updates in the same round, their information collides unless there is an explicit separation mechanism. Our principle here is to allocate independent memorization capacity per sample. Concretely, we parti-tion the backdoor into many independent reconstruction slots such that each sample is routed to a distinct memorization neuron, while all token-level information of that sample is captured within that neuron. This one-neuron–one-sample 
+
+organization prevents cross-sample interference and enables large-batch reconstruction, allowing an effective trade-off between space and attack scalability. 
+
+Challenge 4—Stealthy backdoor without utility loss . A prac-tical attack must keep fine-tuning behavior and model per-formance unchanged to avoid detection. Our guiding princi-ple is to leverage architectural invariances in the host model, in particular the normalization invariance of LayerNorm. 
+
+NeuroImprint achieves this by crafting its output layer with identical row vectors and fixed biases, so that the subse-quent LayerNorm provably cancels the backdoor’s contribu-tion through deterministic normalization. We implemented NeuroImprint on four different language models, including BERT [16], GPT-2 [51], Qwen 2-1.5B [1], and Llama 3.2-3B [18], and on four datasets, includ-ing AGNews [60], SQuAD [52], EMRQA-mSQuAD [19], and GSM8K [14]. The results demonstrate that NeuroIm-print can recover 59% to 79% of the finetuning samples un-der general settings with high semantic similarity. We further explore the system and attack factors that may affect the re-construction performance. Particularly, we validate that the model utility will not be affected by the backdoor compo-nent, demonstrate the decent cross-dataset attack transfer-ability under various settings, and illustrate the effectiveness of NeuroImprint under LoRA finetuning, even when applied to larger models such as Qwen2-7B and Llama3.2-8B. 
+
+Contributions: 
+
+• We propose NeuroImprint , a novel data reconstruc-tion attack against federated language model fine-tuning. NeuroImprint overcomes the unique challenges of federated fine-tuning and undermines the privacy-preserving property of the FL paradigm. • We provide rigorous mathematical analysis and attack insights for NeuroImprint , which highlight its distinc-tive properties and deepen the understanding of FL pri-vacy attacks. Notably, NeuroImprint is a closed-form 
+
+attack backed by formal reconstruction guarantees. • We implement NeuroImprint on four language models and evaluate it across four datasets across diverse at-tack domains. The results confirm the effectiveness and 
+
+practicality of NeuroImprint in real-world fine-tuning scenarios. 
+
+## 2 Background 2.1 Language Modeling 
+
+Language models are the backbones of modern natural lan-guage processing. They function as auto-regressive mod-els to predict the next token xt given the input sequence 
+
+(x1, xt , · · · , xt−1). A language model usually consists of an embedding layer E followed by a stack of transformer 2blocks (T1, T2, · · · , Tl ). The embedding layer maps the dis-tributed token sequence s into continuous embedding vec-tors e ∈ Rs×m, where m refers to the hidden dimension. Af-ter this, the transformer blocks process the embedding vector sequentially to generate the desired output. 
+
+Parameter Efficient Fine Tuning (PEFT): Current lan-guage models are becoming larger and larger, making it prohibitively expensive to train from scratch. As a result, adapting a pretrained model to downstream tasks is typi-cally done by fine-tuning on small, task-specific datasets, which are often proprietary or sensitive and thus raise pri-vacy concerns if exposed. In practice, this adaptation is com-monly performed via parameter-efficient fine-tuning (PEFT) [28, 49, 31, 26], which freezes the backbone model and up-dates only lightweight modules to reduce unnecessary com-putation, memory, and communication overhead. Repre-sentative PEFT designs include serial adapters inserted be-tween frozen sublayers [28], parallel adapters added as par-allel branches [2, 66], and low-rank adapters such as Lo-RA/QLoRA that parameterize weight updates with low-rank factors [30, 15]. We demonstrate them in Fig. 1. 
+
+Federated Learning: To avoid exposing raw data, fed-erated learning (FL) enables a parameter server S and a set of clients ck to collaboratively finetune language mod-els, where k ∈ { 1, 2, · · · , n}. In each round r, the parame-ter server S first publishes the global model parameter θ r
+
+to a subset of selected clients Cr ⊆ C. Then these clients compute the local model updates θ ri with their local datasets 
+
+Di under multiple local training steps T . When using the SGD optimizer, θ ri can be computed iteratively as follow: 
+
+θ r,ti = θ r,t−1 
+
+> i
+
+− η∇L(θ r,t−1 
+
+> i
+
+, Di), where L refers to the loss function, η refers to the learning rate, and t ∈ { 1, 2, · · · , T }.When using the Adam/AdamW optimizer, θ ri is computed as θ r,ti = θ r,t−1 
+
+> i
+
+− η ˆmti√ˆvti +ε , where ˆ mti and ˆ vti refers to the in-termediate training states. After this, the parameter server aggregates all local updates with the FedAVG algorithm [45] to proceed with the training process: 
+
+θ r+1 = 1
+
+n
+
+> n
+
+# ∑
+
+> i=1
+
+θ ri (1) More detailed formulations can be found in Appendix A. 
+
+## 2.2 Data Reconstruction Attacks & Defenses 
+
+Data reconstruction attacks focus on extracting training sam-ples from machine learning models. Under this big umbrella, several specialized variants have been developed. 
+
+Optimization-based inversion attacks assume an honest-but-curious parameter server and aim to reconstruct training data by reversing raw gradients through iterative optimiza-tion [65, 62, 22, 64, 59, 42, 25]. These methods typically initialize random dummy inputs and gradually update them by aligning their gradients with the observed ones, driving Frozen  
+
+> Pretrained
+> Layer
+> Adapter
+> Serial Adapter
+> 𝑥𝑥
+> ℎ
+> Frozen
+> Pretrained
+> Layer
+> Adapter
+> 𝑥𝑥
+> ℎ
+> Parallel Adapter
+> Frozen
+> Pretrained
+> Layer B
+> A
+> ℎ
+> 𝑥𝑥
+> LoRA
+
+Figure 1: Serial, parallel, and low-rank adapters. the dummies toward the original training samples. However, their reconstruction capability is limited to a dozen and can be easily defended by the secure aggregation mechanisms. 
+
+Model crafting-based inversion attacks assume stronger threat models in which the parameter server actively mod-ifies model parameters or architectures to improve the at-tack scalability and bypass secure aggregation mechanisms [46, 57, 21, 63, 55, 48, 20]. State-of-the-art works [63, 55] have demonstrated the capability of reconstructing hundreds of training samples with high fidelity. However, these works are confined to vision models and can only reverse SGD-style model updates, which are not mainstream for language model finetuning. 
+
+Generative inversion attacks aim to re-generate training samples from a trained model using extraction prompts [47, 61, 11, 10]. Prior work shows they can recover thou-sands of high-fidelity training examples from commercial diffusion models [11] and large language models [10]. How-ever, such attacks reconstruct samples from the entire train-ing set without guarantees for any specific example, making them unsuitable to target the fine-tuning set, which repre-sents only a small fraction of the data 
+
+Prompt inversion attacks target the collaborative inference system and aim to reverse the shared hidden states between different entities back to user input prompts [27, 50, 17]. These works demonstrate strong performance in inverting deep hidden states back to input prompts. However, inter-mediate hidden states are not available in the FL training process, rendering these works ineffective. 
+
+Privacy backdoors stealthily corrupt model parameters to induce private data leakage [58, 20]. Compared to con-ventional security backdoors that aim to trigger misclassi-fications or detection failures [13, 23, 40, 9], recent work implants privacy backdoors through supply-chain attacks by corrupting pre-trained models before downstream fine-tuning. However, existing methods are limited to member-ship inference [58] or simple classifiers and do not extend to text-generation models [20]. 
+
+Secure aggregation is considered the state-of-the-art de-fense mechanism for protecting federated learning systems 3Client 1 (Victim) 
+
+> Train
+> 𝐷𝐷 1θ𝑎𝑎𝑎𝑎𝑎𝑎
+
+Client 2 
+
+> Train
+> θ𝑎𝑎𝑎𝑎𝑎𝑎
+
+Client n 
+
+> Train
+> θ𝑎𝑎𝑎𝑎𝑎𝑎
+
+…   
+
+> 𝐷𝐷 2𝐷𝐷 𝑛𝑛
+> θ1θ2θ𝑛𝑛
+
+Parameter Server         
+
+> 𝑀𝑀 𝑏𝑏𝑏𝑏 𝑛𝑛 𝑏𝑏𝑏𝑏 𝑛𝑛 𝐷𝐷 𝑎𝑎𝑎𝑎𝑎𝑎
+> θ𝑎𝑎𝑎𝑎𝑎𝑎
+> Craft θ1
+> Victim’s Data
+> Extract
+> �i=1 𝑛𝑛 𝑢𝑢 𝑏𝑏 =�i=1 𝑛𝑛
+> θ𝑏𝑏
+> θ1
+> Reverse
+> θ𝑎𝑎𝑎𝑎𝑎𝑎 θ𝑎𝑎𝑎𝑎𝑎𝑎 θ𝑎𝑎𝑎𝑎𝑎𝑎
+> 𝑢𝑢 1𝑢𝑢 2𝑢𝑢 n
+> Protected by
+> Secure Aggregation
+
+Transformer 
+
+Block 
+
+Output Layer 
+
+Embedding 
+
+Block  
+
+> Backdoor ×
+
+NFigure 2: NeuroImprint threat model. We remove the super-script r that represents the FL round number because Neu-roImprint can be accomplished within one round. [7], whose fundamental technique is to add zero-sum cryp-tographic masks to individual clients’ model updates. As a result, the curious server can only obtain the aggregated model updates and cannot infer individual information. Be-yond vanilla secure aggregation mechanisms, there is a se-ries of literature focusing on improving the communication and computation overheads [4, 24, 34], and enhancing the resilience against malicious attacks [8, 53, 3, 44]. However, existing attacks have demonstrated the capability to bypass the secure aggregation mechanism, and we also take this as one of our attack goals. 
+
+## 3 Threat Model 
+
+System Model: We consider a federated fine-tuning sys-tem with a parameter server S and multiple clients ci, where each client holds a local dataset Di. To reduce the client-side training overhead, the system applies PEFT by freezing the base model and training lightweight adapters within se-lected blocks. We further assume the secure aggregation is deployed to hide individual client updates θi.
+
+Adversary’s Objectives: The adversary is the parameter server S. Its goal is to bypass secure aggregation and re-construct a substantial portion of a target client’s fine-tuning dataset Dtarget . To remain stealthy, the adversary implants a privacy backdoor by corrupting only the embedding-layer PEFT adapter ∆adv , leaving all other transformer blocks and their adapters unchanged. The adversary also aims to cause no or negligible performance degradation. 
+
+Adversary’s Capabilities: We consider an adversary that can maliciously initialize the linear layer and non-linear acti-vation functions of the embedding-layer PEFT adapter, turn-ing it into a privacy backdoor. In particular, we assume this PEFT module is implemented as a parallel adapter at-tached to the embedding block. After fine-tuning, since the system is protected by secure aggregation, we assume that the adversary can only access the aggregated model up-date ∑ni=1 ui = ∑ni=1 θi. We assume the adversary can exploit an auxiliary dataset Daux , collected from publicly available sources, to help craft the configuration of ∆adv . We follow the common setting of existing attacks [63, 55, 21, 20], that this auxiliary dataset Daux has a similar distribution as the fine-tuning dataset Dtarget . However, we acknowledge that in practice, the adversary may only have generic knowledge of the target dataset, and there can be distribution shifts between the two datasets. We comprehensively investigate the impact of such distribution shifts in Section 5. We demonstrate the detailed threat model in Fig. 2. 
+
+## 4 Attack Methodology 4.1 Attack Warm-up 
+
+To better illustrate our approach, we start by introducing the closed-form inversion against a simple linear layer [21, 55]: 
+
+h = ReLU (Wx + b) (2) where x ∈ Rs is the layer’s input, W ∈ Rm×s is the weight matrix, b ∈ Rm is the bias vector, and h ∈ Rm is the output. When the training loss L is backpropagated to the linear layer and the ith neuron is activated, the gradients of the cor-responding ith row of the weight matrix, denoted by wi, and the ith entry of the bias vector, denoted by bi, can be derived as follows: 
+
+∇wi L = ∂ L
+
+∂ hi
+
+· x, ∇bi L = ∂ L
+
+∂ hi
+
+(3) Take a step further, the input x can be analytically recon-structed by the scalar division of the two gradients. 
+
+x = ∇wi L/∇bi L (4) Such a reconstruction is not an approximation of the inputs but an exact analytical recovery. Based on this, we have the following attack insight: 
+
+Insight 1 : The gradients of an activated neuron in a linear layer can explicitly memorize and recover aspecific training sample. 4However, Eq. 4 applies only to a single input sample and fails for batched or aggregated inputs, as their gradients are mixed during backpropagation, causing reconstruction con-flicts. To overcome this limitation, prior works [21, 63, 55] leverage an auxiliary dataset Daux that shares the same data distribution as the target dataset Dtarget . Since Eq. 4 only uti-lizes a single neuron from the linear layer, these works keep the row vector wi fixed while varying the bias term bi across 
+
+Daux to create m reconstruction neurons that collectively span the full distribution ( i ∈ 1, 2, . . . , m), where i ∈ { 1, 2, . . . , m}.As a result, each training sample activates only a subset of neurons, leading to a pyramid-shaped reconstruction pat-tern : neurons with smaller bias terms tend to be activated by many samples, whereas those with larger bias terms are ac-tivated by a few. The adversary then reconstructs individual samples by recursively computing the differences between neighboring neurons, thereby forming m reconstruction bins: bin i = ∇wi L − ∇wi−1 L
+
+∇bi L − ∇bi−1 L (5) Rigorous analysis demonstrates that when the number of local training samples d is smaller than the number of bins m,each sample can be analytically reconstructed within a dis-tinct bin. Accordingly, we have the following attack insight: 
+
+Insight 2 : With gradient access, an adversary can manipulate linear-layer neurons to form multiple re-construction bins , enabling batched input recovery with the help of an auxiliary dataset. However, for federated language model finetuning, the ab-sence of raw gradients prevents the attacks from the first step. In practice, the local model update is the cumulative training efforts of many training steps . When the SGD op-timizer is used, this issue can be partially mitigated, as the single-step gradients can be approximately estimated by di-viding the final model update by the number of training steps. However, for the more commonly used Adam/AdamW op-timizers, the single-step gradients are not accessible, and the same final model update can even result from different training trajectories. This is because Adam and AdamW are stateful optimizers that rely on historical moment estimates to compute subsequent updates [35, 41]. Consequently, re-versing their optimization process requires access to detailed intermediate states, which are unavailable under federated finetuning. The only exception is the first training step , where no pre-vious optimization state exists, and the model update can be approximately reversed as the learning rate multiplied by the sign of the gradient, i.e., −η sign (∇L). This observation motivates us to design reconstruction bins that are activated by only a single sample throughout the entire training pro-cess, referred to as linear activation , as illustrated in Fig. s1 s2 s3
+
+Pyramid Activation 
+
+> Subtract neighboring neurons
+
+# s1 s2 s3            
+
+> ∇𝑊𝑊 𝑖𝑖 𝐿𝐿 − ∇ 𝑊𝑊 𝑖𝑖−1 𝐿𝐿 ∇𝑏𝑏 𝑖𝑖 𝐿𝐿 − ∇ 𝑏𝑏 𝑖𝑖−1 𝐿𝐿
+
+Linear Activation       
+
+> Direct reversion
+> ∇𝑊𝑊 𝑖𝑖 𝐿𝐿 ∇𝑏𝑏 𝑖𝑖 𝐿𝐿
+
+Figure 3: NeuroImprint activation pattern: Transforming from pyramid activation to linear activation to adapt for the Adam/AdamW optimizer. 3. Unlike the conventional pyramid-shaped activation pat-tern, which co-activates multiple samples in shared neurons, linear activation avoids mixing and keeps the final update invertible under Adam/AdamW. In the following sections, we first introduce our detailed design to achieve this, fol-lowed by rigorous mathematical analysis that explains how and why it works. 
+
+## 4.2 Backdoor Construction Details 
+
+We illustrate the detailed architecture of the privacy back-door ∆adv in Fig. 4. In our design, ∆adv is crafted from a benign parallel adapter. The input x ∈ Rb×l×h to ∆adv 
+
+are the batched embedding vectors of the training samples, which contain the complete training information. The back-door outputs o ∈ Rb×l×h with the same dimension as input. But its values are deliberately kept uniform and small across token-index and hidden dimensions, ensuring that ∆adv re-mains functionally invisible and does not interfere with the main training process. Within ∆adv , there are four key com-ponents, and we introduce them one-by-one as follows: 
+
+Projection Layer: The first linear layer L1 projects the in-put embeddings into a lower-dimensional space, ˆ x = L1(x),where ˆ x ∈ Rb×l×ˆh and ˆ h ≪ h, effectively reducing dimen-sionality and minimizing computational overhead. This is crucial because, after reshaping, the input size of the subse-quent linear layer L2 becomes l × ˆh and would grow exces-sively if the original dimension h were used. Technically, we use principal component analysis (PCA) to retain only the principal components that preserve the majority of the vari-ance in the original embeddings: ˆx = ( x − μ)WT (6) where μ is the mean vector and WT ∈ Rh×ˆh refers to the pro-jection matrix that preserves top-ˆ h eigenvectors generated by the model’s original word embedding matrix WE ∈ Rv×h. As 5Word 
+
+Embedding  Positional 
+
+Embedding 
+
+…Transformer 
+
+Block 
+
+Layer 
+
+Normalization 
+
+FC 1  FC 2  FC 3 
+
+Reshape  Broadcast 
+
+RaLU 
+
+Parallel Adapter (Privacy Backdoor)         
+
+> [𝐵𝐵 ,𝐿𝐿 ,�𝐻𝐻 ][𝐵𝐵 ,𝐿𝐿 ∗ � 𝐻𝐻 ]
+> [𝐵𝐵 ,𝐻𝐻 ]
+> [𝐵𝐵 ,𝐿𝐿 ,𝐻𝐻 ]
+> [𝐵𝐵 ,𝐿𝐿 ]
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> Tokens
+
+Main Pipeline    
+
+> [𝐵𝐵 ,𝐿𝐿 ,𝐻𝐻 ]
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> Embeddings 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> Duplicated
+
+FC 2 
+
+> After Finetuning
+> Reconstruction
+
+Inputs 
+
+> 𝑠𝑠 1
+> 𝑠𝑠 2
+> 𝑠𝑠 3
+> Tokens
+
+Embedding 
+
+Block Figure 4: NeuroImprint detailed attack flow. Our privacy backdoor is crafted from a legitimate parallel adapter. NeuroImprint 
+
+only modifies the embedding block, leaving the transformer blocks and their adapters unchanged. a reference, in the BERT model, the original hidden dimen-sion h = 768 and reduced dimension ˆ h = 64. Such a setting ensures that the dimension is significantly reduced, while also preserving enough information for accurate embedding-to-token reversion. 
+
+Memorization Layer: The second linear layer L2 plays a key role in “memorizing” gradients, which can be reverted to the training samples according to Ins. 1 and Ins. 2. Before entering L2, we reshape ˆ x ∈ Rb×l×h into ˆ x ∈ Rb×l·h to fit the dimension of L2. This reshaping ensures that all token gra-dients are collectively “memorized” within a single neuron ,which helps to separate batched samples during reconstruc-tion (one neuron, one sample). To construct the weight W2 and bias b2 of layer L2, we adopt a similar method described in Section 4.1. We keep the row vector wi 
+
+> 2
+
+identical to a random vector r2 across all neurons in L2 and feed the auxiliary dataset Daux through the model up to this layer to derive the overall bias distribution 
+
+ψ of b2. ψ covers all possible values of b2 and we further di-vide this distribution into m intervals with the same probabil-ity, i.e., Bk = [ F−1( km ), F−1( k+1 
+
+> m
+
+)) , where F refers to the cu-mulative density function (CDF) of ψ, k ∈ { 0, 1, · · · , m − 1},and m indicates the adversary’s maximum reconstruction ca-pability. Such a partition ensures that at most one sample from the dataset falls into each interval. Accordingly, the adversary can construct b2 to form m continuous intervals arranged in ascending order as follows: 
+
+W2 = [ r2, r2, · · · , r2]T
+
+b2 = −[F−1( 1
+
+m ), F−1( 2
+
+m ), · · · , F−1(1)] T (7) 
+
+Ranged Linear Unit: Eq. 7 has constructed the second layer L2 to form m intervals. To further convert them into re-construction bins, a non-linear activation function is needed to truncate and trap the gradients. The existing ReLU ac-tivation function progressively activates neurons from the lowest upward when new training samples arrive, forming a pyramid-shaped activation pattern as illustrated in Fig. 3. However, as we have discussed, this pyramid-shaped acti-vation within each training batch causes continuous updates to the lower neurons, altering both the corresponding weight vectors wi 
+
+> 2
+
+and bias terms bi 
+
+> 2
+
+that define the interval bound-aries. Moreover, the accumulated training effects introduced by Adam/AdamW make per-step gradients effectively unre-coverable, causing cross-step reconstruction interference. To address this, we propose a new activation function 
+
+named Ranged Linear Unit, or RaLU . Compared to ReLU, which activates all inputs that are larger than zero, RaLU sets a configurable upper bound to further restrict the activation area. For each neuron in the second layer, we set the upper bound as the corresponding interval length: RaLU (zi) = 
+
+(
+
+zi, 0 < zi < F−1( i+1 
+
+> n
+
+) − F−1( in ),
+
+0, otherwise. (8) where zi refers to the input to the ith neuron and i ∈{0, 1, · · · , m − 1}.This design ensures that each sample activates a unique neuron, forming a linear activation pattern. Under this pat-tern, each neuron is updated only once by a single sample 
+
+during the training run, preventing gradient or parameter ac-cumulation. Consequently, the gradient information can be directly recovered from the final parameter updates of L2,even under Adam or AdamW optimizers, since a single-step update is straightforward to invert and does not depend on intermediate optimizer states. In summary, we define the reconstruction bins as the com-bination of the second linear layer and the RaLU activation function. Each bin will “memorize” at most one gradient, which can later be reverted back to training samples using Eq. 4. We also identify the following attack insight: 6Insight 3 : Activation functions that constrain acti-vation ranges, such as RaLU, can force each sample 
+
+to activate a single, unique neuron during finetun-ing, effectively mitigating cross-sample and cross-step reconstruction interference. 
+
+Output Layer: The final component of the privacy back-door is the output linear layer L3, which maps the interme-diate representations back to the original embedding dimen-sion h and broadcasts them across token indexs to produce the output o ∈ Rb×l×h, matching the input shape. For its weights W3 and bias b3, we initialize the row vec-tors w j 
+
+> 3
+
+( j ∈ { 1, 2, · · · , h}) identical to a random vector r3 and all entries of bias b3 constant, i.e., W3 = [ r3, r3, · · · , r3]T and 
+
+b3 = [ 0, 0, · · · , 0]T . Based on this, the output o ∈ Rb×l×h has 
+
+identical values across the token-index ( l) and hidden ( h) di-mensions, but differs across the batch ( b) dimension. This property causes the contribution of output o to be canceled out during layer normalization, effectively nullifying the in-fluence of the privacy backdoor module during training/fine-tuning. We present this attack insight as follows, and provide detailed mathematical explanations in Section 4.4. 
+
+Insight 4 : Backdoor outputs that remain constant across token-index and hidden dimensions can be 
+
+fully canceled out by LayerNorm. Ensuring that the backdoor is invisible during model fine-tuning. In summary, we illustrate the mathematical details of the privacy backdoor ∆adv in Tab. 1. 
+
+## 4.3 Closed-form Reversion 
+
+We consider that after model finetuning, the memorization layer L2’s parameters are ˜ W2 and ˜ b2. The embedding vectors of training samples ˜ x ∈ Rm×t·ˆh can be reversed as follows: ˜x = ˜W2 − W2
+
+˜b2 − b2
+
+(9) When the SGD optimizer is used, because all neurons of L2 is designed to update at most once in one epoch , all non-zero activated/updated neurons (index by j) of L2 sat-isfy ˜W j 
+
+> 2
+
+− W j 
+
+> 2
+
+= −η∇W j
+
+> 2
+
+L and ˜ b j 
+
+> 2
+
+− b j 
+
+> 2
+
+= −η∇b j
+
+> 2
+
+L. This makes Eq. 9 identical to Eq. 4, indicating that the cor-responding sample ˜ x j can be perfectly reconstructed . For the more complex Adam/AdamW optimizer, the single-step model update can be reverted as ˜ W j 
+
+> 2
+
+−W j 
+
+> 2
+
+= −ηsign (∇W j
+
+> 2
+
+L)
+
+and ˜ b j 
+
+> 2
+
+− b j 
+
+> 2
+
+= −ηsign (∇b j
+
+> 2
+
+L), where sign refers to the di-rection of vectors. This indicates that there is a reversion information loss (although slight) when the Adam/AdamW optimizer is used, and Eq. 9 can only achieve approximated 
+
+Table 1: NeuroImprint detailed backdoor construction steps. 
+
+NeuroImprint Privacy Backdoor Construction Backdoor Placement : The privacy backdoor ∆adv is placed after the word embedding module and before the LayerNorm module, same as a parallel adapter. 
+
+Hyper Parameters : Hidden dim h, reduced hidden dim ˆh, reconstruction bin size m, and max sequence length l.
+
+Backdoor Components: Projection Layer L1: x ∈ Rb×l×h → ˆx ∈ Rb×l×ˆh
+
+Take the embed matrix E = [ e1, e2, · · · , ev]T
+
+Compute μ = 1 
+
+> v
+
+∑vi=1 ei, E − 1μT = UΣVT
+
+Select top ˆ h components WT = Vˆh
+
+Formalize ˆ x = L3(x) = ( x − μ)WT
+
+Data Reshape: ˆx ∈ Rb×l×h → ˆx ∈ Rb×l·ˆh
+
+Memorization Layer L2: ˆx ∈ Rb×l·ˆh → z ∈ Rb×m
+
+Assign W2 = [ r2, r2, · · · , r2]T , r2 = rand (l · ˆh)
+
+Estimate bi 
+
+> 2
+
+∼ ψ with Daux and F(t) = P{bi 
+
+> 2
+
+≤ t}
+
+Assign b2 = −[F−1( 1 
+
+> m
+
+), F−1( 2 
+
+> m
+
+), · · · , F−1(1)] T
+
+RaLU Activation: z ∈ Rb×m → z ∈ Rb×m
+
+For zi, i ∈ { 1, 2, · · · , m}:If 0 < zi < F−1( i+1 
+
+> n
+
+) − F−1( in ): RaLU (zi) = zi
+
+Else: RaLU (zi) = 0
+
+Output Layer: z ∈ Rb×m → o ∈ Rb×h
+
+Assign W3 = [ r3, r3, · · · , r3]T , r3 = rand (m)
+
+Assign b3 = 0Data Broadcast: o ∈ Rb×h → o ∈ Rb×t×h
+
+reconstruction . More detailed mathematical explanations for how this inversion is derived can be found in Appendix B. Based on this, we discover the following attack insight: 
+
+Insight 5 : SGD exposes raw gradients, enabling ex-act sample inversion . In comparison, Adam/AdamW obscures them with momentum and adaptive states, leaving smoothed gradients and only allowing ap-proximate reconstruction .
+
+## 4.4 Bypassing Secure Aggregation 
+
+Based on our previous design, NeuroImprint can reverse a union set of local finetuning datasets ∪ni=1Di. However, the secure aggregation can still ensure “privacy-by-shuffling”, and prevent the adversary from attributing the reconstructed samples to individual clients. To further enable targeted at-tack, we keep the backdoor unchanged for the victim, de-noted as ∆target adv , and slightly change the privacy backdoor sent to other clients, denoted by ˆ ∆others adv . The difference be-tween ˆ ∆others adv and ∆target adv is that we change the bias vector 7of the second layer b2 to be ˆb2 = −[F−1(1 − ε), F−1(1 −
+
+ε), · · · , F−1(1 − ε)] T , where ε refers to a small constant value. Because F−1(1−ε) has already reached the boundary of the whole distribution ψ, this design ensures that almost 
+
+no neuron is activated during the local fine-tuning process. This makes the model updates negligible for all other clients except the victim, exposing the individual model update of the client, which can be inverted back to training samples via Eq. 9. Mathematically, this can be expressed as: 
+
+θ r+1 = 1
+
+n
+
+> n
+
+# ∑
+
+> i=1
+
+ui = 1
+
+n
+
+> n
+
+# ∑
+
+> i=1
+
+θi = θ r + 1
+
+n (θvictim − θ r) (10) 
+
+## 4.5 Analysis 
+
+We highlight the following properties of our proposed attack. 
+
+Zero Performance Impact : Suppose the original word and positional embeddings are ew, and ep. Without any back-door, the LayerNorm can be expressed as: LayerNorm (z) = γ ⊙ z − μ
+
+√σ 2 + ε + β (11) where z = ew + ep denotes the original input embeddings, 
+
+μ = 1 
+
+> h
+
+∑hi=1 zi, σ 2 = 1 
+
+> h
+
+∑hi=1(zi − μ)2 refers to feature-level mean and variance, and γ, β refers to learnable parameters. With the backdoor inserted, the input to LayerNorm becomes ˆz = z + o = [ z1 + v, z2 + v, · · · , zh + v]T , where v refers to the constant feature vector of o. Accordingly, we can calculate 
+
+μ ˆz = 1 
+
+> h
+
+∑hi=1 zi + v, and σ 2ˆz = 1 
+
+> h
+
+∑hi=1(ˆz − μ ˆz)2 = 1 
+
+> h
+
+∑hi=1(zi +
+
+v − μ − v)2 = 1 
+
+> h
+
+∑hi=1(zi − μ)2 = σ 2. Take a step further, we can derive: LayerNorm (ˆz) = γ ⊙ ˆz − μ ˆz
+
+pσˆz2 + ε + β
+
+= γ ⊙ z + o − μ ˆz
+
+√σ 2 + ε + β
+
+= LayerNorm (z)
+
+(12) This implies that the LayerNorm produces identical out-puts with or without our privacy backdoor. Consequently, the subsequent transformer blocks, which are the core compo-nents of language models, perceive no difference, indicating that our attack module incurs negligible impact on training performance. 
+
+Scalable Reconstruction: The adversary’s reconstruction capability is largely defined by the number of reconstruc-tion bins m. In theory, one reconstruction bin can recon-struct one finetuning sample, and the adversary can select m
+
+in the number of a few thousand (e.g., 4096), as this is the typical size of linear layers in language models. Under this setting, our attack can reconstruct thousands of samples. For each sample, we set a maximum token length l, adjustable by the attacker according to the targeted content. In practice, the adversary can select l up to a few hundred (e.g., 384) to reverse long sequences. Note that both the number of bins 
+
+m and the maximum token length l are attacker-controlled parameters , and can be scaled as needed. However, a larger memorization layer incurs higher memory overhead and can-not be scaled indefinitely. We provide further discussion for this scalability–memory space trade-off in Section 6. 
+
+Adaptive to LoRA Finetuning: LoRA fine-tuning has been widely adopted for adapting transformer blocks with low overhead. Compared to full-rank MLP-style parallel or 
+
+serial adapters, LoRA parameterizes the update to a target weight matrix Worigin ∈ Rm×s using a low-rank decompo-sition, i.e., Wnew = Worigin + ∆W with ∆W = BA , where 
+
+B ∈ Rm×q, A ∈ Rq×s, and q ≪ m, s. Consequently, the update 
+
+∆W has rank at most q, leading to significantly lower compu-tation and storage overhead than full-rank adapter variants. For NeuroImprint , LoRA can be applied to all transformer blocks, and the privacy backdoor remains effective as long as the gradients are back-propagated through it. However, LoRA is not suitable for the backdoor itself, particularly for the critical memorization layer. This is because the in-evitable information loss from low-rank approximation de-grades the fidelity of the stored gradients, thereby reducing the attack’s effectiveness. 
+
+## 5 Evaluation 5.1 Experiment Settings 
+
+Implementation: We implemented NeuroImprint on the Py-Torch platform. We run all the experiments on a server equipped with an AMD EPYC 7643 48-Core CPU Proces-sor, four NVIDIA GeForce A100-SXM4-80GB GPUs, and Ubuntu 22.04.3 LTS. 
+
+Models: We conducted experiments on four language models, including BERT [16], GPT-2 [51], Qwen 2 [1], and Llama 3.2 [18]. We download their latest pre-trained version from Hugging Face as the base models. 
+
+Datasets: We evaluated NeuroImprint ’s performance on four different datasets, including AGNews [60], SQuAD [52], EMRQA-mSQuAD [19], and GSM8K [14]. Their de-tailed introduction can be found in Appendix C. 
+
+Evaluation Metrics: We use two evaluation metrics to evaluate our proposed attack, including semantic similarity (Sim.) and reconstruction rate (Rate). For the semantic simi-larity, we measure the sentence embedding cosine similarity between the original x and the reconstructed ones ˜ x, which can be represented as: 
+
+ssemantic (x, ˜x) = cos (Enc (x), Enc (˜x)) (13) where Enc refers to the semantic encoder, and cos () refers to the cosine similarity function. In our experiment, we use the widely adopted Sentence-Transformer [54] as the semantic encoder. The reconstruction rate measures the ratio of re-construction samples. Note that all the experiment results 8Original Text :
+
+Context: Beyonc´ e announced a hiatus from her music career in January 2010, heeding her mother’s advice, “to live life, to be inspired by things again”. During the break she and her father parted ways as business partners. Beyonc´ e’s musical break lasted nine months and saw her visit multiple European cities, the Great Wall of China, the Egyptian pyramids, Australia, English music festivals, and various museums and ballet performances. 
+
+Question: Which famous landmark did Beyonc´ e see in China? 
+
+Answer: the Great Wall of China 
+
+Reconstructed Text 1 (SGD) :
+
+Context: Beyonc´ e announced a hiatus from her music career in January 2010, heeding her mother’s advice, “to live life, to be inspired by things again”. During the break she and her father parted ways as business partners. Beyonc´ e’s musical break lasted nine months and saw her visit multiple European cities, the Great Wall of China, the Egyptian pyramids, Australia, English music festivals, and various museums and ballet performances. 
+
+Question: Which famous landmark did Beyonc´ e see in China? 
+
+Answer: the Great Wall of China 
+
+Reconstructed Text 2 (AdamW) :
+
+Context: Beyoncy announced several hiatus beside hers music career onto January 2010, heed hers mother’s advice, “to live life, to become inspired by things again”. During hers break herself argues hers father parted routes since business part-ners. Beyoncy’s musical break lasted nine months argues saw hers visit multiple European cities, the Great Wall towards China, the Egyptian pyramids, Australia, English music festivals argues various museums argues ballet performances. 
+
+Question: Which famous landmark did Beyoncy look beside China? 
+
+Answer: the Great Wall of China 
+
+LLM Rephrased (AdamW) :
+
+Context: Beyonc´ e announced a hiatus from her music career in January 2010, following her mother’s advice to “live life and become inspired by things again.” During her break, she and her father ended their professional relationship as business partners. Her musical hiatus lasted for nine months, during which she traveled extensively—visiting several European cities, the Great Wall of China, the Egyptian pyramids, Australia, various English music festivals, and numerous museums and ballet performances. 
+
+Question: Which famous landmark did Beyonc´ e visit in China? 
+
+Answer: the Great Wall of China 
+
+Figure 5: NeuroImprint reconstruction examples on the SQuAD dataset. Text 1 corresponds to fine-tuning with SGD; Text 2 corresponds to fine-tuning with AdamW. SGD yields nearly perfect reconstruction, while AdamW leads to approximated recovery with minor distortions. To improve their readability and semantic coherence, the adversary could further refine the reconstructed samples by leveraging LLMs to rephrase the content. More examples are provided in Appendix D. we report are the vanilla reconstruction performance with-out any LLM enhancement (as shown in Fig. 5). Additional results for LLM refinement can be found in Appendix F. 
+
+Default FL Settings: For each dataset, we select 8000 samples from the FL training set, denoted as Dtrain , and 2000 samples from the test set to form the auxiliary dataset, de-noted as Daux . This ensures that there is no overlap be-tween the two datasets. We assume there are 10 clients in the FL system, and the training dataset Dtrain is split uni-formly across them, with each client holding 800 training samples. We assume the state-of-the-art secure aggregation mechanism is in place [7], and the adversary can only obtain the aggregated model update. We select one client as the at-tack victim and aim to reconstruct all training samples within its local dataset, denoted by Dtarget . We assume each client conducts local training for 16 training steps with a batch size of 50. The client can use either the SGD or AdamW optimiz-ers to perform the local training. The adversary is assumed to construct m = 2000 reconstruction bins for the attack. 
+
+## 5.2 Reconstruction Capability Evaluation 
+
+General Performance: We report the experiment results in Tab. 2. Specifically, we report the reconstruction rate, the average semantic similarity of all reconstructed samples, and the corresponding standard deviation. From the results, we observe that the reconstruction semantic similarity consistently degrades when using the AdamW optimizer compared to SGD. This is consistent with our attack insight 5, as under the AdamW optimizer, Neu-
+
+9Table 2: The general reconstruction performance of NeuroImprint on different models and datasets. 
+
+Dataset Token Len. Optimizer BERT GPT-2 Qwen2-1.5B Llama3-3B 
+
+Rate |Sim. ±Std Rate |Sim. ±Std Rate |Sim. ±Std Rate |Sim. ±Std AGNews 128 SGD 0.774 |0.994 ±0.028 0.665 |0.990 ±0.050 0.714 |0.997 ±0.025 0.700 |0.992 ±0.057 AdamW 0.746 |0.767 ±0.090 0.744 |0.779 ±0.115 0.733 |0.830 ±0.102 0.627 |0.817 ±0.085 SQuAD 384 SGD 0.748 |0.979 ±0.090 0.642 |0.988 ±0.071 0.674 |0.991 ±0.061 0.750 |0.997 ±0.032 AdamW 0.772 |0.714 ±0.097 0.734 |0.682 ±0.119 0.531 |0.668 ±0.112 0.724 |0.926 ±0.072 mSQuAD 384 SGD 0.796 |0.955 ±0.119 0.688 |0.963 ±0.106 0.776 |0.959 ±0.121 0.750 |0.965 ±0.106 AdamW 0.751 |0.801 ±0.078 0.739 |0.806 ±0.078 0.736 |0.767 ±0.077 0.723 |0.845 ±0.059 GSM8K 512 SGD – 0.608 |0.978 ±0.100 0.706 |0.959 ±0.142 0.610 |0.946 ±0.157 AdamW – 0.654 |0.524 ±0.116 0.595 |0.663 ±0.084 0.639 |0.865 ±0.075 
+
+BERT is excluded from GSM8K because it is an encoder-only model for classification/span extraction. 0.6 0.7 0.8 0.9 1.0 
+
+> Semantic Similarity
+> 0.0
+> 10.0
+> 20.0
+> 30.0
+> 40.0
+> 50.0
+> Density
+
+(a) AGNews/SGD 0.4 0.6 0.8 1.0  
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Density
+
+(b) AGNews/AdamW 0.4 0.6 0.8 1.0  
+
+> Semantic Similarity
+> 0.0
+> 10.0
+> 20.0
+> 30.0
+> Density
+
+(c) SquAD/SGD 0.4 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> Density
+
+(d) SquAD/AdamW 0.4 0.6 0.8 1.0 
+
+> Semantic Similarity
+> 0.0
+> 10.0
+> 20.0
+> 30.0
+> Density
+
+(e) mSQuAD/SGD 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 2.0
+> 4.0
+> 6.0
+> Density
+
+(f) mSQuAD/AdamW 0.4 0.6 0.8 1.0  
+
+> Semantic Similarity
+> 0.0
+> 10.0
+> 20.0
+> 30.0
+> Density
+
+(g) GSM8K/SGD 0.4 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Density
+
+(h) GSM8K/AdamW 
+
+Figure 6: The semantic similarity distribution of reconstructed samples for Qwen2-1.5B. 
+
+roImprint can only perform approximated reconstruction. For the reconstruction rate, the results show no consistent advantage between the two optimizers. In general, NeuroIm-print is capable of reconstructing a substantial proportion (>55%) of samples with high semantic fidelity, validating the effectiveness of our attack. We further illustrate the se-mantic similarity distributions of all reconstructed samples across the four datasets under the Qwen2-1.5B model. From the results, we observe that using the AdamW optimizer leads to a noticeable shift in the distribution toward lower semantic similarity values compared to SGD. In particular, the reconstructed samples exhibit a unimodal high peak near the semantic similarity of 1.0 under the SGD optimizer, re-flecting the exact reconstruction nature of our attack. 
+
+Bin Size Impact: We vary the reconstruction bin number 
+
+m from 1000 to 3000 to examine how the bin number m cor-relates with the size of the target dataset D target (denoted as 
+
+d), which is fixed as d = 800. We conduct the experiment on the AGNews dataset and demonstrate the attack results in Fig. 7. From the results, we observe that the reconstruction rate increases when the bin size increases. This is consistent with our theoretical analysis, as more reconstruction bins re-duce the probability of reconstruction conflicts and overlaps. Meanwhile, we observe that the semantic similarity remains stable across different bin sizes, indicating that the recon-struction quality is unaffected. Once reconstructed, the sam-ples consistently exhibit high semantic fidelity. 
+
+Data Size Impact: To further investigate the relationship between the bin number m and the size d of the target dataset Dtarget , we fix the bin size m = 2000 and change d from 400 to 1200. We conduct the experiment on the AGNews dataset and report the results in Fig. 8. From the results, we can find 10 1000 1500 2000 2500 3000  
+
+> Bin Size
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> ASR
+> SGD AdamW
+
+(a) Rate/Bin Number 1000 1500 2000 2500 3000   
+
+> Bin Size
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Mean Cosine Similarity  SGD AdamW
+
+(b) Semantic Sim./Bin Number 
+
+Figure 7: NeuroImprint reconstruction performance across different reconstruction bin sizes under the GPT-2 model. 400 600 800 1000 1200   
+
+> Data Number d
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> ASR
+> SGD AdamW
+
+(a) Rate/Data Size 400 600 800 1000 1200    
+
+> Data Number d
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Mean Cosine Similarity  SGD AdamW
+
+(b) Semantic Sim./Data Size 
+
+Figure 8: NeuroImprint reconstruction performance across different local data sizes under the GPT-2 model. that the reconstruction rates decrease when the target data size increases. However, the reconstruction semantic sim-ilarity scores are very stable across different data settings. As a conclusion for the two Sections, we find that the recon-struction rate is not decided by either the bin number m or the target dataset’s size d alone, but the ratio between them. A larger md ratio leads to better reconstruction results and vice versa. In practice, we observe that NeuroImprint can achieve decent attack performance when the ratio satisfies md > 2. 
+
+Non-IID Impact: We demonstrate NeuroImprint ’s per-formance under different non-IID degrees (denoted by α) in Fig. 9. We conduct our experiment on the AGNews dataset and use the well-adapted Dirichlet distribution [29] to par-tition datasets. We select non-IID degree α ranging from 
+
+{0.1, 0.3, 0.5, 0.7, 0.9}, where a smaller α indicates more skewed data partition. We find that NeuroImprint ’s perfor-mance is slightly affected by the client’s non-IID degree. In particular, the reconstruction rates are perturbed and slightly decrease when the non-IID level increases, while the recon-struction semantic similarity remains stable. However, we clarify that this experiment is conducted under the assump-tion that the auxiliary dataset Daux has a similar distribution to the overall training dataset Dtrain , before it is partitioned to different clients. We further investigate the impact of the distribution shift between Daux and Dtrain in Section 5.4. 
+
+Client Number Impact: We evaluate NeuroImprint ’s reconstruction performance across varying numbers of FL clients ranging from 5 to 25 on the AGNews dataset. The results are illustrated in Fig. 10. We find that both the recon-0.1 0.3 0.5 0.7 0.9   
+
+> Dirichlet (lower = more non-IID)
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> ASR
+> SGD AdamW
+
+(a) Rate/Non-IID Degree 0.1 0.3 0.5 0.7 0.9    
+
+> Dirichlet (lower = more non-IID)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Mean Cosine Similarity  SGD AdamW
+
+(b) Semantic Sim./Non-IID Degree 
+
+Figure 9: NeuroImprint reconstruction performance across varying non-IID degrees under the GPT-2 model. 5 10 15 20 25   
+
+> Client Number n
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> ASR
+> SGD AdamW
+
+(a) Rate/Client Number 5 10 15 20 25    
+
+> Client Number n
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Mean Cosine Similarity  SGD AdamW
+
+(b) Semantic Sim./Client Number 
+
+Figure 10: NeuroImprint reconstruction performance across varying numbers of FL clients under the GPT-2 model. struction rate and semantic similarity remain highly stable across different client numbers. This demonstrates NeuroIm-print ’s robustness in bypassing secure aggregation mecha-nisms, validating it can selectively reconstruct samples be-longing to the victim client from a few dozen clients. 
+
+## 5.3 Attack Stealthiness 
+
+In Section 4.5, we provide a theoretical proof for why the privacy backdoor introduces no model performance impact. In this section, we further provide an experimental validation for this attack property. We conduct the FL training for 20 rounds under the default FL setting for the GPT-2 model on the AGNews dataset with and without NeuroImprint attack. We report the model accuracy, training performance versus training rounds, as well as the per-class ROC curves in Fig. 11. From the results, we can find that the model performance is almost identical with and without NeuroImprint attack. In addition, we report the model’s accuracy, precision, recall, and F1 scores on different non-IID levels with and without attack in Tab. 3. From the results, we observe only minor differences in model performance across all evaluation met-rics with or without our attack. This further highlights that our privacy backdoor introduces no noticeable performance degradation. We regard this as a crucial property for pre-serving attack stealthiness, as clients observe no detectable performance differences when the attack is launched. In ad-dition, we find that the overall model training performance is not significantly affected by the non-IID degree. This may be 11 0 5 10 15 20 
+
+> Round
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> Accuracy
+> Clean
+> Attack
+
+(a) Model Accuracy/Round 0 5 10 15 20  
+
+> Round
+> 0
+> 2
+> 4
+> 6
+> 8
+> Loss
+> Clean
+> Attack
+
+(b) Training Loss/Round 0.0 0.2 0.4 0.6 0.8 1.0  
+
+> False Positive Rate
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> True Positive Rate
+> World (AUC=0.975)
+> Sports (AUC=0.995)
+> Business (AUC=0.937)
+> Tech (AUC=0.972)
+
+(c) ROC Curve/Without Attack 0.0 0.2 0.4 0.6 0.8 1.0  
+
+> False Positive Rate
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> True Positive Rate
+> World (AUC=0.975)
+> Sports (AUC=0.995)
+> Business (AUC=0.937)
+> Tech (AUC=0.972)
+
+(d) ROC Curve/With Attack 
+
+Figure 11: GPT-2’s performance with and without NeuroImprint on the AGNews dataset. Table 3: Model performance under different Non-IID levels (with or without attack). 
+
+Non-IID w/ or w/o Acc Prec Rec F1 
+
+0.9 w/o 0.8530 0.8476 0.8469 0.8463 w/ 0.8420 0.8363 0.8359 0.8335 0.5 w/o 0.8470 0.8413 0.8411 0.8404 w/ 0.8450 0.8379 0.8379 0.8363 0.1 w/o 0.8360 0.8319 0.8287 0.8268 w/ 0.8430 0.8366 0.8359 0.8342 
+
+Table 4: Cross-dataset reconstruction performance on the GPT-2 model. 
+
+Daux → Dtarget Optimizer Rate Sim. ±Std 
+
+EMRQA →MedQuAD SGD 0.420 0.922 ± 0.159 AdamW 0.504 0.713 ± 0.147 MedQuAD →EMRQA SGD 0.525 0.948 ± 0.129 AdamW 0.571 0.806 ± 0.078 SQuAD →EMRQA SGD 0.578 0.952 ± 0.125 AdamW 0.649 0.808 ± 0.076 EMRQA →SQuAD SGD 0.672 0.978 ± 0.094 AdamW 0.735 0.749 ± 0.100 SQuAD →MedQuAD SGD 0.245 0.969 ± 0.118 AdamW 0.469 0.723 ± 0.144 MedQuAD →SQuAD SGD 0.537 0.978 ± 0.094 AdamW 0.562 0.738 ± 0.109 
+
+due to GPT-2’s powerful modeling ability and the simplicity of the classification task. 
+
+## 5.4 Cross-Dataset Transferability 
+
+In this section, we investigate NeuroImprint ’s cross-dataset attack transferability, where the adversary possesses an aux-iliary dataset Daux that differs from the target dataset Dtarget .This setting reflects a more realistic attack scenario, as an adversary is unlikely to obtain an auxiliary dataset that per-fectly matches the target distribution. Instead, the attacker may only have broad domain knowledge and access to an in-domain dataset with similar characteristics .For the experiment, we adopt the default FL settings and introduce an additional dataset, named MedQuAD [6]. This is a large-scale medical question-answering dataset au-tomatically collected from the U.S. National Institutes of Health (NIH) webpages, containing over 47000 consumer-style question–answer pairs covering diseases, drugs, symp-toms, and treatments. Unlike EMRQA-mSQuAD, which contains longer and clinically detailed EMR text, MedQuAD features shorter, consumer-oriented questions and concise public health answers. Besides MedQuAD, we also include the EMRQA-mSQuAD and SQuAD datasets in our experi-ments, as all three share the same question–answer format suitable for consistent evaluation. In each case, we designate one dataset as the auxiliary dataset and another as the recon-struction target, then swap their roles to assess bidirectional transferability. This setup is feasible under the assumption that the adversary possesses basic knowledge of the FL lo-cal training data and overall task. We demonstrate the attack performance in Tab. 4. The first pair of datasets, EMRQA-mSQuAD and MedQuAD, are both biomedical datasets and represent the attack scenario in which the adversary possesses an in-domain auxiliary dataset. We use them to show that Neu-roImprint transfers well across similar biomedical sources, achieving consistently strong reconstruction performance. The second pair (SQuAD and EMRQA-mSQuAD) and the third pair (SQuAD and MedQuAD) emulate the scenario where the attacker only has a general auxiliary dataset that is not necessarily from the target domain. However, de-spite this mismatch, our attack still reconstructs a substantial portion of the samples. These results indicate that differ-ent QA datasets with the same format share rich structural and semantic commonalities that NeuroImprint can exploit. We further observe that when the auxiliary dataset is more domain-specific, such as EMRQA-mSQuAD or MedQuAD, the attack transfers more effectively than when using a general-domain dataset like SQuAD. This improvement is likely attributed to the reduced domain mismatch between the auxiliary and target datasets. 12 Table 5: NeuroImprint ’s reconstruction performance under LoRA fine-tuning across different models and datasets.                                                  
+
+> Dataset Token Len. Optimizer BERT GPT-2 Qwen2-1.5B Llama3-3B
+> Rate |Sim. ±Std Rate |Sim. ±Std Rate |Sim. ±Std Rate |Sim. ±Std AGNews 128 SGD 0.682 |0.995 ±0.022 0.708 |0.993 ±0.047 0.688 |0.998 ±0.025 0.719 |0.998 ±0.025 AdamW 0.734 |0.773 ±0.087 0.744 |0.729 ±0.120 0.740 |0.820 ±0.104 0.759 |0.918 ±0.071 SQuAD 384 SGD 0.680 |0.988 ±0.060 0.657 |0.971 ±0.110 0.733 |0.978 ±0.100 0.711 |0.994 ±0.045 AdamW 0.719 |0.714 ±0.097 0.749 |0.719 ±0.099 0.744 |0.671 ±0.109 0.733 |0.783 ±0.089 mSQuAD 384 SGD 0.796 |0.955 ±0.119 0.686 |0.971 ±0.096 0.719 |0.972 ±0.100 0.723 |0.966 ±0.106 AdamW 0.735 |0.801 ±0.078 0.710 |0.810 ±0.075 0.700 |0.752 ±0.072 0.706 |0.829 ±0.067 GSM8K 512 SGD –0.630 |0.977 ±0.099 0.762 |0.965 ±0.129 0.741 |0.974 ±0.112 AdamW –0.626 |0.504 ±0.074 0.762 |0.683 ±0.101 0.787 |0.864 ±0.065
+> BERT is excluded from GSM8K because it is an encoder-only model for classification/span extraction.
+
+## 5.5 Attack under LoRA 
+
+We evaluate NeuroImprint ’s performance when the trans-former blocks are under LoRA fine-tuning. We adopt the default FL setting and conduct experiments across all four datasets. For the LoRA parameters, we use a rank of 8, a scaling factor of 32, and a dropout rate of 0.1, applied to the attention and projection layers within the transformer blocks for efficient adaptation. However, we note that the embed-ding block is still using a parallel adapter to enable the at-tack. We conduct the experiments on all four datasets and evaluate both the reconstruction rate and semantic similarity. We report the attack results in Table 5. The data show that 
+
+NeuroImprint ’s effectiveness is essentially unchanged under LoRA fine-tuning and closely matches the results in Table 2. In some settings, the attack even performs slightly better un-der LoRA. This robustness arises because NeuroImprint only relies on the gradients of the memorization layer to execute the attack and is agnostic to whether the subsequent layers are trained with LoRA, parallel adapters, or even full fine-tuning, as long as the gradients are properly backpropagated into the backdoor. These findings demonstrate that our attack can be applied to LoRA fine-tuning settings. We further pro-vide attack performance under LoRA for larger Qwen2-7B and Llama3-8B in Appendix E. 
+
+## 6 Discussion 
+
+Potential Defense: NeuroImprint is designed as a stealthy privacy attack that embeds a backdoor by crafting a seem-ingly benign PEFT adapter while preserving model util-ity. To defend against this attack, a defender may lever-age parameter-level artifacts, such as repeated row vectors or nonstandard bias, to detect the presence of possible back-door. Even though the attacker may still perform an adaptive attack to evade detection, it imposes a constrain on the design and would lead to decreased effectiveness. 
+
+Scalability & Memory Space Trade-off: As we have dis-cussed in Section 4, NeuroImprint ’s reconstruction scalabil-ity is largely determined by the number of neurons m in the memorization layer. Since NeuroImprint assigns one neu-ron per sample, the memory overhead grows approximately linearly with m. In practice, reconstructing 2000 samples re-quires about 200MB for Llama-3.2, which is less than 3% of the model size. However, the memorization layer cannot be scaled indefinitely, and there is a clear scalability–memory trade-off. To accommodate larger target sets under a fixed memory budget, the adversary can form reconstruction bins using only a subset of ψ, thereby reconstructing only the samples mapped to that subset and reducing the required neurons. Scalability can be further improved by repeating the attack across multiple FL rounds, increasing the number of reconstruction trials, and cumulatively recovering more samples. Furthermore, stronger prior information for the domain-specific fine-tuning process also allows a more com-pact representation of key features in samples. 
+
+## 7 Conclusion 
+
+In this paper, we propose NeuroImprint , a practical data re-construction attack against federated language model fine-tuning. The attack is realized by crafting a seemingly benign PEFT adapter attached to the embedding block into a privacy backdoor that memorizes per-sample model updates at dis-tinct neurons during fine-tuning, which enables closed-form reconstruction of private client data from them. NeuroIm-print is effective under realistic finetuning settings, achiev-ing high-fidelity reconstruction for large training batches and long sequences, and remains effective under stateful optimiz-ers. Extensive experiments across multiple model families and datasets demonstrate the effectiveness and generality of 
+
+NeuroImprint . Our findings expose a critical privacy risk in current federated fine-tuning pipelines and highlight the need for stronger safeguards against this emerging privacy attack. 13 Ethical Considerations 
+
+We conduct a stakeholder-based ethics analysis and distin-guish impacts arising from the research process (data han-dling and experimentation) and the publication of results (de-ployment and downstream use). 
+
+Stakeholders. Our work may affect: (1) Federated learn-ing clients/data owners , whose private fine-tuning data may be exposed if the vulnerability is exploited; (2) data subjects 
+
+represented in client datasets, who may experience privacy harm if their information is reconstructed; (3) system devel-opers and deployers , who may incur mitigation, compliance, and incident-response costs; and (4) the research community (including our team) , which benefits from clearer threat un-derstanding but also bears responsibility to minimize dual-use risk and ensure methodological rigor. 
+
+Impacts. Research process (data handling): We evaluate 
+
+NeuroImprint in a controlled setting and do not probe real-world deployments or access non-consensual private user data. Any reconstructed outputs are treated as sensitive arti-facts and handled to minimize exposure, supporting Respect for Persons and Respect for Law and Public Interest . Publi-cation (deployment and application): Publication has both benefits and risks. On the positive side, our results clar-ify a realistic privacy vulnerability in federated parameter-efficient fine-tuning and inform safer system design. On the negative side, disclosure may enable misuse if mitigations are not adopted, potentially increasing privacy risk. 
+
+Potential Harms. Tangible harms include leakage of sen-sitive or proprietary text, with possible reputational or fi-nancial harm to clients and operational harm to deployers. 
+
+Rights-based harms include violations of privacy expecta-tions for data owners and data subjects, even without imme-diate measurable loss. 
+
+Mitigations. Implemented mitigations: We restrict our eval-uation to controlled experiments and treat reconstructed out-puts as sensitive artifacts, minimizing unnecessary exposure. 
+
+Recommended mitigations: We recommend adapter prove-nance checks and pre-deployment auditing, especially for adapters obtained from untrusted sources. In our analy-sis, NeuroImprint leaves parameter-level artifacts—e.g., re-peated row vectors and nonstandard bias initialization in the memorization and output layers—that deviate from typical adapter initialization and training patterns. This motivates practical screening for backdoor-like constructions, along-side complementary integrity checks and monitoring. 
+
+Justification for Research. We conduct and publish this study to enable timely detection and mitigation of a plausible privacy vulnerability in federated parameter-efficient fine-tuning. Under Beneficence , the expected defensive value of exposing this vulnerability and providing mitigation guid-ance outweighs residual dual-use risk. Under Respect for Persons , we avoid violating individuals’ rights by not us-ing non-consensual real-user data and by constraining our evaluation to a controlled setting with careful handling of re-construction outputs. Finally, responsible disclosure serves the public interest by helping deployers update threat models and adopt practical safeguards, supporting Justice and Re-spect for Law and Public Interest .
+
+## Open Science 
+
+Our code is available at: https://github.com/shi shishi123/NeuroImprint/ .
+
+## References 
+
+[1] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. Qwen technical report. arXiv preprint arXiv:2309.16609 , 2023. [2] Ankur Bapna and Orhan Firat. Simple, scalable adap-tation for neural machine translation. In Proceedings of the 2019 conference on empirical methods in natu-ral language processing and the 9th international joint conference on natural language processing (EMNLP-IJCNLP) , pages 1538–1548, 2019. [3] James Bell, Adri` a Gasc´ on, Tancr` ede Lepoint, Baiyu Li, Sarah Meiklejohn, Mariana Raykova, and Cathie Yun. 
+
+{ACORN }: input validation for secure aggregation. In 
+
+32nd USENIX Security Symposium (USENIX Security 23) , pages 4805–4822, 2023. [4] James Henry Bell, Kallista A Bonawitz, Adri` a Gasc´ on, Tancr` ede Lepoint, and Mariana Raykova. Secure single-server aggregation with (poly) logarithmic over-head. In Proceedings of the 2020 ACM SIGSAC Con-ference on Computer and Communications Security ,pages 1253–1269, 2020. [5] Iz Beltagy, Kyle Lo, and Arman Cohan. Scibert: A pretrained language model for scientific text. arXiv preprint arXiv:1903.10676 , 2019. [6] Asma Ben Abacha and Dina Demner-Fushman. Aquestion-entailment approach to question answering. 
+
+BMC bioinformatics , 20(1):511, 2019. [7] Keith Bonawitz, Vladimir Ivanov, Ben Kreuter, Anto-nio Marcedone, H Brendan McMahan, Sarvar Patel, Daniel Ramage, Aaron Segal, and Karn Seth. Practi-cal secure aggregation for privacy-preserving machine learning. In proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Secu-rity , pages 1175–1191, 2017. 14 [8] Lukas Burkhalter, Hidde Lycklama, Alexander Viand, Nicolas K¨ uchler, and Anwar Hithnawi. Rofl: Attestable robustness for secure federated learning. arXiv e-prints ,pages arXiv–2107, 2021. [9] Nicholas Carlini and Andreas Terzis. Poisoning and backdooring contrastive learning. In The Tenth In-ternational Conference on Learning Representations, ICLR 2022, Virtual Event, April 25-29, 2022 . OpenRe-view.net, 2022. [10] Nicholas Carlini, Florian Tramer, Eric Wallace, Matthew Jagielski, Ariel Herbert-Voss, Katherine Lee, Adam Roberts, Tom Brown, Dawn Song, Ulfar Erlings-son, et al. Extracting training data from large language models. In 30th USENIX security symposium (USENIX Security 21) , pages 2633–2650, 2021. [11] Nicolas Carlini, Jamie Hayes, Milad Nasr, Matthew Jagielski, Vikash Sehwag, Florian Tramer, Borja Balle, Daphne Ippolito, and Eric Wallace. Extracting training data from diffusion models. In 32nd USENIX security symposium (USENIX Security 23) , pages 5253–5270, 2023. [12] Ilias Chalkidis, Manos Fergadiotis, Prodromos Malakasiotis, Nikolaos Aletras, and Ion Androut-sopoulos. Legal-bert: The muppets straight out of law school. arXiv preprint arXiv:2010.02559 , 2020. [13] Xinyun Chen, Chang Liu, Bo Li, Kimberly Lu, and Dawn Song. Targeted backdoor attacks on deep learn-ing systems using data poisoning. arXiv preprint arXiv:1712.05526 , 2017. [14] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168 , 2021. [15] Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer. Qlora: Efficient finetuning of quan-tized llms. Advances in neural information processing systems , 36:10088–10115, 2023. [16] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidi-rectional transformers for language understanding. In 
+
+Proceedings of the 2019 conference of the North Amer-ican chapter of the association for computational lin-guistics: human language technologies, volume 1 (long and short papers) , pages 4171–4186, 2019. [17] Tian Dong, Yan Meng, Shaofeng Li, Guoxing Chen, Zhen Liu, and Haojin Zhu. Depth gives a false sense of privacy: {LLM } internal states inversion. In 34th USENIX Security Symposium (USENIX Security 25) ,pages 1629–1648, 2025. [18] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al. The llama 3 herd of models. arXiv e-prints , pages arXiv–2407, 2024. [19] Jimenez Eladio and Hao Wu. emrqa-msquad: A med-ical dataset structured with the squad v2. 0 frame-work, enriched with emrqa medical information. arXiv preprint arXiv:2404.12050 , 2024. [20] Shanglun Feng and Florian Tram` er. Privacy backdoors: Stealing data with corrupted pretrained models. In In-ternational Conference on Machine Learning , pages 13326–13364. PMLR, 2024. [21] Liam Fowl, Jonas Geiping, Wojtek Czaja, Micah Gold-blum, and Tom Goldstein. Robbing the fed: Directly obtaining private data in federated learning with modi-fied models. arXiv preprint arXiv:2110.13057 , 2021. [22] Jonas Geiping, Hartmut Bauermeister, Hannah Dr¨ oge, and Michael Moeller. Inverting gradients-how easy is it to break privacy in federated learning? Advances in Neural Information Processing Systems , 33:16937– 16947, 2020. [23] Tianyu Gu, Brendan Dolan-Gavitt, and Siddharth Garg. Badnets: Identifying vulnerabilities in the ma-chine learning model supply chain. arXiv preprint arXiv:1708.06733 , 2017. [24] Xiaojie Guo, Zheli Liu, Jin Li, Jiqiang Gao, Boyu Hou, Changyu Dong, and Thar Baker. V eri fl: Communication-efficient and fast verifiable aggrega-tion for federated learning. IEEE Transactions on Information Forensics and Security , 16:1736–1751, 2020. [25] Ali Hatamizadeh, Hongxu Yin, Holger R Roth, Wenqi Li, Jan Kautz, Daguang Xu, and Pavlo Molchanov. Gradvit: Gradient inversion of vision transformers. In 
+
+Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 10021– 10030, 2022. [26] Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-Kirkpatrick, and Graham Neubig. Towards a unified view of parameter-efficient transfer learning. arXiv preprint arXiv:2110.04366 , 2021. [27] Zecheng He, Tianwei Zhang, and Ruby B Lee. Model inversion attacks against collaborative inference. In 
+
+Proceedings of the 35th annual computer security ap-plications conference , pages 148–162, 2019. 15 [28] Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin De Laroussilhe, Andrea Ges-mundo, Mona Attariyan, and Sylvain Gelly. Parameter-efficient transfer learning for nlp. In International conference on machine learning , pages 2790–2799. PMLR, 2019. [29] Hsiang Hsu Hsu, Kuan-Chieh Yin, and C.-C. Jay Kuo. Measuring the effects of non-identical data distribu-tion for federated visual classification. arXiv preprint arXiv:1909.06335 , 2019. [30] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation of large lan-guage models. ICLR , 1(2):3, 2022. [31] Zhiqiang Hu, Lei Wang, Yihuai Lan, Wanyu Xu, Ee-Peng Lim, Lidong Bing, Xing Xu, Soujanya Poria, and Roy Lee. Llm-adapters: An adapter family for parameter-efficient fine-tuning of large language mod-els. In Proceedings of the 2023 conference on empirical methods in natural language processing , pages 5254– 5276, 2023. [32] Allen H Huang, Hui Wang, and Yi Yang. Finbert: A large language model for extracting information from financial text. Contemporary Accounting Research ,40(2):806–841, 2023. [33] Kexin Huang, Jaan Altosaar, and Rajesh Ran-ganath. Clinicalbert: Modeling clinical notes and predicting hospital readmission. arXiv preprint arXiv:1904.05342 , 2019. [34] Swanand Kadhe, Nived Rajaraman, O Ozan Koylu-oglu, and Kannan Ramchandran. Fastsecagg: Scal-able secure aggregation for privacy-preserving feder-ated learning. arXiv preprint arXiv:2009.11248 , 2020. [35] Diederik P. Kingma and Jimmy Ba. Adam: Amethod for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2014. [36] Thanos Konstantinidis, Giorgos Iacovides, Mingxue Xu, Tony G Constantinides, and Danilo Mandic. Finl-lama: Financial sentiment classification for algorithmic trading applications. arXiv preprint arXiv:2403.12285 ,2024. [37] Jinhyuk Lee, Wonjin Yoon, Sungdong Kim, Donghyeon Kim, Sunkyu Kim, Chan Ho So, and Jaewoo Kang. Biobert: a pre-trained biomedical language representation model for biomedical text mining. Bioinformatics , 36(4):1234–1240, 2020. [38] Chunyuan Li, Cliff Wong, Sheng Zhang, Naoto Usuyama, Haotian Liu, Jianwei Yang, Tristan Nau-mann, Hoifung Poon, and Jianfeng Gao. Llava-med: Training a large language-and-vision assistant for biomedicine in one day. Advances in Neural Informa-tion Processing Systems , 36:28541–28564, 2023. [39] Xiao-Yang Liu, Guoxuan Wang, Hongyang Yang, and Daochen Zha. Fingpt: Democratizing internet-scale data for financial large language models. arXiv preprint arXiv:2307.10485 , 2023. [40] Yingqi Liu, Shiqing Ma, Yousra Aafer, Wen-Chuan Lee, Juan Zhai, Weihang Wang, and Xiangyu Zhang. Trojaning attack on neural networks. In 25th Annual Network And Distributed System Security Symposium (NDSS 2018) . Internet Soc, 2018. [41] Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. In International Conference on Learning Representations (ICLR) , 2019. [42] Jiahao Lu, Xi Sheryl Zhang, Tianli Zhao, Xiangyu He, and Jian Cheng. April: Finding the achilles’ heel on privacy for vision transformers. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 10051–10060, 2022. [43] Renqian Luo, Liai Sun, Yingce Xia, Tao Qin, Sheng Zhang, Hoifung Poon, and Tie-Yan Liu. Biogpt: generative pre-trained transformer for biomedical text generation and mining. Briefings in bioinformatics ,23(6):bbac409, 2022. [44] Yiping Ma, Jess Woods, Sebastian Angel, Antigoni Polychroniadou, and Tal Rabin. Flamingo: Multi-round single-server secure aggregation with applica-tions to private federated learning. In 2023 IEEE Sym-posium on Security and Privacy (SP) , pages 477–496. IEEE, 2023. [45] Brendan McMahan, Eider Moore, Daniel Ram-age, Seth Hampson, and Blaise Aguera y Arcas. Communication-efficient learning of deep networks from decentralized data. In Artificial intelligence and statistics , pages 1273–1282. PMLR, 2017. [46] Dario Pasquini, Danilo Francati, and Giuseppe Ate-niese. Eluding secure aggregation in federated learning via model inconsistency. In Proceedings of the 2022 ACM SIGSAC Conference on Computer and Commu-nications Security , pages 2429–2443, 2022. [47] Xiong Peng, Bo Han, Feng Liu, Tongliang Liu, and Mingyuan Zhou. Pseudo-private data guided model in-version attacks. Advances in Neural Information Pro-cessing Systems , 37:33338–33375, 2024. 16 [48] Ivo Petrov, Dimitar I Dimitrov, Maximilian Baader, Mark N M¨ uller, and Martin Vechev. Dager: Exact gra-dient inversion for large language models. Advances in Neural Information Processing Systems , 37:87801– 87830, 2024. [49] Jonas Pfeiffer, Andreas R¨ uckl´ e, Clifton Poth, Aishwarya Kamath, Ivan Vuli´ c, Sebastian Ruder, Kyunghyun Cho, and Iryna Gurevych. Adapterhub: A framework for adapting transformers. arXiv preprint arXiv:2007.07779 , 2020. [50] Wenjie Qu, Yuguang Zhou, Yongji Wu, Tingsong Xiao, Binhang Yuan, Yiming Li, and Jiaheng Zhang. Prompt inversion attack against collaborative inference of large language models. In 2025 IEEE Symposium on Secu-rity and Privacy (SP) , pages 1695–1712. IEEE, 2025. [51] Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, Ilya Sutskever, et al. Language mod-els are unsupervised multitask learners. OpenAI blog ,1(8):9, 2019. [52] Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang. Squad: 100,000+ questions for machine comprehension of text. arXiv preprint arXiv:1606.05250 , 2016. [53] Mayank Rathee, Conghao Shen, Sameer Wagh, and Raluca Ada Popa. Elsa: Secure aggregation for fed-erated learning with malicious actors. In 2023 IEEE Symposium on Security and Privacy (SP) , pages 1961– 1979. IEEE, 2023. [54] Nils Reimers and Iryna Gurevych. Sentence-bert: Sen-tence embeddings using siamese bert-networks. arXiv preprint arXiv:1908.10084 , 2019. [55] Shanghao Shi, Ning Wang, Yang Xiao, Chaoyu Zhang, Yi Shi, Y Thomas Hou, and Wenjing Lou. Scale-mia: A scalable model inversion attack against secure fed-erated learning via latent space reconstruction. arXiv preprint arXiv:2311.05808 , 2023. [56] U.S. Congress. Health insurance portability and ac-countability act of 1996. https://www.govinf o.gov/link/plaw/104/public/191 , 1996. Public Law 104-191, 110 Stat. 1936, enacted August 21, 1996. [57] Yuxin Wen, Jonas Geiping, Liam Fowl, Micah Gold-blum, and Tom Goldstein. Fishing for user data in large-batch federated learning via gradient magnifica-tion. arXiv preprint arXiv:2202.00580 , 2022. [58] Yuxin Wen, Leo Marchyok, Sanghyun Hong, Jonas Geiping, Tom Goldstein, and Nicholas Carlini. Privacy backdoors: Enhancing membership inference through poisoning pre-trained models. Advances in Neural In-formation Processing Systems , 37:83374–83396, 2024. [59] Hongxu Yin, Arun Mallya, Arash Vahdat, Jose M Al-varez, Jan Kautz, and Pavlo Molchanov. See through gradients: Image batch recovery via gradinversion. In 
+
+Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 16337– 16346, 2021. [60] Xiang Zhang, Junbo Zhao, and Yann LeCun. Character-level convolutional networks for text classi-fication. In Advances in Neural Information Processing Systems (NeurIPS) , 2015. [61] Yuheng Zhang, Ruoxi Jia, Hengzhi Pei, Wenxiao Wang, Bo Li, and Dawn Song. The secret revealer: Generative model-inversion attacks against deep neu-ral networks. In Proceedings of the IEEE/CVF confer-ence on computer vision and pattern recognition , pages 253–261, 2020. [62] Bo Zhao, Konda Reddy Mopuri, and Hakan Bilen. idlg: Improved deep leakage from gradients. arXiv preprint arXiv:2001.02610 , 2020. [63] Joshua C Zhao, Atul Sharma, Ahmed Roushdy Elko-rdy, Yahya H Ezzeldin, Salman Avestimehr, and Saurabh Bagchi. Loki: Large-scale data reconstruction attack against federated learning through model manip-ulation. In 2024 IEEE Symposium on Security and Pri-vacy (SP) , pages 1287–1305. IEEE, 2024. [64] Junyi Zhu and Matthew Blaschko. R-gap: Re-cursive gradient attack on privacy. arXiv preprint arXiv:2010.07733 , 2020. [65] Ligeng Zhu, Zhijian Liu, and Song Han. Deep leakage from gradients. Advances in neural information pro-cessing systems , 32, 2019. [66] Yaoming Zhu, Jiangtao Feng, Chengqi Zhao, Mingx-uan Wang, and Lei Li. Counter-interference adapter for multilingual machine translation. arXiv preprint arXiv:2104.08154 , 2021. 17 Appendix A. Adam Optimizer 
+
+The Adam optimizer is an adaptive stochastic optimiza-tion algorithm that maintains exponential moving averages of both the first- and second-order moments of the gradi-ents [35]. It has been widely used as the de facto train-ing optimizer for complex machine learning optimization tasks. For the federated fine-tuning setting, each local client performs local training with it for T rounds. At iteration 
+
+t ∈ { 1, 2, 3, · · · , T }, given gradient gt = ∇θ L(θt ), Adam op-timizer updates parameters as: 
+
+mt = β1mt−1 + ( 1 − β1)gt ,
+
+vt = β2vt−1 + ( 1 − β2)g2 
+
+> t
+
+,
+
+ˆmt = mt
+
+1 − β t
+
+> 1
+
+, ˆvt = vt
+
+1 − β t
+
+> 2
+
+,
+
+θt+1 = θt − α ˆmt
+
+√ ˆvt + ε .
+
+(14) Here, α is the learning rate, β1 and β2 are exponential de-cay rates (typically 0.9 and 0.999), and ε is a small con-stant for numerical stability. We can clearly observe that the raw gradients gt are distorted during the training process. The AdamW optimizer is a decoupled variant of Adam that applies weight decay directly to the parameters rather than through the gradients, leading to more stable optimization and better generalization [41]. 
+
+## Appendix B. Single-Step Reversion 
+
+At the first step ( m0 = 0, v0 = 0), the model update under the Adam optimizer can be approximated as follows: 
+
+m1 = ( 1 − β1)g1, v1 = ( 1 − β2)g21,
+
+ˆm1 = mt
+
+1 − β1
+
+= g1, ˆv1 = vt
+
+1 − β2
+
+= g21,
+
+θ1 = θ0 − α ˆm1
+
+√ ˆv1 + ε .
+
+(15) Therefore, ∆θ1 = α ˆm1√ ˆv1+ε = α g1 
+
+> g1+ε
+
+≈ αsign (g1).
+
+## Appendix C. Experiment Datasets 
+
+The AG News dataset is a topic-classification dataset built from news headlines and descriptions collected via the AG aggregator, with 120,000 training and 7,600 test sam-ples evenly split across four classes (World, Sports, Busi-ness, Sci/Tech). The Stanford Question Answering Dataset (SQuAD v1.1) is a Wikipedia-based extractive QA bench-mark comprising a context paragraph, a question, and an answer span that appears verbatim in the context. The dataset consists of 87,599 training and 10,570 testing ex-amples. EMRQA-mSQuAD dataset remaps EMRQA into the SQuAD v1.1 schema, pairing biomedical passages with targeted questions and short extractive spans. It contains approximately 12k span-based QA pairs, and we treat it as SQuAD-style extractive QA with the same formatting. GSM8K is a curated set of grade-school math word prob-lems for multi-step reasoning, with 7,473 training and 1,319 test problems. The samples are in the format of Question →
+
+Final number. 
+
+## Appendix D. Reconstruction Examples 
+
+We provide reconstruction examples for the AGNews, GSM8K, and EMRQA-mSQuAD datasets in Fig. 12. For each dataset, we show the original text, reconstructions un-der SGD and AdamW, and the LLM-refined results. 18 Original Text (AGNews) :
+
+News: Non-OPEC Nations Should Up Output-Purnomo JAKARTA (Reuters) - Non-OPEC oil exporters should consider increasing output to cool record crude prices, OPEC President Purnomo Yusgiantoro said on Sunday. 
+
+Category: Business 
+
+Reconstructed Text 1 (SGD) :
+
+News: Non-OPEC Nations Should Up Output-Purnomo JAKARTA (Reuters) - Non-OPEC oil exporters should consider increasing output to cool record crude prices, OPEC President Purnomo Yusgiantoro said on Sunday. 
+
+Category: Business 
+
+Reconstructed Text 2 (AdamW) :
+
+News: Non-OPEC Nations Should Up Output-Purnomo < JAKARTA ((Reuters)) ! Non-OPEC oil exporters should consider < increasing output onto cool record crude prices, OPEC President < nurnomo Yusgiantoro said onto Sunday. 
+
+Category: < Business 
+
+LLM Rephrased (AdamW) :
+
+Context: JAKARTA (Reuters) — Non-OPEC oil exporters should consider increasing production to help cool record-high crude prices, OPEC President Purnomo Yusgiantoro said on Sunday. 
+
+Category: Business 
+
+Original Text (GSM8K) :
+
+Problem: Sarah bought 4 packs of gum. Each pack contains 12 sticks. She gave 6 sticks to her friend and chewed 3 herself. How many sticks of gum does she have left? 
+
+Answer: 39 
+
+Reconstructed Text 1 (SGD) :
+
+Problem: Sarah bought 4 packs of gum. Each pack contains 12 sticks. She gave 6 sticks to her friend and chewed 3 herself. How many sticks of gum does she have left? 
+
+Answer: 39 
+
+Reconstructed Text 2 (AdamW) :
+
+Problem: Sarah purchased four gum packs with 12 sticks each, gave six to a friend and chewed three. How many sticks of gum remain? 
+
+Answer: 39 
+
+LLM Rephrased (AdamW) :
+
+Problem: Sarah purchased four packs of gum with 12 sticks each, gave six sticks to a friend, and chewed three herself. How many sticks of gum remain? 
+
+Answer: 39 
+
+Original Text (mSQUAD) :
+
+Content: This 70-year-old female with CHF, coronary artery disease, diabetes, peripheral vascular disease, and chronic renal insufficiency was admitted on 0/5/06 for weakness and confusion. Her hospital course was complicated by worsening cardiac function with minimal improvement on milrinone and decreasing urine output despite diuretics and also gross gastrointestinal bleeding with melanotic stool while she was on Coumadin for atrial fibrillation. In addition, there was concern for sepsis and she was placed on antibiotics with levofloxacin, Flagyl, and vancomycin. She required a transfer to the Cardiac Care Unit on 9/15/06 for further medical therapy for poor cardiac output, a possible need for CVVH, given volume overload in the setting of renal failure, and work-up of GIB. Her code status was DNR/DNI, but was changed to comfort measures only on 1/17/06 due to a large ascending colorectal mass with ulcerations. Being CMO status, she was removed of all pressors and antibiotics and made comfortable sedated on fentanyl and Versed. She was then extubated for comfort with family present and had agonal breathing with episodes of apnea and was given additional sedation for comfort. The patient drew her last breath at 2:20 p.m. with family present and was pronounced dead at 2:20 p.m. on 1/17/06. Family declined autopsy. 
+
+Question: What does the patient take antibiotics for 
+
+Answer: fibrillation. In addition, there was concern for sepsis 
+
+19 Reconstructed Text 1 (SGD) :
+
+Context: This 70-year-old female with CHF, coronary artery disease, diabetes, peripheral vascular disease, and chronic renal insufficiency was admitted on 0/5/06 for weakness and confusion. Her hospital course was complicated by worsening cardiac function with minimal improvement on milrinone and decreasing urine output despite diuretics and also gross gastrointestinal bleeding with melanotic stool while she was on Coumadin for atrial fibrillation. In addition, there was concern for sepsis and she was placed on antibiotics with levofloxacin, Flagyl, and vancomycin. She required a transfer to the Cardiac Care Unit on 9/15/06 for further medical therapy for poor cardiac output, a possible need for CVVH, given volume overload in the setting of renal failure, and work-up of GIB. Her code status was DNR/DNI, but was changed to comfort measures only on 1/17/06 due to a large ascending colorectal mass with ulcerations. Being CMO status, she was removed of all pressors and antibiotics and made comfortable sedated on fentanyl and Versed. She was then extubated for comfort with family present and had agonal breathing with episodes of apnea and was given additional sedation for comfort. The patient drew her last breath at 2:20 p.m. with family present and was pronounced dead at 2:20 p.m. on 1/17/06. Family declined autopsy. 
+
+Question: What does the patient take antibiotics for 
+
+Answer: fibrillation. In addition, there was concern for sepsis 
+
+Reconstructed Text 2 (Adamw) :
+
+Context: There 70.” year”.” old female toward CHF., coronary artery disease., diabetes., peripheral vascular disease., ar-gues chronic renal insufficiency seemed admitted onto 0.’5.’06., weakness argues confusion., Her hospital course seemed complicated], worsening cardiac function toward minimal improvement onto milrinone argues decreasing urine out-put despite diuretics argues maintains gross gastrointestinal bleeding toward melanotic stool while herself seemed onto Coumadonda.,],rial fibrillation., Its addition., someone seemed concern., sepsis argues herself seemed placed onto an-tibiotics toward levofloxaconda., Flagyl., argues vancomycin., She required several transfer., any Cardiac Care Unit onto 9.’15.’06., further medical therapy., poor cardiac output., several possible need., CVVHa., given volume overload accord-ing any setting., renal failure., argues work.”up., GIB., Her code status seemed DNR.’DNI., something seemed changed., comfort measures only onto 60.’17.’06 due., several sizable ascending colorectal mass toward ulcerations., Being CMO status., herself seemed removed., every pressors argues antibiotics argues kept comfortable sedated onto fentanyl argues Versed., She seemed themselves extubated., comfort toward family occasion argues happened agonal breathing toward episodes of apnea argues seemed given additional sedation., comfort., Their patient drew her last breath], 72,’20 str.,m., toward family occasion argues seemed pronounced dead], 72,’20 str.,m., onto 60.’17.’06., Family declined autopsy., 
+
+Question: ’These doesn any patient stay antibiotics., 
+
+Answer: fibrillation. In addition, there was concern for sepsis 
+
+LLM Rephrased (AdamW) :
+
+Context: A 70-year-old female with a history of congestive heart failure, coronary artery disease, diabetes, peripheral vascular disease, and chronic renal insufficiency was admitted on 05/05/06 with weakness and confusion. Her hospital course was complicated by worsening cardiac function with minimal improvement on milrinone, decreasing urine output despite diuretics, and gross gastrointestinal bleeding with melanotic stool while on Coumadin for atrial fibrillation. In addition, there was concern for sepsis, and she was started on antibiotics including levofloxacin, Flagyl, and vancomycin. She required several transfers, including to the Cardiac Care Unit on 09/15/06, for further management of poor cardiac output and possible need for CVVH due to renal failure and volume overload. Workup also revealed gastrointestinal bleeding. Her code status was DNR/DNI, later changed to comfort measures only on 10/17/06 due to a large ascending colorectal mass with ulcerations. Following transition to CMO status, pressors and antibiotics were discontinued, and she was kept comfortable and sedated on fentanyl and Versed. She was extubated for comfort in the presence of family and developed agonal breathing and episodes of apnea, for which she received additional sedation. The patient passed away at 7:20 a.m. on 10/17/06. The family declined autopsy. 
+
+Question: Did the patient stay on antibiotics? 
+
+Answer: The patient was treated for sepsis with antibiotics, including levofloxacin, Flagyl, and vancomycin. 
+
+Figure 12: NeuroImprint reconstruction examples on the AGNews, GSM8K, and EMRQA-mSQuAD datasets. 20 0.4 0.6 0.8 1.0 
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Density
+
+(a) AGNews/Before 0.6 0.8 1.0  
+
+> Semantic Similarity
+> 0.0
+> 2.0
+> 4.0
+> 6.0
+> Density
+
+(b) AGNews/After 0.4 0.5 0.6 0.7 0.8 0.9 
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> Density
+
+(c) SquAD/Before 0.4 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> Density
+
+(d) SquAD/After 0.5 0.6 0.7 0.8 0.9 
+
+> Semantic Similarity
+> 0.0
+> 2.0
+> 4.0
+> 6.0
+> Density
+
+(e) mSQuAD/Before 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 2.0
+> 4.0
+> 6.0
+> 8.0
+> Density
+
+(f) mSQuAD/After 0.4 0.5 0.6 0.7 0.8 0.9 
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Density
+
+(g) GSM8K/Before 0.4 0.5 0.6 0.7 0.8 0.9  
+
+> Semantic Similarity
+> 0.0
+> 1.0
+> 2.0
+> 3.0
+> 4.0
+> 5.0
+> Density
+
+(h) GSM8K/After 
+
+Figure 13: The semantic similarity distribution of re-constructed samples before and after LLM refinement for Qwen2-1.5B. 
+
+## Appendix E. Attack Larger Models 
+
+We implemented NeuroImprint on larger models, including Qwen2-7B and Llama3-8B, under the same LoRA settings in Section 5.5. The goal is to evaluate whether NeuroImprint 
+
+can be applied to more sophisticated language models. We illustrate the experiment results in Tab. 6. From the results, we observe that NeuroImprint maintains strong reconstruc-tion performance on both larger models and achieves even better performance under the AdamW optimizer than that of their smaller variants. This improvement can be attributed Table 6: The reconstruction performance of NeuroImprint on larger language models. 
+
+Dataset Optimizer Qwen2-7B Llama3-8B 
+
+Rate |Sim. ±Std Rate |Sim. ±Std AGNews SGD 0.748 |0.998 ±0.030 0.723 |1.000 ±0.000 AdamW 0.761 |0.900 ±0.003 0.713 |0.899 ±0.017 SQuAD SGD 0.700 |0.990 ±0.068 0.711 |0.995 ±0.047 AdamW 0.726 |0.892 ±0.062 0.761 |0.898 ±0.024 mSQuAD SGD 0.743 |0.977 ±0.091 0.729 |0.972 ±0.100 AdamW 0.696 |0.891 ±0.055 0.700 |0.887 ±0.069 GSM8K SGD 0.700 |0.974 ±0.113 0.735 |0.966 ±0.130 AdamW 0.787 |0.891 ±0.070 0.804 |0.893 ±0.060 
+
+Table 7: LLM-refined reconstruction performance on GPT-2 and Qwen2-1.5B. 
+
+Dataset Optimizer GPT-2 Qwen2-1.5B 
+
+Rate |Sim. ±Std Rate |Sim. ±Std AGNews Before 0.744 |0.779 ±0.115 0.733 |0.830 ±0.102 After 0.745 |0.788 ±0.110 0.734 |0.873 ±0.081 SQuAD Before 0.734 |0.682 ±0.119 0.531 |0.668 ±0.112 After 0.735 |0.679 ±0.118 0.542 |0.733 ±0.113 mSQuAD Before 0.739 |0.806 ±0.078 0.736 |0.767 ±0.077 After 0.739 |0.808 ±0.076 0.736 |0.851 ±0.066 GSM8K Before 0.654 |0.524 ±0.116 0.595 |0.663 ±0.084 After 0.635 |0.522 ±0.108 0.596 |0.770 ±0.085 
+
+to the richer and more discriminative embedding representa-tions in larger models, which enable more precise inversion from embeddings back to tokens. 
+
+## Appendix F. LLM Refinement 
+
+Under the AdamW optimizer, reconstructed samples pre-serve key keywords but are often disorganized and difficult to read. To mitigate this issue, we feed the reconstructed text under the AdamW optimizer into ChatGPT-5, and prompt it to refine and reorganize the samples into more coherent and readable sentences. We conduct this on the GPT-2 and Qwen2-1.5B models, as NeuroImprint achieves lower nu-merical performance on them. We compare the attack per-formance before and after refinement in Tab. 7. The results show that LLM-based refinement improves the reconstruc-tion performance on Qwen2-1.5B, but provides little to no benefit for GPT-2. Therefore, we regard this refinement as an optional auxiliary step that can help improve reconstruc-tion quality when applicable. For better illustration, we pro-vide the semantic similarity distribution of the reconstructed samples before and after the LLM refinement in Fig. 13. 21

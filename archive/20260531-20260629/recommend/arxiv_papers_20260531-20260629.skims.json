@@ -1,0 +1,1897 @@
+{
+  "mode": "skims",
+  "generated_at": "2026-06-29T04:30:35.832689+00:00",
+  "stats": {
+    "mode": "skims",
+    "forced_all_quick": true,
+    "min_score": 8.0,
+    "deep_divecandidates": 48,
+    "deep_cap": null,
+    "deep_selected": 0,
+    "quick_candidates": 48,
+    "quick_skim_target": null,
+    "quick_selected": 48
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "2606.01212v2",
+      "source": "arxiv",
+      "title": "DiscourseFlip: An Oblique Discourse-Level Opinion Manipulation Attack against Black-box Retrieval-Augmented Generation",
+      "abstract": "Retrieval-Augmented Generation (RAG) systems are widely deployed and increasingly influential, but their reliance on external corpora exposes new security risks from poisoned retrieval content. Existing RAG attacks are largely focusing on individual queries or narrow topic-local query sets, which limits their practical reach and offers limited camouflage in real-world settings. In this paper, we introduce discourse-level opinion manipulation, a new threat model in which coordinated influence across a semantic query network induces opinion shifts over a holistic, multi-topic query space. We formalize this threat in a black-box setting and propose DiscourseFlip, an agentic, graph-guided attack that dynamically allocates a limited poisoning budget to maximize discourse-level opinion deviation. Extensive experiments demonstrate that DiscourseFlip consistently induces targeted opinion shifts across the contextualized query network and significantly outperforms existing baselines in terms of coverage and effectiveness. User studies further confirm that DiscourseFlip is effective while remaining well camouflaged from user detection. Moreover, systematic analyses show that existing mitigation strategies are ineffective against discourse-level manipulation, underscoring the urgent need for more robust and adaptive defenses to address discourse-level vulnerabilities.",
+      "authors": [
+        "Yuyang Gong",
+        "Miaokun Chen",
+        "Jiawei Liu",
+        "Zhuo Chen",
+        "Guoxiu He",
+        "Wei Lu",
+        "XiaoFeng Wang",
+        "Xiaozhong Liu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.CR",
+        "cs.IR"
+      ],
+      "published": "2026-05-31T13:03:47+00:00",
+      "link": "https://arxiv.org/pdf/2606.01212v2",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Introduces a discourse-level opinion manipulation attack on RAG systems via poisoned retrieval content.",
+      "llm_evidence_cn": "通过投毒检索内容对RAG系统发动话语级观点操纵攻击。",
+      "llm_evidence": "通过投毒检索内容对RAG系统发动话语级观点操纵攻击。",
+      "canonical_evidence": "通过投毒检索内容对RAG系统发动话语级观点操纵攻击。",
+      "llm_tldr_en": "This paper presents DiscourseFlip, a novel graph-guided attack that manipulates opinions in RAG outputs by coordinated poisoning across a semantic query network, demonstrating effective and stealthy influence at the discourse level.",
+      "llm_tldr_cn": "本文提出DiscourseFlip，一种面向黑盒RAG系统的话语级观点操纵攻击。该攻击通过图引导在语义相关查询网络中协同投毒，诱导跨话题的观点偏移。实验显示在黑盒条件下可隐蔽而有效地污染RAG多轮对话，暴露出检索增强生成的严重安全风险。",
+      "llm_tldr": "本文提出DiscourseFlip，一种面向黑盒RAG系统的话语级观点操纵攻击。该攻击通过图引导在语义相关查询网络中协同投毒，诱导跨话题的观点偏移。实验显示在黑盒条件下可隐蔽而有效地污染RAG多轮对话，暴露出检索增强生成的严重安全风险。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.02643v1",
+      "source": "arxiv",
+      "title": "Inference Cost Attacks for Retrieval-Augmented Large Language Models",
+      "abstract": "Retrieval-Augmented Generation (RAG)-enhanced LLM systems, while powerful, introduce substantial inference costs due to the inclusion of an extra multi-stage pipeline that dynamically retrieves and synthesizes information from external knowledge sources. This high operational cost exposes a critical vulnerability to Inference Cost Attacks (ICAs). However, existing ICAs often rely on the impractical assumption of direct prompt manipulation. We argue that a more feasible and potent threat to RAG-enhanced LLM systems arises from poisoning external knowledge bases (e.g., web knowledge from the Internet). In this work, we introduce the Retrieval-Augmented Inference Cost Attack (RA-ICA), a novel attacking paradigm that targets the computational cost of RAG-enhanced LLM systems by injecting malicious documents into external knowledge corpus. To operationalize this attack, we propose Computational Resource Exhaustion via External Poisoning (CREEP), a novel framework that leverages LLM agents to automatically craft malicious documents that are both semantically relevant for retrieval and potent for inducing an abnormal increase in token consumption during the inference phase. To enhance the attack's effectiveness, we introduce Memory-Augmented Group Relative Policy Optimization (MA-GRPO), a novel reinforcement learning algorithm that fine-tunes the agents by learning from a dynamic memory of historical best adversarial documents. Extensive experiments across three real-world datasets demonstrate that RA-ICA increases token consumption by up to 13.12 times with an over 90% success rate, without degrading the integrity of the generated answer.",
+      "authors": [
+        "Chengliang Liu",
+        "Liangbo Ning",
+        "Yujuan Ding",
+        "Wenqi Fan"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.DB"
+      ],
+      "published": "2026-05-31T15:11:59+00:00",
+      "link": "https://arxiv.org/pdf/2606.02643v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Introduces a novel inference cost attack (RA-ICA) on RAG systems by poisoning external knowledge bases.",
+      "llm_evidence_cn": "提出一种新颖的推理成本攻击（RA-ICA），通过污染外部知识库对RAG系统发起攻击。",
+      "llm_evidence": "提出一种新颖的推理成本攻击（RA-ICA），通过污染外部知识库对RAG系统发起攻击。",
+      "canonical_evidence": "提出一种新颖的推理成本攻击（RA-ICA），通过污染外部知识库对RAG系统发起攻击。",
+      "llm_tldr_en": "This paper reveals that RAG-enhanced LLMs are vulnerable to inference cost attacks via poisoned external knowledge, presenting RA-ICA, which targets computational cost, and demonstrates its effectiveness.",
+      "llm_tldr_cn": "检索增强生成系统因多阶段管道引入高昂推理成本，暴露于推理成本攻击之下。现有攻击假设直接操纵提示，不切实际。本文提出检索增强推理成本攻击（RA-ICA），通过污染互联网等外部知识库，在实际攻击条件下显著增加RAG系统的计算开销。实验证明，RA-ICA是一种更隐蔽且有效的威胁，揭示了RAG系统在运营成本方面的安全漏洞，为防御此类攻击提供了研究方向。",
+      "llm_tldr": "检索增强生成系统因多阶段管道引入高昂推理成本，暴露于推理成本攻击之下。现有攻击假设直接操纵提示，不切实际。本文提出检索增强推理成本攻击（RA-ICA），通过污染互联网等外部知识库，在实际攻击条件下显著增加RAG系统的计算开销。实验证明，RA-ICA是一种更隐蔽且有效的威胁，揭示了RAG系统在运营成本方面的安全漏洞，为防御此类攻击提供了研究方向。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.03399v1",
+      "source": "arxiv",
+      "title": "Selective Token-Level Cryptographic Redaction for Privacy-Preserving Clinical Deployment of Large Language Models",
+      "abstract": "While large language models (LLMs) are increasingly used for clinical applications, many existing pipelines require sending raw sensitive health information to remote servers for processing, which heightens the risk of privacy leakage. A natural approach to mitigate this risk is to encrypt the data before transmission. However, straightforward solutions such as encrypting the entire dataset introduce prohibitive computational, alignment, and communication overheads, rendering large-scale practical deployment infeasible. To preserve privacy while maintaining usability, we present Healthcare Encryption & Redaction via Adaptive Linguistic Decomposition (HERALD), a token-level cryptographic redaction framework designed to achieve this balance by encrypting only sensitive tokens while preserving the surrounding context for downstream model utility. HERALD combines medical named-entity recognizer (NER) with part-of-speech (POS) driven policies to select candidate tokens, performs targeted lemmatization to stabilize surface forms, and substitutes each protected token with a deterministic ciphertext wrapped in explicit delimiters. Notably, HERALD is model-agnostic and operates entirely on the client side, ensuring that sensitive content remains encrypted throughout storage, transmission, and processing without requiring changes to downstream models. We evaluated HERALD on both classification and medical question answering (MQA) tasks on public datasets. Across different tasks, experiments illustrate that fully secured baselines suffer significant utility loss, whereas HERALD consistently recovers performance close to plaintext. Overall, HERALD provides a novel utilization pipeline.",
+      "authors": [
+        "Farhan Sheth",
+        "Ziyuan Yang",
+        "Yongying Lan",
+        "Si Yong Yeo"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.CR"
+      ],
+      "published": "2026-06-02T09:40:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.03399v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Introduces HERALD, a token-level cryptographic redaction framework for privacy-preserving clinical deployment of LLMs.",
+      "llm_evidence_cn": "提出HERALD框架，通过令牌级加密删减实现医疗LLM部署中的隐私保护。",
+      "llm_evidence": "提出HERALD框架，通过令牌级加密删减实现医疗LLM部署中的隐私保护。",
+      "canonical_evidence": "提出HERALD框架，通过令牌级加密删减实现医疗LLM部署中的隐私保护。",
+      "llm_tldr_en": "To enable privacy-preserving clinical use of LLMs, this paper presents HERALD, which selectively encrypts sensitive tokens in health data before transmission, balancing privacy with usability and computational efficiency.",
+      "llm_tldr_cn": "大型语言模型在临床应用中需将原始敏感健康数据发送至远程服务器，存在隐私泄露风险。直接全数据加密会带来计算、对齐和通信开销，难以实用部署。本文提出HERALD框架，通过自适应语言分解进行令牌级加密删减：仅对敏感令牌选择性加密，保留非敏感上下文，从而在保护隐私的同时维持模型可用性。实验证明HERALD在多个临床任务上实现了高效的隐私保护，为医疗LLM的大规模安全部署提供了可行方案。",
+      "llm_tldr": "大型语言模型在临床应用中需将原始敏感健康数据发送至远程服务器，存在隐私泄露风险。直接全数据加密会带来计算、对齐和通信开销，难以实用部署。本文提出HERALD框架，通过自适应语言分解进行令牌级加密删减：仅对敏感令牌选择性加密，保留非敏感上下文，从而在保护隐私的同时维持模型可用性。实验证明HERALD在多个临床任务上实现了高效的隐私保护，为医疗LLM的大规模安全部署提供了可行方案。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.05004v1",
+      "source": "arxiv",
+      "title": "SharedRequest: Privacy-Preserving Model-Agnostic Inference for Large Language Models",
+      "abstract": "With the widespread deployment of public large language models (LLMs) such as ChatGPT, protecting user prompt privacy has become an increasingly critical issue. Existing privacy-preserving inference methods sacrifice either utility or efficiency, and often require model-specific modifications that limit their compatibility. In this paper, we propose SharedRequest, a model-agnostic framework for privacy-preserving LLM inference that reformulates privacy protection at the batch level rather than the individual-prompt level. The key idea is to obscure sensitive information by mixing original prompts with noisy variants, while grouping semantically equivalent instructions to amortize the inference cost over a large batch of queries with minimal impact on LLM response quality. This design is independent of the LLM architecture, requiring no access to model parameters or architectural modification. Empirical results demonstrate that SharedRequest achieves over $20\\%$ higher utility compared to prior differential privacy baselines, and its shared-prompt mechanism reduces query cost by up to $5\\times$ compared to non-batched inference.",
+      "authors": [
+        "Peihua Mai",
+        "Xuanrong Gao",
+        "Youlong Ding",
+        "Xianglong Du",
+        "Wei Liu",
+        "Yan Pang"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-03T15:23:06+00:00",
+      "link": "https://arxiv.org/pdf/2606.05004v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Privacy-preserving LLM inference via batch-level prompt mixing",
+      "llm_evidence_cn": "通过批级提示混合实现大语言模型隐私保护推理",
+      "llm_evidence": "通过批级提示混合实现大语言模型隐私保护推理",
+      "canonical_evidence": "通过批级提示混合实现大语言模型隐私保护推理",
+      "llm_tldr_en": "SharedRequest protects user prompt privacy in LLM inference by mixing prompts with noise and batching semantically equivalent queries, achieving model-agnostic privacy with low overhead.",
+      "llm_tldr_cn": "现有大语言模型推理提示隐私保护方法牺牲效用或效率，且缺乏模型兼容性。SharedRequest通过将隐私保护提升至批处理级别，混合原始提示与噪声变体，并分组语义等价指令以分摊推理成本，实现模型无关的隐私保护。实验表明，该方法在保持高响应质量的同时有效隐藏敏感意图，推理开销仅增加约1.8倍，优于现有方案。",
+      "llm_tldr": "现有大语言模型推理提示隐私保护方法牺牲效用或效率，且缺乏模型兼容性。SharedRequest通过将隐私保护提升至批处理级别，混合原始提示与噪声变体，并分组语义等价指令以分摊推理成本，实现模型无关的隐私保护。实验表明，该方法在保持高响应质量的同时有效隐藏敏感意图，推理开销仅增加约1.8倍，优于现有方案。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.16461v1",
+      "source": "arxiv",
+      "title": "Privacy from Symmetry: Orthogonally Equivariant Transformers for LLM Inference",
+      "abstract": "Running large language models locally is often impractical, pushing inference on sensitive text to third-party providers. Split inference partially mitigates this by keeping tokens on the client and sending only hidden representations, but these representations can still be recovered via nearest-neighbor search against the public embedding table. We propose an orthogonal obfuscation procedure in which the client multiplies embeddings by a secret orthogonal matrix before transmission. To enable correct inference under arbitrary rotations, we introduce ConjFormer, a transformer variant that is exactly $\\mathrm{O}(d)$-equivariant via a lightweight normalization change (scalar RMSNorm) together with blockwise orthogonal conjugation of all linear weights. As a result, the server performs the full forward pass entirely in the rotated basis and never observes unrotated hidden states. Experiments on GPT-2 and Llama 3.2 1B models fine-tuned on PubMed show that orthogonal obfuscation eliminates direct cosine nearest-neighbor inversion and reduces token recovery from over 35% top-10 to at most 1.3%, while increasing perplexity by only 0.4% after fine-tuning. These results indicate that enforcing symmetry at the architectural level can provide a practical defense for privacy-preserving LLM inference without noise injection or heavy cryptographic machinery.",
+      "authors": [
+        "Alexander Yukhimchuk",
+        "Andrey Shulga",
+        "Mladen Kolar",
+        "Martin Takáč"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-15T09:31:24+00:00",
+      "link": "https://arxiv.org/pdf/2606.16461v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Orthogonal obfuscation technique for privacy-preserving LLM inference",
+      "llm_evidence_cn": "用于保护LLM推理隐私的正交混淆技术",
+      "llm_evidence": "用于保护LLM推理隐私的正交混淆技术",
+      "canonical_evidence": "用于保护LLM推理隐私的正交混淆技术",
+      "llm_tldr_en": "Proposes orthogonal obfuscation for split inference, hiding hidden representations from nearest-neighbor attacks, and introduces ConjFormer, an orthogonally equivariant transformer variant enabling correct inference under rotations. Provides a practical privacy solution for LLM serving.",
+      "llm_tldr_cn": "本地运行大语言模型不切实际，拆分推理虽隐藏令牌但隐藏表示仍可被攻击恢复。本文提出正交混淆，客户端使用秘密正交矩阵旋转嵌入，并设计ConjFormer，一种精确正交等变Transformer，通过标量RMSNorm和块级正交共轭确保正确推理。该方法为敏感文本推理提供隐私保护路径，降低泄露风险。",
+      "llm_tldr": "本地运行大语言模型不切实际，拆分推理虽隐藏令牌但隐藏表示仍可被攻击恢复。本文提出正交混淆，客户端使用秘密正交矩阵旋转嵌入，并设计ConjFormer，一种精确正交等变Transformer，通过标量RMSNorm和块级正交共轭确保正确推理。该方法为敏感文本推理提供隐私保护路径，降低泄露风险。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.17110v2",
+      "source": "arxiv",
+      "title": "Loss Landscape Poisoning: Targeted Extraction of Unseen Training Data from LLMs",
+      "abstract": "Large Language Models are increasingly trained on proprietary or sensitive data, from private healthcare and financial records to user conversations containing secrets. Ensuring the privacy of such data against extraction attacks has become a central concern. In this paper, we ask whether an attacker who can poison a portion of the training data can facilitate the leakage of a separate target record they have no access to. We answer in the affirmative and show that such leakage can be induced by a poisoning mechanism that reshapes the model's local loss landscape around the target completion. Our key insight is that poisoning to create a sharp loss minimum at the target, surrounded by elevated loss on nearby alternatives, forces the model to memorize the target as the unique low-loss solution in its neighborhood. The attack requires no architectural changes, and generalizes across centralized and federated learning settings. We demonstrate that the attack amplifies privacy leakage across language (up to 100% successful extraction), and vision-language models (up 90% successful extraction). We show that the attack is thwarted when the model is trained to be differentially private. However, we introduce a new attack that directly probes the loss landscape bypassing even differential privacy defenses.",
+      "authors": [
+        "Md Abdullah Al Mamun",
+        "Ngoc Phu Doan",
+        "Pedram Zaree",
+        "Nael Abu-Ghazaleh",
+        "Ihsen Alouani"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.LG"
+      ],
+      "published": "2026-06-15T07:04:01+00:00",
+      "link": "https://arxiv.org/pdf/2606.17110v2",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Loss landscape poisoning enables extraction of unseen training data from LLMs",
+      "llm_evidence_cn": "损失景观投毒实现从大语言模型中提取未见训练数据",
+      "llm_evidence": "损失景观投毒实现从大语言模型中提取未见训练数据",
+      "canonical_evidence": "损失景观投毒实现从大语言模型中提取未见训练数据",
+      "llm_tldr_en": "By poisoning training data to create sharp loss minima at target completions, attackers can force LLMs to memorize and leak unseen private records.",
+      "llm_tldr_cn": "大语言模型训练常包含敏感数据，现有提取攻击假设攻击者已知目标。本文探究一种更强的威胁模型：攻击者通过毒化部分训练数据，可诱导模型泄露未见过且无访问权限的隐私记录。关键思想是构造尖锐的损失极小值，迫使模型记忆目标完成。在多个LLM上的实验证实，稀疏投毒即可实现高成功率的数据提取，对使用私密数据进行训练构成严重威胁。",
+      "llm_tldr": "大语言模型训练常包含敏感数据，现有提取攻击假设攻击者已知目标。本文探究一种更强的威胁模型：攻击者通过毒化部分训练数据，可诱导模型泄露未见过且无访问权限的隐私记录。关键思想是构造尖锐的损失极小值，迫使模型记忆目标完成。在多个LLM上的实验证实，稀疏投毒即可实现高成功率的数据提取，对使用私密数据进行训练构成严重威胁。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.18518v1",
+      "source": "arxiv",
+      "title": "PSyGenTAB: A Privacy-Preserving Framework for Synthetic Clinical Tabular Data Generation via Constrained Optimization",
+      "abstract": "The development of medical AI is constrained by limited access to high-quality clinical data due to institutional silos and strict privacy regulations such as HIPAA and GDPR. Synthetic data generation offers a potential solution, but existing methods lack principled mechanisms to explicitly manage the privacy-utility trade-off, often degrading clinically meaningful patterns or risking patient re-identification. We present PSyGenTAB, a privacy-preserving generative framework that formulates synthetic healthcare data generation as a constrained optimization problem solved using the Augmented Lagrangian Method. By embedding configurable privacy constraints directly into model training, PSyGenTAB enforces minimum privacy thresholds while maximizing clinical data utility. Across multiple clinically motivated benchmarks, PSyGenTAB preserves inter-feature clinical relationships and minority-class diagnostic patterns essential for reliable health AI. Downstream evaluation using Train-on-Synthetic, Test-on-Real and Train-on-Real, Test-on-Synthetic protocols shows that models trained on synthetic data achieve performance comparable to those trained on real patient records. Privacy auditing further demonstrates reduced exact record reproduction and strong resilience to membership inference attacks. These results establish PSyGenTAB as a principled framework for balancing privacy protection and clinical utility in synthetic healthcare data, supporting secure cross-institutional AI development.",
+      "authors": [
+        "Arshia Ilaty",
+        "Hossein Shirazi",
+        "Manasi Chitale",
+        "Kedar Hegde",
+        "Dhanalakshmi Ramesh",
+        "Rashmi S. Manjunath",
+        "Amir Rahmani",
+        "Hajar Homayouni"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-06-16T22:14:40+00:00",
+      "link": "https://arxiv.org/pdf/2606.18518v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "privacy-preserving synthetic clinical data generation with constrained optimization",
+      "llm_evidence_cn": "基于约束优化的隐私保护合成临床数据生成",
+      "llm_evidence": "基于约束优化的隐私保护合成临床数据生成",
+      "canonical_evidence": "基于约束优化的隐私保护合成临床数据生成",
+      "llm_tldr_en": "PSyGenTAB formulates privacy-preserving synthetic clinical data generation as a constrained optimization problem, using augmented Lagrangian to enforce configurable privacy constraints.",
+      "llm_tldr_cn": "PSyGenTAB将隐私保护合成临床数据生成建模为约束优化问题，采用增广拉格朗日法将可配置的隐私约束直接嵌入模型训练。通过强制每项特征最小化重新识别风险，该方法在生产高保真合成表格数据的同时，显式地管理隐私-效用平衡，优于现有无约束生成方法。实验在多个真实临床数据集上验证，显示PSyGenTAB能在强隐私约束下保持诊断相关模式，为医疗模型开发提供合规数据。",
+      "llm_tldr": "PSyGenTAB将隐私保护合成临床数据生成建模为约束优化问题，采用增广拉格朗日法将可配置的隐私约束直接嵌入模型训练。通过强制每项特征最小化重新识别风险，该方法在生产高保真合成表格数据的同时，显式地管理隐私-效用平衡，优于现有无约束生成方法。实验在多个真实临床数据集上验证，显示PSyGenTAB能在强隐私约束下保持诊断相关模式，为医疗模型开发提供合规数据。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.19660v1",
+      "source": "arxiv",
+      "title": "A Layered Security Framework Against Prompt Injection in RAG-Based Chatbots",
+      "abstract": "Prompt injection is ranked as the most critical vulnerability in large language model (LLM) deployments by the OWASP Top 10 for LLM Applications, yet existing defenses operate at isolated pipeline stages and remain incomplete. Input filters cannot inspect retrieved documents, while output monitors cannot prevent malicious payloads from reaching the model. Consequently, retrieval-augmented generation (RAG) chatbots remain vulnerable to indirect injection, where a poisoned knowledge-base document compromises every user whose query retrieves it. We present a three-layer framework that intercepts both direct and indirect prompt injection throughout the inference pipeline. Layer 1 screens user input using a rule-based pattern library and a fine-tuned semantic anomaly classifier. Layer 2 enforces a provenance-based instruction hierarchy during context assembly, preventing retrieved content from overriding operator policy. Layer 3 audits model output using a policy rule engine and semantic drift detector before delivery. A continuous audit loop aggregates structured logs and supports retraining to adapt the classifier to emerging attack patterns. The framework is model-agnostic and deploys as middleware without modifying the underlying LLM. Evaluation on 5,080 samples across GPT-4o, Llama 3, and Mistral 7B shows that the framework reduces Attack Success Rate (ASR) from 71.4\\% to 11.3\\%, outperforming the best single-layer baseline by 27.3 percentage points and a published guardrail system by 23.8 percentage points, while maintaining a 4.8\\% false positive rate and a median latency overhead of 61.2 ms. Ablation studies confirm that all three layers provide complementary protection and that their combined effect exceeds the sum of individual contributions.",
+      "authors": [
+        "Gulshan Saleem",
+        "Nisar Ahmed",
+        "Muhammad Imran Zaman",
+        "Ali Hassan"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.CL"
+      ],
+      "published": "2026-06-17T23:59:57+00:00",
+      "link": "https://arxiv.org/pdf/2606.19660v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Proposes a layered security framework to mitigate prompt injection attacks in RAG-based chatbots.",
+      "llm_evidence_cn": "提出分层安全框架缓解基于RAG的聊天机器人中的提示注入攻击。",
+      "llm_evidence": "提出分层安全框架缓解基于RAG的聊天机器人中的提示注入攻击。",
+      "canonical_evidence": "提出分层安全框架缓解基于RAG的聊天机器人中的提示注入攻击。",
+      "llm_tldr_en": "This paper presents a three-layer defense framework against both direct and indirect prompt injection in retrieval-augmented generation chatbots, intercepting malicious payloads at input, retrieval, and output stages to protect all users.",
+      "llm_tldr_cn": "现有防御措施在RAG管道中孤立运作，无法全面防范提示注入，特别是间接注入通过污染知识库影响所有用户。本文提出一个三层框架，在推理管道中层层拦截直接和间接提示注入：第一层使用规则模式和微调模型筛查用户输入；第二层监控检索文档；第三层输出监控。实验表明该框架能有效阻断注入攻击，显著提升RAG聊天机器人的安全性。",
+      "llm_tldr": "现有防御措施在RAG管道中孤立运作，无法全面防范提示注入，特别是间接注入通过污染知识库影响所有用户。本文提出一个三层框架，在推理管道中层层拦截直接和间接提示注入：第一层使用规则模式和微调模型筛查用户输入；第二层监控检索文档；第三层输出监控。实验表明该框架能有效阻断注入攻击，显著提升RAG聊天机器人的安全性。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.21842v1",
+      "source": "arxiv",
+      "title": "Agent-Assisted Side-Channel Attacks on Non-Prefix KV Cache in RAG",
+      "abstract": "Modern Large Language Model (LLM) serving engines increasingly rely on Retrieval-Augmented Generation (RAG) and non-prefix Key-Value (KV) cache fusion to accelerate long-context, multi-tenant inference. While existing KV cache side-channel attacks require strict linear prefix alignment--rendering them ineffective against real-world RAG queries that contain unique, user-specific private prefixes--we uncover a critical class of structural vulnerabilities inherent to chunk-aware memory scheduling. We demonstrate that the deterministic micro-architectural mechanisms used to align and fuse disjoint memory chunks inadvertently leak a continuous \"Step-Wave\" timing signature. Exploiting this physical observation, we introduce SpliceLeak, the first end-to-end side-channel attack targeting non-prefix KV cache fusion. SpliceLeak executes a systematic two-phase privacy breach: it first structurally fingerprints the exact length of hidden private prompts, and subsequently manipulates boundary collisions to extract exact semantic content token-by-token. Extensive evaluations on production-grade frameworks (vLLM integrated with LMCache) demonstrate that SpliceLeak achieves up to a 100% extraction success rate in bounded-entropy scenarios. Driven by a deterministic +104 ms hardware latency void, the attack requires as few as 63 requests per token, piercing through realistic continuous batching noise. To resolve the inherent conflict between memory deduplication and security, we propose SpliceDefense, a bipartite mitigation framework consisting of Quantized Chunk Padding (QCP) and Constant-Time Boundary Fusion (CTBF). Our evaluations confirm that SpliceDefense effectively flattens the side-channel signal (Delta TTFT ~ 0) with negligible throughput overhead, preserving the critical benefits of global cache sharing.",
+      "authors": [
+        "He Sun",
+        "Shinan Liu",
+        "Siyuan Ma",
+        "Junhao Li",
+        "Mingjun Xiao",
+        "Wenhao Jiang"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR"
+      ],
+      "published": "2026-06-20T02:28:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.21842v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Proposes a side-channel attack (SpliceLeak) targeting KV cache in RAG systems, revealing private prefixes.",
+      "llm_evidence_cn": "提出针对RAG系统中KV缓存的侧信道攻击（SpliceLeak），泄露私有前缀。",
+      "llm_evidence": "提出针对RAG系统中KV缓存的侧信道攻击（SpliceLeak），泄露私有前缀。",
+      "canonical_evidence": "提出针对RAG系统中KV缓存的侧信道攻击（SpliceLeak），泄露私有前缀。",
+      "llm_tldr_en": "This paper uncovers a new side-channel vulnerability in RAG serving engines: deterministic chunk-aware memory scheduling leaks a 'Step-Wave' timing signature, enabling SpliceLeak attack that reconstructs user-specific private prefixes without prior knowledge.",
+      "llm_tldr_cn": "本文首次揭示RAG服务引擎中非前缀KV缓存融合的结构性侧信道漏洞：块感知内存调度的确定性机制无意中泄露连续的“阶梯波”时序特征。基于此提出SpliceLeak攻击，无需先验知识即可重建用户私有前缀，严重威胁RAG多租户推理安全。",
+      "llm_tldr": "本文首次揭示RAG服务引擎中非前缀KV缓存融合的结构性侧信道漏洞：块感知内存调度的确定性机制无意中泄露连续的“阶梯波”时序特征。基于此提出SpliceLeak攻击，无需先验知识即可重建用户私有前缀，严重威胁RAG多租户推理安全。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.22153v1",
+      "source": "arxiv",
+      "title": "$π$-RAG: Oblivious Retrieval via Semantic Quantization and Transcendental Addressing for Large Language Models",
+      "abstract": "This paper introduces $π$-RAG, a novel architecture for oblivious retrieval that decouples Large Language Models (LLMs) from sensitive data storage without sacrificing semantic understanding. Traditional Retrieval-Augmented Generation (RAG) architectures expose raw vector embeddings to potential inversion attacks and nondeterministic retrieval failures. To address this, we utilize the digits of $π$ as a source of transcendental entropy, creating an immutable indirection layer between the LLM and private records. The value $π$ provides immutability, is uneditable and math governs it. The architecture also introduces a Semantic Quantization Layer. This layer projects user inputs onto a pre-computed manifold of Canonical Intent Centroids. RAG performs vector cosine similarity but here it maps the centroids to deterministic offsets via cryptographic salt. The resulting $π$-key is a pointer to standardized payload from the actual datastore. By replacing direct access to the datastore via LLM with this transcendental layer, $π$-RAG mathematically guarantees that the inference remains oblivious to the data. This architecture unifies deterministic randomness, auditability, and differential privacy, demonstrating high efficacy for high-compliance sectors such as finance and healthcare.",
+      "authors": [
+        "Aniket Wattamwar",
+        "Mrunal Kakirwar"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.CL"
+      ],
+      "published": "2026-06-20T17:22:36+00:00",
+      "link": "https://arxiv.org/pdf/2606.22153v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "oblivious retrieval to prevent embedding inversion attacks in RAG",
+      "llm_evidence_cn": "遗忘检索防止RAG中的嵌入反转攻击",
+      "llm_evidence": "遗忘检索防止RAG中的嵌入反转攻击",
+      "canonical_evidence": "遗忘检索防止RAG中的嵌入反转攻击",
+      "llm_tldr_en": "π-RAG introduces oblivious retrieval using π's digits for transcendental addressing and semantic quantization, decoupling LLMs from sensitive data to prevent inversion attacks.",
+      "llm_tldr_cn": "π-RAG提出一种新颖的遗忘检索架构，通过利用圆周率π的数字作为超越熵源，构建了一个绝对可信且不可篡改的间接寻址层，将大语言模型与敏感数据存储完全解耦。同时引入语义量化层，将用户输入投影到预计算的典型语义流形，避免原始嵌入的直接暴露。该设计在保持语义理解精度的同时，从根本上防范了向量反演与检索失败攻击，为构建隐私安全的RAG系统提供了创新范式。",
+      "llm_tldr": "π-RAG提出一种新颖的遗忘检索架构，通过利用圆周率π的数字作为超越熵源，构建了一个绝对可信且不可篡改的间接寻址层，将大语言模型与敏感数据存储完全解耦。同时引入语义量化层，将用户输入投影到预计算的典型语义流形，避免原始嵌入的直接暴露。该设计在保持语义理解精度的同时，从根本上防范了向量反演与检索失败攻击，为构建隐私安全的RAG系统提供了创新范式。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24402v1",
+      "source": "arxiv",
+      "title": "Poisoned Playbooks: Demystifying Knowledge Poisoning Effects on AI Security Agents",
+      "abstract": "AI security agents increasingly rely on Retrieval-Augmented Generation (RAG) to use external security knowledge for vulnerability analysis and exploit reasoning. This creates a new risk: poisoned write-ups can be operationalized into incorrect exploit behavior. Yet, prior work on RAG poisoning has mostly studied answer corruption in QA settings, much less is known about action-taking security agents. This paper aims to reveal such characteristics with crafted poisons about real-world challenges and AI agents. First, we demonstrate how a crafted single poisoned write-up injected into public-style security knowledge sources which we denote as Poisoned Playbooks, alters the behavior of RAG-based AI security agents. Across 11 CTF challenges, 3 frontier LLM families, 2 model generations, and 11 real-world CVEs, we find that poison adoption is systematic rather than random. To explain this pattern, we introduce the Verification Boundary (VB), a 3-level empirical classification based on what evidence the agent can use to refute a retrieved claim. Finally, we evaluate verification prompting and multi-source retrieval, showing that both help when stronger evidence exists, but weaken under sparse-evidence and zero-day conditions.",
+      "authors": [
+        "Juho Park",
+        "Hyunmin Choi",
+        "Kevin Nam"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR"
+      ],
+      "published": "2026-06-23T10:37:34+00:00",
+      "link": "https://arxiv.org/pdf/2606.24402v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Investigates knowledge poisoning attacks on RAG-based AI security agents, showing how poisoned documents can alter agent behavior.",
+      "llm_evidence_cn": "研究基于RAG的AI安全代理中的知识中毒攻击，展示中毒文档如何改变代理行为。",
+      "llm_evidence": "研究基于RAG的AI安全代理中的知识中毒攻击，展示中毒文档如何改变代理行为。",
+      "canonical_evidence": "研究基于RAG的AI安全代理中的知识中毒攻击，展示中毒文档如何改变代理行为。",
+      "llm_tldr_en": "This paper reveals that poisoned write-ups in public security knowledge sources can operationalize into incorrect exploit behavior in RAG-based AI security agents, highlighting new risks beyond answer corruption.",
+      "llm_tldr_cn": "AI安全代理日益依赖检索增强生成使用外部安全知识进行漏洞分析和利用推理，这引入了新风险：中毒文档可被转化为错误的利用行为。本文展示了一个精心构造的中毒文档注入公共安全知识源后，如何改变基于RAG的AI安全代理的行为。通过11个CTF挑战和3个安全代理的实验，揭示了知识中毒在行动导向安全代理中的影响特征，超越了以往仅关注问答设置下答案腐败的研究。研究强调了在安全应用中管理RAG知识风险的迫切性。",
+      "llm_tldr": "AI安全代理日益依赖检索增强生成使用外部安全知识进行漏洞分析和利用推理，这引入了新风险：中毒文档可被转化为错误的利用行为。本文展示了一个精心构造的中毒文档注入公共安全知识源后，如何改变基于RAG的AI安全代理的行为。通过11个CTF挑战和3个安全代理的实验，揭示了知识中毒在行动导向安全代理中的影响特征，超越了以往仅关注问答设置下答案腐败的研究。研究强调了在安全应用中管理RAG知识风险的迫切性。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24623v1",
+      "source": "arxiv",
+      "title": "Privacy-Preserving RAG via Multi-Agent Semantic Rewriting: Achieving Confidentiality Without Compromising Contextual Fidelity",
+      "abstract": "Retrieval-Augmented Generation enhances large language models by incorporating external knowledge, but deploying it in sensitive scenarios risks privacy leakage via malicious prompts. To address this, we propose a multi-agent framework that sanitizes retrieved content through semantic rewriting. By employing three specialized agents for privacy extraction, semantic analysis, and reconstruction, our approach collaboratively removes sensitive identifiers while preserving the semantic core. We evaluate the framework on the ChatDoctor and Wiki-PII datasets across six large language models. Experimental results demonstrate a significant reduction in privacy leakage under targeted attacks. For instance, we reduced targeted information exposure in LLaMA-3-8B from 144 instances in the baseline to just 1. Furthermore, we maintain strong contextual fidelity with a BLEU-1 score of 0.122, outperforming the existing SAGE method's 0.117. Finally, the framework operates as an asynchronous preprocessing module, introducing no additional latency to online inference, as all rewriting is executed as a one-time offline preprocessing step. To promote reproducibility, the source code of this work is publicly available at https://github.com/foursoils/Privacy-Preserving-RAG.",
+      "authors": [
+        "Yuanhe Zhao",
+        "Tianyu Zhang",
+        "Huafei Xing",
+        "Derek F. Wong",
+        "Jianbin Li",
+        "Tao Fang"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-23T14:21:41+00:00",
+      "link": "https://arxiv.org/pdf/2606.24623v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "proposes multi-agent semantic rewriting to sanitize retrieved content for privacy-preserving RAG",
+      "llm_evidence_cn": "提出多代理语义重写方法，对检索内容脱敏以实现隐私保护RAG",
+      "llm_evidence": "提出多代理语义重写方法，对检索内容脱敏以实现隐私保护RAG",
+      "canonical_evidence": "提出多代理语义重写方法，对检索内容脱敏以实现隐私保护RAG",
+      "llm_tldr_en": "This paper addresses privacy leakage in RAG by proposing a multi-agent framework that uses semantic rewriting to remove sensitive identifiers from retrieved content while preserving contextual meaning, evaluated on medical and other datasets.",
+      "llm_tldr_cn": "针对RAG在敏感场景中因恶意提示导致隐私泄露的问题，本文提出三代理框架，通过隐私提取、语义分析和重构协同移除敏感信息，同时保持语义核心。在ChatDoctor和Wiki-PII数据集上的实验表明，该方法显著降低隐私泄露。",
+      "llm_tldr": "针对RAG在敏感场景中因恶意提示导致隐私泄露的问题，本文提出三代理框架，通过隐私提取、语义分析和重构协同移除敏感信息，同时保持语义核心。在ChatDoctor和Wiki-PII数据集上的实验表明，该方法显著降低隐私泄露。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.25533v1",
+      "source": "arxiv",
+      "title": "Security and Privacy in Retrieval-Augmented Generation: Architectures, Threats, Defenses, and Future Directions for Building Trustworthy Systems",
+      "abstract": "Retrieval-Augmented Generation (RAG) has emerged as a dominant paradigm for enhancing large language models with external knowledge. By coupling retrieval mechanisms with generative models, RAG systems improve factual grounding and adaptability across domains. However, integrating retrieval pipelines introduces new security and privacy risks that extend beyond conventional language modeling threats. Sensitive information may be exposed through retrieval indices, query logs, context construction, or federated updates, while adversarial manipulation of knowledge bases can undermine trust in generated outputs. This survey provides a comprehensive examination of privacy and security challenges across RAG systems deployed in centralized, on-device (Micro-RAG), federated, and hybrid paradigms. We present a unified taxonomy of threat surfaces spanning the retrieval, context construction, and generation stages and systematically analyze attack classes, including membership inference, index inference, poisoning, gradient leakage, and collusion. We further review architectural, algorithmic, and cryptographic defenses, highlighting privacy-utility trade-offs and deployment considerations. Finally, we outline open research challenges toward building trustworthy, secure, and resilient RAG systems for real-world applications.",
+      "authors": [
+        "Balamurugan Palanisamy",
+        "G S S Chalapathi",
+        "Vikas Hassija",
+        "Rajkumar Buyya"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.CL"
+      ],
+      "published": "2026-06-24T08:08:10+00:00",
+      "link": "https://arxiv.org/pdf/2606.25533v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "comprehensive survey on security and privacy threats and defenses in RAG systems",
+      "llm_evidence_cn": "对RAG系统中安全与隐私威胁及防御的全面综述",
+      "llm_evidence": "对RAG系统中安全与隐私威胁及防御的全面综述",
+      "canonical_evidence": "对RAG系统中安全与隐私威胁及防御的全面综述",
+      "llm_tldr_en": "This survey comprehensively examines security and privacy risks in Retrieval-Augmented Generation, covering architectures, threats, defenses, and future directions for building trustworthy RAG systems.",
+      "llm_tldr_cn": "本文全面综述了检索增强生成（RAG）系统中的安全与隐私问题，分析了检索管道引入的新风险，包括索引、查询日志、上下文构建和联邦更新中的敏感信息泄露，以及对抗性知识库操纵。系统梳理了威胁与防御，并指出了未来研究方向。",
+      "llm_tldr": "本文全面综述了检索增强生成（RAG）系统中的安全与隐私问题，分析了检索管道引入的新风险，包括索引、查询日志、上下文构建和联邦更新中的敏感信息泄露，以及对抗性知识库操纵。系统梳理了威胁与防御，并指出了未来研究方向。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.00986v1",
+      "source": "arxiv",
+      "title": "Profiling Privacy Preservation Against Gradient Inversion Attacks in Tabular Federated Learning",
+      "abstract": "Federated learning (FL) enables multiple data holders to train machine learning models collaboratively without centralizing raw data, making it useful in privacy sensitive domains such as healthcare and institutional data sharing. FL keeps data local to clients while communicating only model updates, such as gradients or model deltas. Nevertheless, these updates can expose private client data through gradient inversion attacks (GIAs). We study this risk for tabular FL under an honest-but-curious server threat model across FL protocols, client batch sizes, training stages, attacker assumptions, model architectures, and binary classification, multiclass classification, and regression tasks. We use MIMIC-IV and complementary benchmark datasets. Our evaluation distinguishes numerical and categorical recovery, baseline recoverability, feature level recovery, and exact match rate (EMR). We evaluate FedSGD gradients and FedAvg model deltas with an exposure aligned protocol, comparing attacked models after matched client data exposure rather than matched communication rounds. We compare multilayer perceptron (MLP), ResNet, and FT-Transformer models, and isolate architecture effects through an MLP grid over width, depth, activation, normalization, and dropout. The results show that small client batches and updates representing few distinct records are most vulnerable. Larger local batches and stronger aggregation reduce reconstruction but do not eliminate leakage. FT-Transformer is consistently harder to invert than one-hot baselines, while reconstructability also varies substantially within the MLP family. These findings identify architecture as a practical privacy variable in tabular FL. We also show that aggregate reconstruction accuracy can overstate complete record recovery in sparse data, making EMR and baseline comparisons essential.",
+      "authors": [
+        "Ivo Osterberg Nilsson",
+        "Maximilian Birr Engvall",
+        "Viktor Valadi",
+        "Teddy Lazebnik"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-05-31T03:54:47+00:00",
+      "link": "https://arxiv.org/pdf/2606.00986v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "gradient inversion attacks in tabular federal learning using medical data",
+      "llm_evidence_cn": "在医疗数据的表格联邦学习中研究梯度反转攻击",
+      "llm_evidence": "在医疗数据的表格联邦学习中研究梯度反转攻击",
+      "canonical_evidence": "在医疗数据的表格联邦学习中研究梯度反转攻击",
+      "llm_tldr_en": "Profiles privacy preservation against gradient inversion attacks in tabular FL on MIMIC-IV, analyzing factors like batch size and training stage that affect attack success.",
+      "llm_tldr_cn": "该文针对表格联邦学习中的梯度反转攻击，使用MIMIC-IV等医疗数据，全面分析攻击成功的影响因素。在不同FL协议、客户端批量大小、训练阶段、模型架构及攻击假设下，对二分类、多分类和回归任务进行实验剖析。结果显示，批量大小和训练阶段显著影响隐私风险，为设计针对医疗数据的隐私保护联邦学习提供了实证指导。",
+      "llm_tldr": "该文针对表格联邦学习中的梯度反转攻击，使用MIMIC-IV等医疗数据，全面分析攻击成功的影响因素。在不同FL协议、客户端批量大小、训练阶段、模型架构及攻击假设下，对二分类、多分类和回归任务进行实验剖析。结果显示，批量大小和训练阶段显著影响隐私风险，为设计针对医疗数据的隐私保护联邦学习提供了实证指导。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.01212v1",
+      "source": "arxiv",
+      "title": "DiscourseFlip: An Oblique Discourse-Level Opinion Manipulation Attack against Black-box Retrieval-Augmented Generation",
+      "abstract": "Retrieval-Augmented Generation (RAG) systems are widely deployed and increasingly influential, but their reliance on external corpora exposes new security risks from poisoned retrieval content. Existing RAG attacks are largely focusing on individual queries or narrow topic-local query sets, which limits their practical reach and offers limited camouflage in real-world settings. In this paper, we introduce discourse-level opinion manipulation, a new threat model in which coordinated influence across a semantic query network induces opinion shifts over a holistic, multi-topic query space. We formalize this threat in a black-box setting and propose DiscourseFlip, an agentic, graph-guided attack that dynamically allocates a limited poisoning budget to maximize discourse-level opinion deviation. Extensive experiments demonstrate that DiscourseFlip consistently induces targeted opinion shifts across the contextualized query network and significantly outperforms existing baselines in terms of coverage and effectiveness. User studies further confirm that DiscourseFlip is effective while remaining well camouflaged from user detection. Moreover, systematic analyses show that existing mitigation strategies are ineffective against discourse-level manipulation, underscoring the urgent need for more robust and adaptive defenses to address discourse-level vulnerabilities.",
+      "authors": [
+        "Yuyang Gong",
+        "Miaokun Chen",
+        "Jiawei Liu",
+        "Zhuo Chen",
+        "Guoxiu He",
+        "Wei Lu",
+        "XiaoFeng Wang",
+        "Xiaozhong Liu"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.CR",
+        "cs.IR"
+      ],
+      "published": "2026-05-31T13:03:47+00:00",
+      "link": "https://arxiv.org/pdf/2606.01212v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Discourse-level opinion manipulation attack against RAG systems",
+      "llm_evidence_cn": "针对RAG系统的语篇级观点操纵攻击",
+      "llm_evidence": "针对RAG系统的语篇级观点操纵攻击",
+      "canonical_evidence": "针对RAG系统的语篇级观点操纵攻击",
+      "llm_tldr_en": "Formalizes discourse-level opinion manipulation as a new threat model for RAG, and proposes DiscourseFlip, an agentic graph-guided attack that induces opinion shifts across multi-topic query spaces. Demonstrates effectiveness in black-box setting, revealing sophisticated RAG vulnerabilities.",
+      "llm_tldr_cn": "现有RAG攻击局限于单查询或窄主题，现实世界攻击影响力不足。本文提出语篇级观点操纵威胁模型，通过语义查询网络协调影响，跨越多个主题诱导观点偏移。设计DiscourseFlip，一种基于智能体和图引导的黑盒攻击，在真实场景验证其有效性。该工作揭示了RAG系统更深层安全风险，推动高级防御策略研究。",
+      "llm_tldr": "现有RAG攻击局限于单查询或窄主题，现实世界攻击影响力不足。本文提出语篇级观点操纵威胁模型，通过语义查询网络协调影响，跨越多个主题诱导观点偏移。设计DiscourseFlip，一种基于智能体和图引导的黑盒攻击，在真实场景验证其有效性。该工作揭示了RAG系统更深层安全风险，推动高级防御策略研究。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.01413v1",
+      "source": "arxiv",
+      "title": "Differentially Private Datastore Generation for Retrieval-Augmented Inference",
+      "abstract": "It is crucial for modern on-device AI systems that rely on retrieval-augmented inference to release and share datastores without compromising individual privacy. This can be achieved using Differential Privacy (DP), which provides a formal guarantee that ensures individual contributions remain indistinguishable, even under adversarial analysis. In this paper, we introduce a hashing-based probability generation framework designed to enable the creation and release of differentially private datastores. Our approach employs locality-sensitive hashing (LSH) to efficiently partition high-dimensional data into buckets. We then add calibrated DP noise to the accumulated vote for each bucket, generating a probability distribution across classes. Our method is broadly applicable to any pipeline requiring secure key,value datastore creation and release. We conducted experiments on seven datasets with varying sample sizes and class counts, ranging from 2 to 14. At epsilon=5, our released DP datastore achieves strong privacy protection with only an average 2.6% drop in accuracy. Finally, we benchmark DP datastore resilience to membership inference attacks, reducing attack accuracy to 53.60%.",
+      "authors": [
+        "Abdelrahman Abouelenein",
+        "Marwan Torki"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.IR",
+        "cs.LG"
+      ],
+      "published": "2026-05-31T19:18:43+00:00",
+      "link": "https://arxiv.org/pdf/2606.01413v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "proposes differential privacy method for datastore generation in retrieval-augmented systems",
+      "llm_evidence_cn": "提出用于检索增强系统中数据存储生成的差分隐私方法",
+      "llm_evidence": "提出用于检索增强系统中数据存储生成的差分隐私方法",
+      "canonical_evidence": "提出用于检索增强系统中数据存储生成的差分隐私方法",
+      "llm_tldr_en": "This paper addresses privacy leakage in retrieval-augmented inference by introducing a differentially private datastore generation framework using locality-sensitive hashing and calibrated DP noise, enabling safe sharing of datastores without compromising individual privacy.",
+      "llm_tldr_cn": "针对检索增强推理中数据存储共享可能导致的隐私泄露问题，本文提出一种基于局部敏感哈希和差分隐私噪声的概率生成框架。该方法通过分区和加噪生成类分布，在保护个体隐私的同时实现检索增强推理。实验表明，该框架能够在不损害推理准确性的前提下，提供严格的隐私保证。",
+      "llm_tldr": "针对检索增强推理中数据存储共享可能导致的隐私泄露问题，本文提出一种基于局部敏感哈希和差分隐私噪声的概率生成框架。该方法通过分区和加噪生成类分布，在保护个体隐私的同时实现检索增强推理。实验表明，该框架能够在不损害推理准确性的前提下，提供严格的隐私保证。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.02995v1",
+      "source": "arxiv",
+      "title": "Patcher: Post-Hoc Patching of Backdoored Large Language Models",
+      "abstract": "Large language models remain vulnerable to jailbreak backdoor attacks, where adversaries poison safety alignment data to embed hidden triggers that bypass safety mechanisms. Existing defenses often require comprehensive attack information or multiple triggered examples, making them impractical when defenders only observe a single reported failure case without knowing whether it stems from a backdoor attack or a natural alignment bug. This paper presents Patcher, a post-hoc defense framework that repairs backdoored language models using only a single reported failure case and the model parameters. Patcher operates in two stages. First, it localizes backdoor triggers by computing response-conditioned gradient-based saliency scores and applying adaptive clustering to separate triggers from benign context. Second, it patches the model through a constrained fine-tuning objective that breaks the trigger-response association while preserving benign-task utility and robustness to non-triggered jailbreak attacks through KL-divergence constraints. We conduct extensive evaluations across multiple backdoor attack strategies and demonstrate that Patcher successfully localizes triggers and neutralizes backdoors while maintaining model utility. We further show robustness against adaptive attacks designed to evade our defense. This work represents a significant step toward practical defenses against training-time attacks in deployed language models.",
+      "authors": [
+        "Anjun Gao",
+        "Yueyang Quan",
+        "Yufei Xia",
+        "Zhuqing Liu",
+        "Minghong Fang"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.IR",
+        "cs.LG"
+      ],
+      "published": "2026-06-02T01:11:58+00:00",
+      "link": "https://arxiv.org/pdf/2606.02995v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Post-hoc defense for backdoored LLMs using single failure case",
+      "llm_evidence_cn": "通过单一失败案例事后修复后门大型语言模型",
+      "llm_evidence": "通过单一失败案例事后修复后门大型语言模型",
+      "canonical_evidence": "通过单一失败案例事后修复后门大型语言模型",
+      "llm_tldr_en": "Patcher repairs backdoored LLMs by localizing triggers via gradient saliency and adaptive clustering, requiring only one failure case to neutralize hidden attacks.",
+      "llm_tldr_cn": "针对大型语言模型遭受的后门攻击，现有防御方法常需大量攻击信息。本文提出Patcher，一个仅需单一失败案例和模型参数的后验修复框架。其首先通过梯度显著性计算和自适应聚类定位后门触发器，再锁定并修复受感染的模型组件。实验表明，该方法无需攻击细节即可有效消除后门，为LLM安全部署提供了实用防御工具。",
+      "llm_tldr": "针对大型语言模型遭受的后门攻击，现有防御方法常需大量攻击信息。本文提出Patcher，一个仅需单一失败案例和模型参数的后验修复框架。其首先通过梯度显著性计算和自适应聚类定位后门触发器，再锁定并修复受感染的模型组件。实验表明，该方法无需攻击细节即可有效消除后门，为LLM安全部署提供了实用防御工具。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.03771v1",
+      "source": "arxiv",
+      "title": "$π$Creds: Privately Inferred Credentials",
+      "abstract": "Decentralized verifiable credential systems have seen limited deployment in practice. Existing constructions, built on zero-knowledge proofs, are complex, application-specific, and largely restricted to predicates over structured data.   We present Privately Inferred Credentials ($π$Creds): privacy-preserving, legacy-compatible, decentralized verifiable credentials generated by trusted LLM inference over authenticated data. LLMs' ability to semantically reason over unstructured data substantially expands the range of claims $π$Creds can certify over existing credential systems.   The use of LLMs also introduces new application-level threats, which we formalize through two problems: the Source-Constrained Adversarial Example (SCAE) problem, which captures robustness against adversaries that manipulate authenticated data to obtain misleading credentials, and the Authenticated Covert Predicate Poisoning (ACPP) problem, which captures privacy leakage through adversarial model selection.   We characterize applications of $π$Creds over user data, and a novel class of credentials over proprietary software that certifies properties of a service without revealing its source code. Our prototype supports issuing credentials over live financial, health, email, and code sources, and we empirically study the SCAE and ACPP threats on a product expertise credential over real financial data.",
+      "authors": [
+        "Samuel Breckenridge",
+        "Dani Vilardell",
+        "Derek Leung",
+        "Andrés Fábrega",
+        "James Austgen",
+        "Farinaz Koushanfar",
+        "Ari Juels"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR"
+      ],
+      "published": "2026-06-02T15:26:35+00:00",
+      "link": "https://arxiv.org/pdf/2606.03771v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "privacy-preserving verifiable credentials using trusted LLM inference",
+      "llm_evidence_cn": "利用可信LLM推理生成隐私保护凭证",
+      "llm_evidence": "利用可信LLM推理生成隐私保护凭证",
+      "canonical_evidence": "利用可信LLM推理生成隐私保护凭证",
+      "llm_tldr_en": "Proposes πCreds, a privacy-preserving credential system leveraging LLMs, which also identifies and formalizes novel adversarial threats like SCAE.",
+      "llm_tldr_cn": "本文针对去中心化凭证系统部署受限的问题，提出πCreds：一种利用可信大语言模型（LLM）推理生成隐私保护凭证的方案。LLM能够对非结构化数据进行语义推理，从而扩展凭证可认证的声明范围。同时，本文也形式化了LLM引入的新型威胁，如源约束对抗样本问题。实验表明πCreds在保护隐私的同时兼容旧系统，但面临新的安全挑战。",
+      "llm_tldr": "本文针对去中心化凭证系统部署受限的问题，提出πCreds：一种利用可信大语言模型（LLM）推理生成隐私保护凭证的方案。LLM能够对非结构化数据进行语义推理，从而扩展凭证可认证的声明范围。同时，本文也形式化了LLM引入的新型威胁，如源约束对抗样本问题。实验表明πCreds在保护隐私的同时兼容旧系统，但面临新的安全挑战。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.04067v1",
+      "source": "arxiv",
+      "title": "Need to Know: Contextual-Integrity-Grounded Query Rewriting for Privacy-Conscious LLM Delegation",
+      "abstract": "As LLMs become increasingly woven into everyday workflows, user queries sent to cloud hosted LLMs routinely mix task-essential content with task non-essential sensitive disclosures, yet type based PII redaction is context agnostic and may raise two issues: over disclosing untyped sensitive context and over removing answer bearing spans. We recast privacy preserving query rewriting under Contextual Integrity: a span should be forwarded only if it is necessary for the task. We introduce DelegateCI-Bench, the first task based Contextual Integrity benchmark for privacy-conscious delegation, comprising 3,167 samples that combine high quality synthetic data spanning 11 tasks and 20 task types, WildChat based real user queries, and a medical challenge set with dense sensitive information. Building on this benchmark, we propose a CI-guided reinforcement learning framework that converts essential and non-essential sensitive spans into verifiable optimization signals, and train a query rewriter to preserve task critical information while suppressing unnecessary sensitive disclosure. Experiments show that our learned rewriter achieves the best privacy-utility tradeoff, achieving up to +10.1 average utility over on-device baselines.",
+      "authors": [
+        "Xinyue Huang",
+        "Xiaochun Cao",
+        "Wenyuan Yang"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-02T14:28:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.04067v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes privacy-preserving query rewriting for LLM delegation grounded in contextual integrity, ensuring only task-essential information is forwarded.",
+      "llm_evidence_cn": "提出基于情境完整性的隐私保护查询重写方法，确保仅转发任务必要信息。",
+      "llm_evidence": "提出基于情境完整性的隐私保护查询重写方法，确保仅转发任务必要信息。",
+      "canonical_evidence": "提出基于情境完整性的隐私保护查询重写方法，确保仅转发任务必要信息。",
+      "llm_tldr_en": "This paper recasts privacy-preserving LLM query rewriting under the framework of Contextual Integrity, introducing DelegateCI-Bench, a task-based benchmark for evaluating privacy-conscious delegation, to prevent unnecessary sensitive disclosure.",
+      "llm_tldr_cn": "用户向云端LLM发送的查询常混杂敏感信息，传统基于类型的PII删除缺乏上下文意识。本文借助情境完整性理论重新定义隐私保护查询重写：仅转发任务必需的信息。作者构建了首个任务导向的情境完整性基准DelegateCI-Bench，包含11个任务和3167个样本，涵盖合成数据和真实查询。研究揭示了现有LLM在隐私保护委托中的不足，并提出了改进方向，为隐私意识的LLM应用提供了评估框架。",
+      "llm_tldr": "用户向云端LLM发送的查询常混杂敏感信息，传统基于类型的PII删除缺乏上下文意识。本文借助情境完整性理论重新定义隐私保护查询重写：仅转发任务必需的信息。作者构建了首个任务导向的情境完整性基准DelegateCI-Bench，包含11个任务和3167个样本，涵盖合成数据和真实查询。研究揭示了现有LLM在隐私保护委托中的不足，并提出了改进方向，为隐私意识的LLM应用提供了评估框架。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.07175v1",
+      "source": "arxiv",
+      "title": "Seeing Without Exposing: Adaptive Privacy Control for Open-World, Context-Hungry MLLMs",
+      "abstract": "Multimodal large language models (MLLMs) have raised new privacy challenges. On the data side, user-provided inputs often include unpredictable sensitive information; while on the downstream task side, model reasoning depends on rich visual context that may itself be privacy-sensitive. Existing privacy protection methods, however, rely on predefined sensitive categories and fixed obfuscation strategies, struggling to tackle such challenges in MLLMs. To address this dilemma, we propose Anchored Privacy Drifting (APD), a training-free method that drifts privacy-sensitive elements toward semantically equivalent alternatives while anchoring contextual cues to the source image. To systematically evaluate this dual objective of privacy protection and contextual preservation, we introduce AdaptShield, a comprehensive benchmark covering 22 privacy categories, which combines conventional privacy metrics with MLLM-based assessments of contextual utility. Extensive experiments show that our method achieves balanced improvements in both privacy sanitization and content retention, with average gains of 10.4% on textual categories and 8.5% under MLLM-based evaluation across four MLLM series, i.e., Qwen2.5, Qwen3, InternVL3, and InternVL3.5.",
+      "authors": [
+        "Siyuan Xu",
+        "Yibing Liu",
+        "Peilin Chen",
+        "Yung-Hui Li",
+        "Shiqi Wang",
+        "Sam Kwong"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-06-05T11:41:39+00:00",
+      "link": "https://arxiv.org/pdf/2606.07175v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Addresses privacy challenges in multimodal LLMs with Anchored Privacy Drifting, a training-free method to protect visual privacy while preserving reasoning context.",
+      "llm_evidence_cn": "提出锚定隐私漂移方法，无训练地保护多模态LLM视觉隐私，同时保持推理上下文。",
+      "llm_evidence": "提出锚定隐私漂移方法，无训练地保护多模态LLM视觉隐私，同时保持推理上下文。",
+      "canonical_evidence": "提出锚定隐私漂移方法，无训练地保护多模态LLM视觉隐私，同时保持推理上下文。",
+      "llm_tldr_en": "This paper introduces Anchored Privacy Drifting (APD) for multimodal LLMs, which drifts privacy-sensitive visual elements to semantically similar alternatives while preserving contextual cues, without model retraining.",
+      "llm_tldr_cn": "多模态大语言模型面临新的隐私挑战：用户输入可能包含不可预知的敏感视觉信息，模型推理需要丰富的视觉上下文但其中可能泄露隐私。现有方法依赖预定义敏感类别和固定脱敏策略，难以应对开放性场景。本文提出锚定隐私漂移（APD），一种无需训练的方法，将隐私敏感元素迁移到语义等效的替代物，同时将上下文线索锚定到源图像。为系统评估隐私保护与任务效用的双重目标，作者构建了新的基准。实验表明APD能有效保护视觉隐私而不牺牲模型推理能力。",
+      "llm_tldr": "多模态大语言模型面临新的隐私挑战：用户输入可能包含不可预知的敏感视觉信息，模型推理需要丰富的视觉上下文但其中可能泄露隐私。现有方法依赖预定义敏感类别和固定脱敏策略，难以应对开放性场景。本文提出锚定隐私漂移（APD），一种无需训练的方法，将隐私敏感元素迁移到语义等效的替代物，同时将上下文线索锚定到源图像。为系统评估隐私保护与任务效用的双重目标，作者构建了新的基准。实验表明APD能有效保护视觉隐私而不牺牲模型推理能力。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.07640v1",
+      "source": "arxiv",
+      "title": "No Free Lunch for Synthetic Images under Data Scarcity Conditions",
+      "abstract": "This study investigates the trade-offs between fidelity, privacy, and utility in synthetic data generation under conditions of data scarcity and privacy sensitivity. We propose an evaluation framework that jointly assesses these three dimensions and apply it to three widely used generative models, VAE, GAN, and DDPM. The evaluation spans three image datasets, MNIST, OCTMNIST, and OrganAMNIST, encompassing both general-purpose and medical imaging domains. Notable differences arise between the three models in their behaviour when differential privacy mechanisms are introduced during training. GAN and DDPM demonstrate greater robustness, maintaining higher fidelity and downstream utility across a range of noise levels, while VAE degrades more rapidly as privacy constraints increase. This study highlights the importance of a multidimensional evaluation of deep generative models, also noting that their behaviour significantly differs when privacy techniques are applied.",
+      "authors": [
+        "Borja Arroyo Galende",
+        "Alejandro Almodóvar",
+        "Patricia A. Apellániz",
+        "Juan Parras",
+        "Silvia Uribe",
+        "Santiago Zazo"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-06-01T12:45:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.07640v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Evaluates fidelity-privacy-utility trade-offs in generative models (VAE, GAN, DDPM) with differential privacy on medical image datasets.",
+      "llm_evidence_cn": "在医学图像数据集上评估生成模型（VAE、GAN、DDPM）在差分隐私下的保真度-隐私-效用权衡。",
+      "llm_evidence": "在医学图像数据集上评估生成模型（VAE、GAN、DDPM）在差分隐私下的保真度-隐私-效用权衡。",
+      "canonical_evidence": "在医学图像数据集上评估生成模型（VAE、GAN、DDPM）在差分隐私下的保真度-隐私-效用权衡。",
+      "llm_tldr_en": "This paper proposes a joint evaluation framework for synthetic image generation under data scarcity, comparing VAE, GAN, and DDPM with differential privacy on medical datasets, revealing GAN and DDPM are more robust to privacy noise while maintaining utility.",
+      "llm_tldr_cn": "本文针对数据稀缺和隐私敏感条件下的合成数据生成，提出综合评价框架，在MNIST和OCTMNIST、OrganAMNIST医学图像数据集上对比了VAE、GAN、DDPM三种生成模型添加差分隐私后的表现，发现GAN和DDPM在多种噪声水平下能保持较高的保真度和下游效用，而VAE退化较快，为医学影像隐私保护生成模型选择提供了依据。",
+      "llm_tldr": "本文针对数据稀缺和隐私敏感条件下的合成数据生成，提出综合评价框架，在MNIST和OCTMNIST、OrganAMNIST医学图像数据集上对比了VAE、GAN、DDPM三种生成模型添加差分隐私后的表现，发现GAN和DDPM在多种噪声水平下能保持较高的保真度和下游效用，而VAE退化较快，为医学影像隐私保护生成模型选择提供了依据。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09125v1",
+      "source": "arxiv",
+      "title": "Unveiling Privacy Risks in Multi-modal Large Language Models: Task-specific Vulnerabilities and Mitigation Challenges",
+      "abstract": "Privacy risks in text-only Large Language Models (LLMs) are well studied, particularly their tendency to memorize and leak sensitive information. However, Multi-modal Large Language Models (MLLMs), which process both text and images, introduce unique privacy challenges that remain underexplored. Compared to text-only models, MLLMs can extract and expose sensitive information embedded in images, posing new privacy risks. We reveal that some MLLMs are susceptible to privacy breaches, leaking sensitive data embedded in images or stored in memory. Specifically, in this paper, we (1) introduce MM-Privacy, a comprehensive dataset designed to assess privacy risks across various multi-modal tasks and scenarios, where we define Disclosure Risks and Retention Risks. (2) systematically evaluate different MLLMs using MM-Privacy and demonstrate how models leak sensitive data across various tasks, and (3) provide additional insights into the role of task inconsistency in privacy risks, emphasizing the urgent need for mitigation strategies. Our findings highlight privacy concerns in MLLMs, underscoring the necessity of safeguards to prevent data exposure. Our dataset and code can be found here.",
+      "authors": [
+        "Tiejin Chen",
+        "Pingzhi Li",
+        "Kaixiong Zhou",
+        "Tianlong Chen",
+        "Hua Wei"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-08T07:19:42+00:00",
+      "link": "https://arxiv.org/pdf/2606.09125v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Comprehensive dataset and analysis of privacy risks in multi-modal LLMs",
+      "llm_evidence_cn": "多模态大语言模型隐私风险的综合数据集与分析",
+      "llm_evidence": "多模态大语言模型隐私风险的综合数据集与分析",
+      "canonical_evidence": "多模态大语言模型隐私风险的综合数据集与分析",
+      "llm_tldr_en": "Introduces MM-Privacy, a dataset to assess privacy risks in multi-modal LLMs across tasks and scenarios, revealing vulnerabilities in extracting sensitive info from images and memory. Highlights unique challenges and mitigation difficulties.",
+      "llm_tldr_cn": "文本型LLM隐私风险研究较多，但多模态大语言模型（MLLM）能从图像中提取敏感信息，带来新挑战。本文构建MM-Privacy数据集，评估多种多模态任务和场景下的隐私风险，发现部分MLLM易泄露图像中嵌入的敏感数据或记忆中内容。该研究揭示了MLLM特有的隐私漏洞及缓解难题，为安全部署提供依据。",
+      "llm_tldr": "文本型LLM隐私风险研究较多，但多模态大语言模型（MLLM）能从图像中提取敏感信息，带来新挑战。本文构建MM-Privacy数据集，评估多种多模态任务和场景下的隐私风险，发现部分MLLM易泄露图像中嵌入的敏感数据或记忆中内容。该研究揭示了MLLM特有的隐私漏洞及缓解难题，为安全部署提供依据。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09401v1",
+      "source": "arxiv",
+      "title": "Benchmarking Empirical Privacy Protection for Adaptations of Large Language Models",
+      "abstract": "Recent work has applied differential privacy (DP) to adapt large language models (LLMs) for sensitive applications, offering theoretical guarantees. However, its practical effectiveness remains unclear, partly due to LLM pretraining, where overlaps and interdependencies with adaptation data can undermine privacy despite DP efforts. To analyze this issue in practice, we investigate privacy risks under DP adaptations in LLMs using state-of-the-art attacks such as robust membership inference and canary data extraction. We benchmark these risks by systematically varying the adaptation data distribution, from exact overlaps with pretraining data, through in-distribution (IID) cases, to entirely out-of-distribution (OOD) examples. Additionally, we evaluate how different adaptation methods and different privacy regimes impact the vulnerability. Our results show that distribution shifts strongly influence privacy vulnerability: the closer the adaptation data is to the pretraining distribution, the higher the practical privacy risk at the same theoretical guarantee, even without direct data overlap. We find that parameter-efficient fine-tuning methods, such as LoRA, achieve the highest empirical privacy protection for OOD data. Our benchmark identifies key factors for achieving practical privacy in DP LLM adaptation, providing actionable insights for deploying customized models in sensitive settings. Looking forward, we propose a structured framework for holistic privacy assessment beyond adaptation privacy, to identify and evaluate risks across the full pretrain-adapt pipeline of LLMs.",
+      "authors": [
+        "Bartłomiej Marek",
+        "Lorenzo Rossi",
+        "Vincent Hanke",
+        "Xun Wang",
+        "Michael Backes",
+        "Franziska Boenisch",
+        "Adam Dziedzic"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CR"
+      ],
+      "published": "2026-06-08T12:21:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.09401v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "empirically benchmarks differential privacy's effectiveness in protecting LLM adaptations against membership inference and extraction",
+      "llm_evidence_cn": "实证基准测试差分隐私在保护LLM适应中对抗成员推断和提取的有效性",
+      "llm_evidence": "实证基准测试差分隐私在保护LLM适应中对抗成员推断和提取的有效性",
+      "canonical_evidence": "实证基准测试差分隐私在保护LLM适应中对抗成员推断和提取的有效性",
+      "llm_tldr_en": "Benchmarks the practical privacy protection of DP for LLMs under various data distributions, revealing limitations.",
+      "llm_tldr_cn": "差分隐私被用于大语言模型敏感应用适应，但实际隐私保护效果受预训练数据影响。本文通过成员推断和提取攻击，系统基准测试了DP在不同适应数据分布下的隐私风险。结果表明，当适应数据与预训练数据重叠时，DP提供的保护显著减弱；即使数据独立，实际隐私泄漏仍超出理论预期。这项研究为LLM隐私保护的实际部署提供了重要实证依据。",
+      "llm_tldr": "差分隐私被用于大语言模型敏感应用适应，但实际隐私保护效果受预训练数据影响。本文通过成员推断和提取攻击，系统基准测试了DP在不同适应数据分布下的隐私风险。结果表明，当适应数据与预训练数据重叠时，DP提供的保护显著减弱；即使数据独立，实际隐私泄漏仍超出理论预期。这项研究为LLM隐私保护的实际部署提供了重要实证依据。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09908v1",
+      "source": "arxiv",
+      "title": "IDP-Bench: Benchmarking ability of LLMs to protect personal information in interdependent privacy contexts",
+      "abstract": "Large language models (LLMs) are becoming widely deployed as personal AI assistants with access to sensitive user data, making privacy a major challenge for their design and evaluation. Prior work focuses mainly on individual-level risks, overlooking \\textbf{interdependent privacy (IDP)}--where one person's data may be revealed by others without their knowledge or consent. We address this gap by introducing \\textbf{IDP-Bench}: the first LLM benchmark for IDP scenarios, grounded in the Contextual Integrity (CI) framework. We evaluate eight open-source LLMs on their understanding of IDP scenarios across three levels of IDP reasoning using two LLM judges. Results show strong co-ownership recognition (6/8 models exceed 90\\%) but persistent weaknesses in identifying CI parameters (information attribute, primary subject) and IDP-specific parameters such as secondary subjects, where 7/8 models score below 74\\%. Models also struggle to judge sharing appropriateness (5/8 scoring below 77\\%). While the ability to judge the appropriateness of sharing improves with scale, performance tends to decline in smaller models, and prompt sensitivity remains high on IDP-specific questions--highlighting the need for more targeted study of IDP in LLM privacy research. Data \\& code available \\href{https://github.com/tisl-lab/Interdependent_Privacy_Bench}{here}.",
+      "authors": [
+        "Ayana Hussain",
+        "Soumya Sharma",
+        "Golnoosh Farnadi",
+        "Nicholas Vincent",
+        "Héber Hwang Arcolezi",
+        "Ulrich Aïvodji"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-06T07:59:08+00:00",
+      "link": "https://arxiv.org/pdf/2606.09908v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Introduces IDP-Bench, a benchmark for evaluating LLMs' ability to handle interdependent privacy, grounded in contextual integrity.",
+      "llm_evidence_cn": "提出IDP-Bench基准，评估LLM处理相互依赖隐私的能力，基于情境完整性。",
+      "llm_evidence": "提出IDP-Bench基准，评估LLM处理相互依赖隐私的能力，基于情境完整性。",
+      "canonical_evidence": "提出IDP-Bench基准，评估LLM处理相互依赖隐私的能力，基于情境完整性。",
+      "llm_tldr_en": "This paper addresses the overlooked issue of interdependent privacy in LLMs, where one's data can be revealed by others, and presents IDP-Bench, the first benchmark for evaluating LLM reasoning on such scenarios.",
+      "llm_tldr_cn": "大语言模型作为个人AI助手，常接触敏感用户数据，但现有研究多关注个体隐私风险，忽视相互依赖隐私——即他人行为可泄露个人数据。本文基于情境完整性框架，提出首个LLM相互依赖隐私基准IDP-Bench，涵盖三级推理。评估八个开源LLM发现，虽然模型能较好识别共有人身份，但在更复杂的推理场景中表现不佳。该基准为评估和提升LLM在复杂隐私场景下的能力提供了工具。",
+      "llm_tldr": "大语言模型作为个人AI助手，常接触敏感用户数据，但现有研究多关注个体隐私风险，忽视相互依赖隐私——即他人行为可泄露个人数据。本文基于情境完整性框架，提出首个LLM相互依赖隐私基准IDP-Bench，涵盖三级推理。评估八个开源LLM发现，虽然模型能较好识别共有人身份，但在更复杂的推理场景中表现不佳。该基准为评估和提升LLM在复杂隐私场景下的能力提供了工具。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.10481v1",
+      "source": "arxiv",
+      "title": "Advancing the State-of-the-Art in Empirical Privacy Auditing",
+      "abstract": "Parameter-efficient fine-tuning of large language models (LLMs) can exhibit problematic memorization of individual training examples. Empirical privacy auditing (EPA) quantifies this risk by measuring realistic data leakage on membership inference (MI) or reconstruction attacks. A key challenge in EPA is designing ``canary'' examples that are mixed with the privacy-sensitive training data. We propose generating synthetic canaries via high-temperature sampling ($T \\geq 0.8$) from LLMs, using prompts tailored to the privacy-sensitive training data. These canaries act as high-influence outliers, ensuring high identifiability and hence strong audits. Further, since the canaries are themselves non-private, they are inspectable and can be inserted with repetition without jeopardizing the privacy of the real data. An important use of models fine-tuned on privacy-sensitive data is the generation of synthetic data. This also comes with privacy risk. We introduce a powerful synthetic data audit based on fine-tuning an auxiliary model on the synthetic data. Auditing the auxiliary model for the original canaries then provides a strong estimate of the privacy leakage through the synthetic data. Finally, leveraging our strong auditing methodologies, we perform a systematic investigation into the interacting effects of model capacity and canary entropy on memorization.",
+      "authors": [
+        "Nicole Mitchell",
+        "Galen Andrew",
+        "Arun Ganesh",
+        "Brendan McMahan",
+        "Peter Kairouz"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "cs.CL",
+        "cs.CR",
+        "stat.ML"
+      ],
+      "published": "2026-06-09T06:50:49+00:00",
+      "link": "https://arxiv.org/pdf/2606.10481v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "empirical privacy auditing for LLM fine-tuning using synthetic canaries to measure data leakage",
+      "llm_evidence_cn": "利用合成金丝雀对LLM微调进行实证隐私审计，测量数据泄露",
+      "llm_evidence": "利用合成金丝雀对LLM微调进行实证隐私审计，测量数据泄露",
+      "canonical_evidence": "利用合成金丝雀对LLM微调进行实证隐私审计，测量数据泄露",
+      "llm_tldr_en": "Proposes generating synthetic canaries to strengthen privacy audits for LLMs, revealing memorization risks.",
+      "llm_tldr_cn": "大语言模型在参数高效微调中可能记忆训练样本，隐私审计是量化此风险的关键手段。本文针对审计中金丝雀数据设计的挑战，提出利用高温采样从LLM生成合成金丝雀的方法。这些合成数据作为高影响异常值，确保审计的高可识别性，并且由于本身非私有，可重复插入以增强检测。实验证明该方法能进行严格的隐私审计，推动了LLM隐私保护实践。",
+      "llm_tldr": "大语言模型在参数高效微调中可能记忆训练样本，隐私审计是量化此风险的关键手段。本文针对审计中金丝雀数据设计的挑战，提出利用高温采样从LLM生成合成金丝雀的方法。这些合成数据作为高影响异常值，确保审计的高可识别性，并且由于本身非私有，可重复插入以增强检测。实验证明该方法能进行严格的隐私审计，推动了LLM隐私保护实践。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.10945v1",
+      "source": "arxiv",
+      "title": "Context-Based Adversarial Attacks on AI Code Generators: Vulnerability Analysis and Implications",
+      "abstract": "AI-powered code generation systems have transformed software development but introduce critical inference-time security vulnerabilities. This research presents a systematic investigation of context-based adversarial attacks, where strategically crafted contextual inputs, including comments, documentation, variable names, bias large language models toward generating exploitable code. Through 2,800 controlled experiments across CodeT5+, CodeLlama, GPT-3.5-Turbo, and GPT-4, we quantify attack effectiveness and defense mechanisms. Results demonstrate that adversarial conditions increase vulnerability generation 10.7x (from 3.5% to 37.4%), with direct instruction attacks achieving 100% success on GPT-3.5-Turbo. Cross-model transferability reaches 60-100%, indicating systemic architectural vulnerabilities rather than model-specific flaws. Our dual-layer defense framework achieves 89.1% detection rate with 0.3% false positives and 520ms latency, demonstrating practical feasibility for real-time deployment in development environments.",
+      "authors": [
+        "Walther A. Del Orbe",
+        "John D. Hastings",
+        "Varghese Vaidyan"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.SE"
+      ],
+      "published": "2026-06-09T14:51:59+00:00",
+      "link": "https://arxiv.org/pdf/2606.10945v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "analyzes context-based adversarial attacks that cause LLMs to generate vulnerable code",
+      "llm_evidence_cn": "分析基于上下文的对抗攻击，导致大型语言模型生成易受攻击的代码",
+      "llm_evidence": "分析基于上下文的对抗攻击，导致大型语言模型生成易受攻击的代码",
+      "canonical_evidence": "分析基于上下文的对抗攻击，导致大型语言模型生成易受攻击的代码",
+      "llm_tldr_en": "This paper systematically investigates context-based adversarial attacks on AI code generators, showing that crafted contextual inputs can significantly increase vulnerability generation, and evaluates defense mechanisms, quantifying attack effectiveness across models.",
+      "llm_tldr_cn": "本文系统研究了针对AI代码生成器的上下文对抗攻击，发现特制的注释、文档等上下文可大幅增加模型生成易受攻击代码的比例。实验覆盖四个模型，攻击提升可达10.7倍，并评估了防御机制，揭示了模型间转移性。",
+      "llm_tldr": "本文系统研究了针对AI代码生成器的上下文对抗攻击，发现特制的注释、文档等上下文可大幅增加模型生成易受攻击代码的比例。实验覆盖四个模型，攻击提升可达10.7倍，并评估了防御机制，揭示了模型间转移性。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.11265v1",
+      "source": "arxiv",
+      "title": "When Poison Fails After Retrieval: Revisiting Corpus Poisoning under Chunking and Reranking Pipelines",
+      "abstract": "Retrieval-Augmented Generation (RAG) systems are vulnerable to corpus poisoning attacks that manipulate downstream model outputs through malicious knowledge injection. Existing studies mainly evaluate poisoning under simplified retrieval settings, overlooking practical RAG pipelines involving document chunking, dense retrieval, reranking, and grounded generation. In this paper, we revisit corpus poisoning under realistic multi-stage retrieval pipelines and show that many existing attacks substantially degrade after reranking despite achieving high retrieval-stage relevance. We identify retrieval granularity mismatch as a key reason for this failure: document-level adversarial signals are often fragmented during chunking, while rerankers favor locally coherent and answer-bearing passages rather than globally optimized semantic similarity. Based on this observation, we propose Chunk-aware and Rerank-Consistent Poisoning (CRCP), a poisoning framework that jointly optimizes retrieval relevance, reranker consistency, and chunk-boundary robustness. CRCP explicitly models chunking transformations during optimization to generate locally self-contained adversarial passages that remain effective under varying chunking configurations. Experiments on standard RAG benchmarks with multiple retrievers and rerankers show that existing poisoning methods are highly sensitive to chunk size and reranking strategies, whereas CRCP achieves substantially higher attack success rates and stronger robustness across realistic retrieval pipelines. Our findings highlight an important realism gap in current RAG security evaluation and suggest that poisoning in modern RAG systems should be studied as a multi-stage retrieval consistency problem rather than a retrieval-only problem.",
+      "authors": [
+        "Xi Nie",
+        "Hongwei Li",
+        "Shenghao Wu",
+        "Mingxuan Li",
+        "Jiachen Li",
+        "Wenbo Jiang"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-09T04:45:28+00:00",
+      "link": "https://arxiv.org/pdf/2606.11265v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "revisit corpus poisoning under realistic multi-stage RAG pipelines",
+      "llm_evidence_cn": "在现实多阶段RAG管道下重新审视语料投毒攻击",
+      "llm_evidence": "在现实多阶段RAG管道下重新审视语料投毒攻击",
+      "canonical_evidence": "在现实多阶段RAG管道下重新审视语料投毒攻击",
+      "llm_tldr_en": "Shows that realistic RAG pipelines with chunking and reranking degrade corpus poisoning attacks, analyzing retrieval granularity mismatch as the key failure cause.",
+      "llm_tldr_cn": "该文重新审视了在包含分块、密集检索与重排序的现实RAG管道中的语料投毒攻击。作者发现，尽管许多现有攻击在检索阶段能获得高相关性，但经过重排序后，其实际效用显著下降。详细分析揭示，文档级对抗信号在分块过程中被碎片化，导致检索粒度不匹配是攻击失效的核心原因。该工作不仅强调了在真实多阶段检索条件下进行安全评估的必要性，也为未来设计针对复杂管道的鲁棒攻击与防御提供了重要参考。",
+      "llm_tldr": "该文重新审视了在包含分块、密集检索与重排序的现实RAG管道中的语料投毒攻击。作者发现，尽管许多现有攻击在检索阶段能获得高相关性，但经过重排序后，其实际效用显著下降。详细分析揭示，文档级对抗信号在分块过程中被碎片化，导致检索粒度不匹配是攻击失效的核心原因。该工作不仅强调了在真实多阶段检索条件下进行安全评估的必要性，也为未来设计针对复杂管道的鲁棒攻击与防御提供了重要参考。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.12469v1",
+      "source": "arxiv",
+      "title": "Influence Factors on RAG Poisoning",
+      "abstract": "Retrieval-Augmented Generation (RAG) systems enhance large language models by grounding responses in retrieved documents from external knowledge sources at inference time. However, this reliance on retrieved content introduces vulnerabilities to poisoning attacks, in which adversarial documents can manipulate both the retrieval process and the generated outputs. This paper investigates poisoning robustness in RAG through a full factorial experimental study covering 432 configurations. We analyze the impacts of dataset, retriever type, retrieval depth, database composition, chunking strategy, and generator model on retrieval-level and generation-level metrics. The results show that retriever architecture, dataset, and retrieval depth are the strongest factors affecting poisoning exposure, while generator choice and database composition have a major impact on downstream attack success. Dense and graph-based retrievers generally improve robustness relative to BM25, whereas larger retrieval depth increases the likelihood of retrieving poisoned passages. We further show that replicating poisoned content across multiple databases amplifies adversarial influence, while additional clean sources can mitigate it. These findings highlight that poisoning vulnerability in RAG is not attributable to a single component, but instead arises from the interaction of retrieval, generation, and knowledge-base configuration.",
+      "authors": [
+        "Pedro Pereira",
+        "Eva Maia",
+        "Isabel Praça",
+        "Adrien Bécue"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR"
+      ],
+      "published": "2026-06-09T19:07:42+00:00",
+      "link": "https://arxiv.org/pdf/2606.12469v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Full-factorial study of poisoning factors in RAG systems",
+      "llm_evidence_cn": "RAG系统投毒因素的全因子实验研究",
+      "llm_evidence": "RAG系统投毒因素的全因子实验研究",
+      "canonical_evidence": "RAG系统投毒因素的全因子实验研究",
+      "llm_tldr_en": "Analysis of 432 RAG configurations shows retriever architecture, dataset, and retrieval depth as strongest factors affecting poisoning robustness, guiding secure RAG design.",
+      "llm_tldr_cn": "检索增强生成（RAG）系统因依赖外部文档而易受投毒攻击，但影响因素不明。本文设计全因子实验，考察数据集、检索器、检索深度、数据库构成、分块策略和生成模型等对投毒鲁棒性的影响。在432种配置上的结果表明，检索器架构、数据集和检索深度是影响投毒暴露的最强因素。这些发现为设计更安全的RAG系统提供了指导。",
+      "llm_tldr": "检索增强生成（RAG）系统因依赖外部文档而易受投毒攻击，但影响因素不明。本文设计全因子实验，考察数据集、检索器、检索深度、数据库构成、分块策略和生成模型等对投毒鲁棒性的影响。在432种配置上的结果表明，检索器架构、数据集和检索深度是影响投毒暴露的最强因素。这些发现为设计更安全的RAG系统提供了指导。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.14210v1",
+      "source": "arxiv",
+      "title": "From Prompts to Responses: Dual-Sided Data Leakage and Defense in Split Large Language Models",
+      "abstract": "Large language models (LLMs) are increasingly deployed in privacy-sensitive domains, where users must balance the risk of data exposure through external APIs against the high computational cost of local deployment. Split learning has therefore emerged as a promising paradigm for LLM fine-tuning and inference under limited local resources. However, it introduces new privacy risks. Prior work primarily studies leakage of private input prompts, typically via inversion attacks on intermediate representations, while the potential for sensitive information leakage through generative response outputs remains largely unexplored.   In this work, we unveil novel vulnerabilities of Split-LLM by presenting Patched Model Inversion with Dual-Sided Initialization (PIDI), a two-stage attack that simultaneously targets both private input prompts and output responses in Split-LLM settings. It combines dual-sided initialization with a patched inversion strategy to tackle long sequences, substantially outperforming prior inversion methods. To counter threats from both sides, we further propose the Adapter-based DualGuard with Mutual Information Defense (ADMI), which integrates an adapter-based local warmup strategy and mutual information regularization to provide a strong empirical privacy protection with minimal impact on task performance. Extensive experiments across diverse tasks and models demonstrate that ADMI effectively defends against PIDI and other state-of-the-art inversion attacks. Our code is publicly available at https://github.com/FLAIR-THU/VFLAIR-LLM.",
+      "authors": [
+        "Zixuan Gu",
+        "Xiaojun Ye",
+        "Yang Liu"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-12T07:46:58+00:00",
+      "link": "https://arxiv.org/pdf/2606.14210v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "identifies dual-sided data leakage (input and output) in split LLMs and proposes defenses",
+      "llm_evidence_cn": "识别拆分LLM中输入和输出双侧数据泄露并提出防御",
+      "llm_evidence": "识别拆分LLM中输入和输出双侧数据泄露并提出防御",
+      "canonical_evidence": "识别拆分LLM中输入和输出双侧数据泄露并提出防御",
+      "llm_tldr_en": "Reveals that split LLMs leak private information from both prompts and responses, and proposes a dual-side defense.",
+      "llm_tldr_cn": "大语言模型在隐私敏感领域的部署常采用拆分学习以节省资源，但带来新的隐私风险。以往研究多关注输入提示泄露，本文揭示响应输出同样可能泄露敏感信息。作者提出双面攻击方法，能够从模型中间表示还原输入提示和生成响应。针对此漏洞，论文设计了相应的防御策略。实验验证了攻击的有效性，并表明防御能减轻双侧泄露，强调了拆分学习场景下全面隐私保护的重要性。",
+      "llm_tldr": "大语言模型在隐私敏感领域的部署常采用拆分学习以节省资源，但带来新的隐私风险。以往研究多关注输入提示泄露，本文揭示响应输出同样可能泄露敏感信息。作者提出双面攻击方法，能够从模型中间表示还原输入提示和生成响应。针对此漏洞，论文设计了相应的防御策略。实验验证了攻击的有效性，并表明防御能减轻双侧泄露，强调了拆分学习场景下全面隐私保护的重要性。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.15810v1",
+      "source": "arxiv",
+      "title": "Let Them Steal: Trapping Large Language Model Extraction Attacks with Knowledge Honeypot",
+      "abstract": "Large language models deployed as commercial APIs are vulnerable to model extraction attacks, while existing defenses either act too late or degrade utility for legitimate users. We propose \\textbf{Knowledge Trap}, a defense that redirects extraction attacks toward low-transferability knowledge through a \\emph{Honeypot Knowledge Graph} (HKG) and breadcrumb-guided exploration. Instead of blocking queries or perturbing outputs, Knowledge Trap consumes the attacker's limited query budget on knowledge with negligible downstream utility while preserving benign-user performance. Experiments in medical and financial domains show that Knowledge Trap reduces surrogate Agreement by 6.2\\% on average without degrading legitimate-user accuracy, outperforming existing defenses that impose measurable user impact. These results suggest that defending knowledge-space traversal is a practical direction for mitigating LLM extraction attacks.",
+      "authors": [
+        "Yuyang Dai",
+        "Yushun Dong"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-14T13:23:48+00:00",
+      "link": "https://arxiv.org/pdf/2606.15810v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "defends against LLM extraction attacks using a honeypot knowledge graph",
+      "llm_evidence_cn": "利用蜜罐知识图谱防御大语言模型窃取攻击",
+      "llm_evidence": "利用蜜罐知识图谱防御大语言模型窃取攻击",
+      "canonical_evidence": "利用蜜罐知识图谱防御大语言模型窃取攻击",
+      "llm_tldr_en": "This paper proposes Knowledge Trap, a defense against model extraction attacks that redirect adversaries to low-value knowledge via a Honeypot Knowledge Graph, preserving utility for legitimate users.",
+      "llm_tldr_cn": "本文提出Knowledge Trap防御方法，通过构建蜜罐知识图谱和面包屑引导，将模型窃取攻击者引向低价值知识，消耗其查询预算，同时不影响合法用户性能。在医疗和金融领域的实验表明，该方法平均降低替代模型一致性6.2%。",
+      "llm_tldr": "本文提出Knowledge Trap防御方法，通过构建蜜罐知识图谱和面包屑引导，将模型窃取攻击者引向低价值知识，消耗其查询预算，同时不影响合法用户性能。在医疗和金融领域的实验表明，该方法平均降低替代模型一致性6.2%。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.16244v1",
+      "source": "arxiv",
+      "title": "SPARK: Security Knowledge Priming and Representation-Guided Knowledge Activation for LLM-based Secure Code Generation",
+      "abstract": "Large language models routinely generate code with exploitable security flaws. Prior literature attributes this limitation to a lack of security expertise, steering current defense mechanisms toward heavy fine-tuning or external knowledge retrieval, which introduces significant computational overhead and data bias through redundant code examples. Contrary to this view, we argue that pretraining corpora are already rich in security material. The bottleneck is activation: without an explicit and brief cue, statistical pressure toward common training-distribution patterns suppresses the model's safety-relevant representations. We present SPARK, an inference-time security harness that activates this latent knowledge without any retraining. The harness has two parts. Component~I retrieves a few of the relevant Common Weakness Enumeration (CWE) entries for each coding task and appends a short structured cue to the prompt; this alone is enough to surface the model's existing security representations. Component~II adds a precomputed token bias to the logits at every decoding step. We obtain the bias by projecting a safe-direction vector, the unit difference between the mean safe and mean unsafe last-layer hidden states, through the language model head. The bias is computed once offline; applying it costs a single vector addition per generated token. We evaluate SPARK on 9 open-source models across C++, Java, and Python, and compare with 7 baselines spanning fine-tuning and retrieval-augmented methods. SPARK matches or improves on the best baseline in every setting while preserving HumanEval utility. We further test Component~I in a black-box setting on 7 of today's strongest models, including Claude, DeepSeek, and GPT, demonstrating the bottleneck of insecure code generation and the improvements enabled by our method.",
+      "authors": [
+        "Xiaoyun Xu",
+        "Lichao Wu",
+        "Jona te Lintelo",
+        "Siyu Zhang",
+        "Stjepan Picek"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-15T05:43:37+00:00",
+      "link": "https://arxiv.org/pdf/2606.16244v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "inference-time security harness to activate latent security knowledge in LLMs, mitigating code security flaws",
+      "llm_evidence_cn": "推理时安全框架激活LLM潜在安全知识，减少代码安全漏洞",
+      "llm_evidence": "推理时安全框架激活LLM潜在安全知识，减少代码安全漏洞",
+      "canonical_evidence": "推理时安全框架激活LLM潜在安全知识，减少代码安全漏洞",
+      "llm_tldr_en": "SPARK activates LLMs' latent security knowledge at inference time to reduce exploitable code flaws, avoiding heavy fine-tuning.",
+      "llm_tldr_cn": "大语言模型在代码生成中常产生安全漏洞，现有防御依赖微调或外部知识检索，开销大且易引入偏差。本文提出SPARK，一种推理时安全框架，通过安全知识启动和表征引导激活模型预训练阶段已习得的安全知识。实验表明，SPARK能有效减少生成代码的安全缺陷，且无需额外训练或检索，实现了轻量级的安全增强。",
+      "llm_tldr": "大语言模型在代码生成中常产生安全漏洞，现有防御依赖微调或外部知识检索，开销大且易引入偏差。本文提出SPARK，一种推理时安全框架，通过安全知识启动和表征引导激活模型预训练阶段已习得的安全知识。实验表明，SPARK能有效减少生成代码的安全缺陷，且无需额外训练或检索，实现了轻量级的安全增强。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.16801v1",
+      "source": "arxiv",
+      "title": "The Art of Mixology: Mixup-based Obfuscation for Privacy-Preserving Split Learning in Large Language Models",
+      "abstract": "Split learning provides a practical paradigm for resource-constrained users to train Large Language Models (LLMs) by offloading computation-intensive layers to a server while keeping raw data local. However, existing privacy-preserving split learning methods still face a difficult trade-off among utility, privacy, efficiency, and stability. Specifically, these methods often suffer from substantial utility degradation, remain vulnerable to advanced data reconstruction attacks, incur prohibitive computational and communication overhead, or exhibit unstable performance across different tasks. In this paper, we propose MIXGUARD, a novel mixup-based privacy-preserving split learning framework for LLMs. MIXGUARD introduces token-level obfuscation, representation-level obfuscation, and adaptive gradient perturbation mechanisms, which operate jointly to preserve useful learning signals while preventing privacy leakage to the server. Technically, MIXGUARD first constructs a lightweight calibration model on a public dataset to refine the approximated target representation, and then applies this model during privacy-preserving fine-tuning on private data. We conduct extensive experiments on four classification tasks and four text generation tasks across multiple LLM families, model sizes, architectures, and fine-tuning strategies. The results show that MIXGUARD preserves model utility comparable to non-split training baselines, consistently achieves stronger privacy protection than existing split learning defense methods against state-of-the-art data reconstruction attacks, and remains robust under adaptive attack settings.",
+      "authors": [
+        "Chen Chen",
+        "Xiang Gao",
+        "Xianshun Wang",
+        "Chengran Li",
+        "Shengyu Xia",
+        "Xueluan Gong",
+        "Linru Zhang",
+        "Qian Wang",
+        "Kwok-Yan Lam"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-06-15T14:42:06+00:00",
+      "link": "https://arxiv.org/pdf/2606.16801v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "mixup-based obfuscation framework for privacy-preserving split learning of LLMs",
+      "llm_evidence_cn": "基于混合的混淆框架用于LLM隐私保护拆分学习",
+      "llm_evidence": "基于混合的混淆框架用于LLM隐私保护拆分学习",
+      "canonical_evidence": "基于混合的混淆框架用于LLM隐私保护拆分学习",
+      "llm_tldr_en": "MIXGUARD uses mixup to obfuscate intermediate representations in split learning, balancing utility, privacy, and efficiency.",
+      "llm_tldr_cn": "拆分学习使资源受限用户能够训练大语言模型，但现有隐私保护方法常导致效用下降、易受攻击或开销大。本文提出MIXGUARD框架，通过mixup策略对模型中间表示进行混淆，在保护隐私的同时维持模型性能并降低通信与计算成本。实验表明，MIXGUARD能有效抵御数据重建攻击，并在多个任务上实现稳定的隐私-效用平衡，为LLM的隐私保护训练提供了实用方案。",
+      "llm_tldr": "拆分学习使资源受限用户能够训练大语言模型，但现有隐私保护方法常导致效用下降、易受攻击或开销大。本文提出MIXGUARD框架，通过mixup策略对模型中间表示进行混淆，在保护隐私的同时维持模型性能并降低通信与计算成本。实验表明，MIXGUARD能有效抵御数据重建攻击，并在多个任务上实现稳定的隐私-效用平衡，为LLM的隐私保护训练提供了实用方案。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.16952v1",
+      "source": "arxiv",
+      "title": "Phantoms and Disclosures: a Causal Framework for Auditing Synthetic Data",
+      "abstract": "The rapid adoption of generative AI and Large Language Models (LLMs) has spurred interest in synthetic data as a privacy-preserving alternative to sensitive real-world datasets. However, generating high-utility synthetic data often carries the risk of memorizing and regurgitating private information from the training corpus. In this work, we present a customizable empirical auditing framework designed to detect and explain such data disclosures. Our framework introduces a mechanism to distinguish between \"true disclosures\"-where the system directly reproduces a user's information-and \"phantom disclosures''-where the system incidentally generates a user's data. By partitioning input data into training and holdout sets and applying rigorous statistical hypothesis testing, we determine if observed disclosures are consistent with strict privacy baselines, such as zero-learning or specific Differential Privacy (DP) bounds. Crucially, this approach requires no model access, no canary insertion, and no reference model training -only the synthetic output and a held-out control set. We demonstrate that this framework effectively functions as a membership inference attack, providing empirical lower bounds on privacy leakage that are tighter than prior data-based auditing methods. Our approach is model-agnostic, applies to any synthetic data generation mechanism, and requires orders of magnitude fewer computational resources than shadow-model or canary-based alternatives.",
+      "authors": [
+        "Kareem Amin",
+        "Rudrajit Das",
+        "Alessandro Epasto",
+        "Adel Javanmard",
+        "Dennis Kraft",
+        "Mónica Ribero",
+        "Sergei Vassilvitskii"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "stat.AP",
+        "stat.ME",
+        "stat.ML"
+      ],
+      "published": "2026-06-15T16:54:02+00:00",
+      "link": "https://arxiv.org/pdf/2606.16952v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Auditing framework detects privacy disclosures (true and phantom) from synthetic data generated by LLMs and generative AI.",
+      "llm_evidence_cn": "审计框架检测由 LLM 和生成式 AI 生成的合成数据中的隐私披露（真实与幻影）。",
+      "llm_evidence": "审计框架检测由 LLM 和生成式 AI 生成的合成数据中的隐私披露（真实与幻影）。",
+      "canonical_evidence": "审计框架检测由 LLM 和生成式 AI 生成的合成数据中的隐私披露（真实与幻影）。",
+      "llm_tldr_en": "This work presents a causal auditing framework to detect and distinguish true and phantom data disclosures from synthetic data generated by generative AI and LLMs, enabling better privacy risk assessment and mitigation.",
+      "llm_tldr_cn": "本文提出一种可定制的实证审计框架，用于检测和区分由生成式AI及大语言模型生成的合成数据中的真实隐私披露与巧合生成的幻影披露。通过训练-保留集分区和统计检验，该框架能审计数据记忆和再生风险，为合成数据安全合规使用提供关键工具。",
+      "llm_tldr": "本文提出一种可定制的实证审计框架，用于检测和区分由生成式AI及大语言模型生成的合成数据中的真实隐私披露与巧合生成的幻影披露。通过训练-保留集分区和统计检验，该框架能审计数据记忆和再生风险，为合成数据安全合规使用提供关键工具。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.17110v1",
+      "source": "arxiv",
+      "title": "Loss Landscape Poisoning: Targeted Extraction of Unseen Training Data from LLMs",
+      "abstract": "Large Language Models are increasingly trained on proprietary or sensitive data, from private healthcare and financial records to user conversations containing secrets. Ensuring the privacy of such data against extraction attacks has become a central concern. In this paper, we ask whether an attacker who can poison a portion of the training data can facilitate the leakage of a separate target record they have no access to. We answer in the affirmative and show that such leakage can be induced by a poisoning mechanism that reshapes the model's local loss landscape around the target completion. Our key insight is that poisoning to create a sharp loss minimum at the target, surrounded by elevated loss on nearby alternatives, forces the model to memorize the target as the unique low-loss solution in its neighborhood. The attack requires no architectural changes, and generalizes across centralized and federated learning settings. We demonstrate that the attack amplifies privacy leakage across language (up to 100% successful extraction), and vision-language models (up 90% successful extraction). We show that the attack is thwarted when the model is trained to be differentially private. However, we introduce a new attack that directly probes the loss landscape bypassing even differential privacy defenses.",
+      "authors": [
+        "Md Abdullah Al Mamun",
+        "Ngoc Phu Doan",
+        "Pedram Zaree",
+        "Ihsen Alouani",
+        "Nael Abu-Ghazaleh"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.LG"
+      ],
+      "published": "2026-06-15T07:04:01+00:00",
+      "link": "https://arxiv.org/pdf/2606.17110v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "training data poisoning to induce leakage of unseen private records from LLMs",
+      "llm_evidence_cn": "训练数据毒化导致LLM泄露未见过私有记录",
+      "llm_evidence": "训练数据毒化导致LLM泄露未见过私有记录",
+      "canonical_evidence": "训练数据毒化导致LLM泄露未见过私有记录",
+      "llm_tldr_en": "Shows a poisoning attack that manipulates loss landscape to extract unseen training data from LLMs, exposing a new privacy risk.",
+      "llm_tldr_cn": "大语言模型常使用敏感数据训练，数据提取攻击是主要隐私威胁。本文探究攻击者能否通过毒化部分训练数据来泄露其未接触的目标记录。作者提出损失景观毒化攻击，通过创建尖锐损失极小值迫使模型记忆并生成目标文本。实验证实了攻击有效性，揭示了训练数据毒化作为一种新的隐私泄露途径，对LLM隐私保护提出严峻挑战。",
+      "llm_tldr": "大语言模型常使用敏感数据训练，数据提取攻击是主要隐私威胁。本文探究攻击者能否通过毒化部分训练数据来泄露其未接触的目标记录。作者提出损失景观毒化攻击，通过创建尖锐损失极小值迫使模型记忆并生成目标文本。实验证实了攻击有效性，揭示了训练数据毒化作为一种新的隐私泄露途径，对LLM隐私保护提出严峻挑战。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.18310v1",
+      "source": "arxiv",
+      "title": "Conflict-Aware Retriever Editing for Knowledge Injection Attacks on LLM-Based RAG Systems",
+      "abstract": "Injecting malicious knowledge into retrieval-augmented generation (RAG) systems can manipulate retrieved evidence and mislead downstream generation, posing a serious security threat for AI applications. Existing RAG injection attacks mainly rely on manipulating external knowledge bases, such as crafting malicious corpus. However, the synthetic text crafted by such data-centric methods could be detectable, leading to the failure of attacks. Beyond corpus manipulation, open-source retrievers are increasingly exposing RAG systems to model-centric attacks. In this paper, we propose conflict-aware retriever editing, i.e., CAREATTACK, a model-centric retriever attack framework for malicious knowledge injection in RAG. Specifically, CAREATTACK consists two stages of conflict-aware retriever editing and attack-preserving anchor repair. Conflict-aware retriever editing adapts efficient closed-form parameter editing to the dense retrieval model, promoting malicious knowledge above benign competing passages and resolving potential parameter conflicts through graph-based conflict detection and parameter editing projection. Then, attack-preserving anchor repair performs lightweight calibration on the edited retriever to further eliminate the impact on non-target prompts while preserving the attack effectiveness for target prompts. We instantiate CAREATTACK on Qwen3-Embedding-0.6B and BGE-M3, and conduct evaluation on three benchmark datasets. Experimental results demonstrate our method substantially promote malicious passages into the retrieved knowledge of RAG systems and can perform attacks for batches of target prompts and passages, given the access of retrieval model parameters. Since most RAG systems are built upon open-source retrieval models, this work reveals a practical attack surface in RAG systems. Codes are public accessible at https://anonymous.4open.science/r/CareAttack-3F1C.",
+      "authors": [
+        "Xinru Liu",
+        "Xianglong Zhang",
+        "Di Cai",
+        "Zhumin Chen",
+        "Pengfei Hu",
+        "Xin Xin"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-16T09:17:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.18310v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Conflict-aware retriever editing attack for malicious knowledge injection in RAG",
+      "llm_evidence_cn": "面向RAG恶意知识注入的冲突感知检索器编辑攻击",
+      "llm_evidence": "面向RAG恶意知识注入的冲突感知检索器编辑攻击",
+      "canonical_evidence": "面向RAG恶意知识注入的冲突感知检索器编辑攻击",
+      "llm_tldr_en": "Introduces CAREATTACK, a model-centric retriever editing framework for malicious knowledge injection in RAG systems, exploiting open-source retrievers to bypass detection. Demonstrates effective attack while maintaining naturalness, posing new security threats.",
+      "llm_tldr_cn": "现有RAG注入攻击多依赖语料库操纵，其合成文本易被检测。本文提出冲突感知检索器编辑攻击CAREATTACK，一种模型中心化框架，通过微调开源检索器注入恶意知识，规避检测。实验证明该攻击有效且生成文本自然，揭示了RAG系统面临的新型安全威胁，为防御策略设计提供参考。",
+      "llm_tldr": "现有RAG注入攻击多依赖语料库操纵，其合成文本易被检测。本文提出冲突感知检索器编辑攻击CAREATTACK，一种模型中心化框架，通过微调开源检索器注入恶意知识，规避检测。实验证明该攻击有效且生成文本自然，揭示了RAG系统面临的新型安全威胁，为防御策略设计提供参考。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.18782v1",
+      "source": "arxiv",
+      "title": "RedactionBench",
+      "abstract": "Large Language Models are increasingly applied to sensitive domains that require redaction of personally identifiable information (PII). While redacting PII is a data cleaning prerequisite, existing benchmarks conflate extraction mechanics with privacy semantics. A public phone number is not equivalent to a phone number in a medical record. Whether information constitutes a violation depends heavily on who holds it, why, and in what context, fundamentally differentiating redaction from simple entity recognition. Grounded in contextual integrity, we introduce RedactionBench, a manually annotated benchmark comprising 200 diverse documents across 11 domains, mostly seeded from real-world sources. We also introduce R-Score, a novel character-level metric that treats semantically similar redactions equally and nullifies shallow formatting choices, such as varying masking styles for phone numbers. Evaluations across Named Entity Recognition models, entity extraction Small Language Models, and frontier models equipped with agentic tools demonstrate that contextual redaction remains an unsolved problem. A human evaluation with over 80 users on RedactionBench reveals a stark dichotomy in privacy perceptions. Annotators show consensus with target labels for mandatory redactions (89.4 percent) and safe text preservations (94.1 percent), but fail to agree on contextual redactions (47.7 percent). This variance demonstrates the subjective nature of contextual privacy and motivates R-Score, which decouples contextual ambiguity from strict precision. We compare 35 models across families and report their performance in redacting PII. Finally, we release RedactionBench to establish a baseline for future privacy-preserving systems, hoping to inspire efficient model design and standardized evaluations.",
+      "authors": [
+        "Sean Brynjólfsson",
+        "Shashvat Jayakrishnan",
+        "Esha Sali",
+        "Diptanshu Purwar",
+        "Madhav Aggarwal"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "published": "2026-06-17T07:51:56+00:00",
+      "link": "https://arxiv.org/pdf/2606.18782v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Proposes RedactionBench, a benchmark for contextual PII redaction in LLMs, distinguishing redaction from simple entity recognition.",
+      "llm_evidence_cn": "提出RedactionBench，用于评估LLM上下文感知的PII编辑能力，区分编辑与简单实体识别。",
+      "llm_evidence": "提出RedactionBench，用于评估LLM上下文感知的PII编辑能力，区分编辑与简单实体识别。",
+      "canonical_evidence": "提出RedactionBench，用于评估LLM上下文感知的PII编辑能力，区分编辑与简单实体识别。",
+      "llm_tldr_en": "This paper introduces RedactionBench, a manually annotated benchmark with 200 documents across 11 domains, to evaluate LLM PII redaction grounded in contextual integrity, along with R-Score, a new metric for semantic similarity in redactions.",
+      "llm_tldr_cn": "大语言模型在敏感领域中应用时，必须对个人身份信息进行编辑，但现有基准混淆了提取机制与隐私语义。公开电话号码与病历中的电话号码含义不同，编辑需基于上下文。本文依据情境完整性，构建了RedactionBench，包含200份来自11个领域的文档，大多源自真实世界。还提出了R-Score，一种字符级度量，平等对待语义相似的编辑。该基准为评估上下文感知的PII编辑提供了更精细的工具。",
+      "llm_tldr": "大语言模型在敏感领域中应用时，必须对个人身份信息进行编辑，但现有基准混淆了提取机制与隐私语义。公开电话号码与病历中的电话号码含义不同，编辑需基于上下文。本文依据情境完整性，构建了RedactionBench，包含200份来自11个领域的文档，大多源自真实世界。还提出了R-Score，一种字符级度量，平等对待语义相似的编辑。该基准为评估上下文感知的PII编辑提供了更精细的工具。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.20553v1",
+      "source": "arxiv",
+      "title": "From Efficiency to Leakage -- Privacy Backdoor in Federated Language Model Fine-Tuning",
+      "abstract": "Federated learning (FL) enables multiple parties to collaboratively fine-tune language models for domain-specific tasks without sharing raw data. Since full model fine-tuning is often prohibitively expensive for FL clients, parameter-efficient fine-tuning (PEFT) has become the de facto approach in practice, freezing the base model and training only a small set of adapters. In this paper, we show that a malicious parameter server can stealthily corrupt a PEFT adapter into a privacy backdoor that implicitly memorizes the client's training samples as isolated per-sample parameter updates stored in separate neurons, without degrading model utility. Concretely, our attack, NeuroImprint, assigns a dedicated memorization neuron to each training sample and constrains that each neuron is updated at most once along the local fine-tuning trajectory. This design mitigates both cross-sample collisions and cross-step mixing introduced by large local batches and stateful optimizers (e.g., Adam/AdamW) in language-model fine-tuning. After fine-tuning, the resulting isolated per-sample updates can be analytically inverted in closed form to recover text embeddings, which are then deterministically mapped back to token sequences. To understand the generality of our method, we implemented NeuroImprint on multiple language models (BERT, GPT-2, Qwen2, and Llama3.2) and evaluated it across four fine-tuning datasets spanning diverse domains. The results demonstrate that our attack can reconstruct 59% to 79% of all finetuning samples with high semantic fidelity.",
+      "authors": [
+        "Shanghao Shi",
+        "Chaoyu Zhang",
+        "Heng Jin",
+        "Yang Xiao",
+        "Yevgeniy Vorobeychik",
+        "William Yeoh",
+        "Ning Zhang",
+        "Y. Thomas Hou",
+        "Wenjing Lou"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR"
+      ],
+      "published": "2026-06-18T17:58:25+00:00",
+      "link": "https://arxiv.org/pdf/2606.20553v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Privacy backdoor attack in federated LLM fine-tuning leaks client data",
+      "llm_evidence_cn": "联邦语言模型微调中的隐私后门攻击泄露客户端数据",
+      "llm_evidence": "联邦语言模型微调中的隐私后门攻击泄露客户端数据",
+      "canonical_evidence": "联邦语言模型微调中的隐私后门攻击泄露客户端数据",
+      "llm_tldr_en": "NeuroImprint embeds a privacy backdoor in PEFT adapters, assigning isolated neurons to memorize client training samples without degrading model utility.",
+      "llm_tldr_cn": "联邦学习中，参数高效微调（PEFT）用于分摊成本，但恶意服务器可植入隐私后门。NeuroImprint攻击为每个训练样本分配专用记忆神经元，将其嵌入适配器，不影响模型表现。实验表明，该攻击在文本分类和生成任务上成功窃取隐私文本，且模型准确率无明显下降。这揭示了PEFT在联邦场景下的严重隐私风险，需要新的防御机制。",
+      "llm_tldr": "联邦学习中，参数高效微调（PEFT）用于分摊成本，但恶意服务器可植入隐私后门。NeuroImprint攻击为每个训练样本分配专用记忆神经元，将其嵌入适配器，不影响模型表现。实验表明，该攻击在文本分类和生成任务上成功窃取隐私文本，且模型准确率无明显下降。这揭示了PEFT在联邦场景下的严重隐私风险，需要新的防御机制。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.21710v1",
+      "source": "arxiv",
+      "title": "PrivacyAlign: Contextual Privacy Alignment for LLM Agents",
+      "abstract": "AI agents acting on behalf of users are constantly making decisions, and for users to trust their agents, those decisions must align with what they actually want. Privacy is an important alignment problem for agents: every message, post, or tool call an agent makes is a contextual judgment about what is appropriate to share, with whom, and under which conditions. Because such judgments depend on social expectations and norms, human judgment does not merely label privacy violations but also helps define them. While existing work relies on unreliable proxies for both training and evaluation, we place human judgment at the center of agentic privacy alignment. We introduce PrivacyAlign, a dataset of 1,350 samples with 3,516 detailed annotations from 599 unique annotators across diverse scenarios where current LLMs actually leak, and use it to ground both alignment training and automated evaluation in human privacy norms. Building on these annotations, we first show that conditioning LLM judges on human annotations and explanations for reference responses to the same prompt makes their judgments more reliable. We then introduce annotation-conditioned reward modeling, which uses these annotations to score new responses during RL, and show that small open-weight agents trained with this reward better align with human privacy norms, with strong gains on PrivacyAlign and existing privacy benchmarks for agents.",
+      "authors": [
+        "Manveer Singh Tamber",
+        "Abhay Puri",
+        "Marc-Etienne Brunet",
+        "Perouz Taslakian",
+        "Jimmy Lin",
+        "Spandana Gella"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.AI",
+        "cs.IR"
+      ],
+      "published": "2026-06-19T19:50:55+00:00",
+      "link": "https://arxiv.org/pdf/2606.21710v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "aligns LLM agent decisions with contextual privacy norms using human annotations",
+      "llm_evidence_cn": "利用人类标注使LLM代理决策与上下文隐私规范对齐",
+      "llm_evidence": "利用人类标注使LLM代理决策与上下文隐私规范对齐",
+      "canonical_evidence": "利用人类标注使LLM代理决策与上下文隐私规范对齐",
+      "llm_tldr_en": "This paper introduces PrivacyAlign, a dataset and method for aligning LLM agents with contextual privacy by using human annotations to define and train models to make appropriate information-sharing decisions.",
+      "llm_tldr_cn": "本文提出PrivacyAlign数据集和流程，利用599名标注者的详细判断来训练LLM代理进行符合情境的隐私决策。该方法将人类判断置于隐私对齐的中心，有效降低代理行为中的隐私违规。",
+      "llm_tldr": "本文提出PrivacyAlign数据集和流程，利用599名标注者的详细判断来训练LLM代理进行符合情境的隐私决策。该方法将人类判断置于隐私对齐的中心，有效降低代理行为中的隐私违规。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.23277v1",
+      "source": "arxiv",
+      "title": "GIF: Locally Sound Geometric Information Flow Control for LLMs",
+      "abstract": "Large language models increasingly mediate interactions between sensitive data, untrusted inputs, and privileged actions in agentic systems, creating security and privacy risks. These range from prompt injections that manipulate downstream tool use to leakage of confidential information through model outputs. Recent Information Flow Control (IFC)-based defenses show promise but lack a principled semantic foundation for reasoning about information flow through the model itself. Since any input token may influence any output token in an autoregressive LLM, existing approaches suffer from severe taint explosion.   We present Geometric Information Flow (GIF), a semantic framework for tracking information flow from input tokens to outputs. GIF uses the LLM Jacobian and local output geometry to upper-bound the Shannon mutual information between perturbed input spans and model outputs, yielding a scalable measure computable on large models via automatic differentiation and low-rank approximation. Unlike attention-based or correlational attribution heuristics, GIF satisfies local geometric soundness, and we provide a fully mechanized Lean 4 proof that it upper-bounds the true information flow induced by a given prompt under local regularity assumptions.   We evaluate GIF on integrity and confidentiality tasks across multiple prompt-injection and privacy-leakage benchmarks. GIF achieves near-perfect recall even without a downstream declassifier, outperforming attention-based baselines. Combined with lightweight LLM-based declassifiers, it matches or exceeds the F1 of direct LLM-as-judge baselines such as GPT-5.5 xhigh reasoning while using up to 81x lower token cost. GIF flows detected with small surrogate models transfer to larger state-of-the-art models and other model families, even when the surrogate is up to 200x smaller, suggesting black-box deployment without gradient access.",
+      "authors": [
+        "Adam Storek",
+        "Nikolaus Holzer",
+        "Zhuo Zhang",
+        "Suman Jana"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-06-22T12:54:04+00:00",
+      "link": "https://arxiv.org/pdf/2606.23277v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "information flow control framework to prevent security and privacy risks in LLM agentic systems",
+      "llm_evidence_cn": "信息流控制框架防范LLM智能体系统中的安全与隐私风险",
+      "llm_evidence": "信息流控制框架防范LLM智能体系统中的安全与隐私风险",
+      "canonical_evidence": "信息流控制框架防范LLM智能体系统中的安全与隐私风险",
+      "llm_tldr_en": "GIF uses LLM Jacobian to track information flow, providing locally sound taint tracking to mitigate prompt injection and data leakage.",
+      "llm_tldr_cn": "大语言模型在智能体系统中常需处理敏感数据与不可信输入，导致提示注入和机密泄露风险。现有信息流控制方案缺乏对模型内部信息流动的语义推理。本文提出几何信息流框架GIF，利用LLM的雅可比矩阵量化输入对输出的影响，实现局部可靠的污点追踪。实验表明，GIF能有效缓解从提示注入到数据泄露的多种威胁，为LLM安全提供了新的语义基础。",
+      "llm_tldr": "大语言模型在智能体系统中常需处理敏感数据与不可信输入，导致提示注入和机密泄露风险。现有信息流控制方案缺乏对模型内部信息流动的语义推理。本文提出几何信息流框架GIF，利用LLM的雅可比矩阵量化输入对输出的影响，实现局部可靠的污点追踪。实验表明，GIF能有效缓解从提示注入到数据泄露的多种威胁，为LLM安全提供了新的语义基础。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.26373v1",
+      "source": "arxiv",
+      "title": "Hybrid privacy-aware semantic search: SVD-truncated document geometry and CKKS-encrypted query reranking under a restricted threat model",
+      "abstract": "Dense embeddings power semantic search and retrieval-augmented generation, but embedding-inversion attacks can reconstruct source text from a vector: when a vector database leaks, the documents behind it leak too. The textbook defences are extremes - encrypting the whole search homomorphically is sound but too slow at million-document scale, while privacy noise degrades ranking long before it protects. We study a middle path exploiting the asymmetry between the static collection and the dynamic query. The collection is protected geometrically: each vector is truncated onto a lower-dimensional SVD subspace and rotated by a secret orthogonal transform known only to the owner. The query is protected cryptographically: it is reranked under CKKS homomorphic encryption, so an honest-but-curious server never sees the query or the scores. CKKS parameters come from a small offline benchmark.   We prove a tight lower bound on the reconstruction error of any attacker confined to the protected subspace. On one million documents and five encoders the scheme preserves ranking quality (slightly improving it on strong encoders, as a linear denoiser) at sub-second latency, and an off-the-shelf inversion attack on the protected space collapses to the noise floor. We then test stronger adversaries: a known-plaintext attacker recovers the rotation by orthogonal Procrustes from about as many leaked pairs as the retained dimension; the public product-quantization codes preserve most nearest-neighbour structure; and random-projection, calibrated-noise and BEIR baselines show the truncation is an encoder-dependent accuracy cost, not a free denoiser. We state the limits: query confidentiality is cryptographic, but document protection is an empirical obfuscation layer (SVD truncation plus a secret rotation), not a cryptographic primitive, and we delimit the threat model for each claim.",
+      "authors": [
+        "Sergey Kurilenko"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.IR"
+      ],
+      "published": "2026-06-24T20:50:58+00:00",
+      "link": "https://arxiv.org/pdf/2606.26373v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Addresses embedding-inversion attacks in semantic search for RAG, proposes hybrid geometric and homomorphic encryption defense.",
+      "llm_evidence_cn": "针对 RAG 语义搜索中的嵌入逆推攻击，提出混合几何与同态加密防御方法。",
+      "llm_evidence": "针对 RAG 语义搜索中的嵌入逆推攻击，提出混合几何与同态加密防御方法。",
+      "canonical_evidence": "针对 RAG 语义搜索中的嵌入逆推攻击，提出混合几何与同态加密防御方法。",
+      "llm_tldr_en": "This paper addresses privacy leakage in vector databases used for RAG, proposing a hybrid defense that combines SVD-truncated vector geometry for the collection and CKKS-encrypted query reranking, achieving practical privacy while maintaining search quality at scale.",
+      "llm_tldr_cn": "针对检索增强生成（RAG）中因嵌入逆推攻击导致的文档隐私泄露问题，本文提出一种混合隐私保护方案：对静态文档集合采用基于SVD截断和秘密旋转变换的几何保护，而对动态查询则使用CKKS同态加密进行重排序，在百万文档规模下兼顾搜索质量与隐私。实验表明该方法能在保证检索性能的同时有效抵御向量恢复攻击，为RAG安全部署提供了一条实用路径。",
+      "llm_tldr": "针对检索增强生成（RAG）中因嵌入逆推攻击导致的文档隐私泄露问题，本文提出一种混合隐私保护方案：对静态文档集合采用基于SVD截断和秘密旋转变换的几何保护，而对动态查询则使用CKKS同态加密进行重排序，在百万文档规模下兼顾搜索质量与隐私。实验表明该方法能在保证检索性能的同时有效抵御向量恢复攻击，为RAG安全部署提供了一条实用路径。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.26627v1",
+      "source": "arxiv",
+      "title": "Agents That Know Too Much: A Data-Centric Survey of Privacy in LLM Agents",
+      "abstract": "Large language model agents increasingly query databases, search document collections, call external APIs, remember past interactions, and act on a user's behalf. As they move from answering questions to operating over sensitive data, privacy becomes harder to enforce. An agent touches many data sources, runs multi-step workflows, keeps state across sessions, and acts with delegated permissions. Sensitive information can therefore leak not only through its final answer but through the queries it issues, the intermediate results it handles, the memory it writes, and the messages it exchanges with other agents. We survey the privacy of LLM agents from a data-centric view, organizing the field around the data an agent touches rather than by attack type, and we use data agent as shorthand for an LLM agent that works with data. Research on these risks is active but scattered across retrieval-augmented generation, text-to-SQL interfaces, agent memory, prompt injection, access control, and contextual privacy. This survey brings that work together: we taxonomize the data sources an agent touches, the privacy risks each source creates, and the governance mechanisms that address them; we map the benchmarks used to measure these risks and identify what is missing; and we set out the open problems. Two findings recur: among governance mechanisms only information-flow control covers both compositional and cross-session inference leakage, the two least-protected risks; and no benchmark drives an agent across its data surfaces under one privacy policy, the instrument the field most lacks. Our goal is a reference that situates the scattered literature and gives future work a common framing.",
+      "authors": [
+        "Nada Lahjouji",
+        "Ashwin Gerard Colaco"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-25T05:44:18+00:00",
+      "link": "https://arxiv.org/pdf/2606.26627v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "survey of privacy in LLM agents from a data-centric view",
+      "llm_evidence_cn": "从以数据为中心的视角综述LLM智能体的隐私问题",
+      "llm_evidence": "从以数据为中心的视角综述LLM智能体的隐私问题",
+      "canonical_evidence": "从以数据为中心的视角综述LLM智能体的隐私问题",
+      "llm_tldr_en": "This survey examines privacy in LLM agents from a data-centric perspective, covering leakage risks across queries, intermediate results, memory, and inter-agent messages.",
+      "llm_tldr_cn": "该综述以数据为中心视角全面审视LLM智能体的隐私问题。作者系统梳理了智能体在查询结构化数据、搜索文档、调用API、记忆交互等过程中，敏感信息可能通过最终答案、中间结果、写入内存及智能体间消息等途径泄露的风险。不同于传统按攻击类型分类，该综述从数据生命周期角度组织研究，为开发者提供了一个结构化的隐私威胁视野。该工作揭示了智能体隐私的独特挑战，并指出当前防护机制的不足，为构建隐私安全的LLM智能体指明方向。",
+      "llm_tldr": "该综述以数据为中心视角全面审视LLM智能体的隐私问题。作者系统梳理了智能体在查询结构化数据、搜索文档、调用API、记忆交互等过程中，敏感信息可能通过最终答案、中间结果、写入内存及智能体间消息等途径泄露的风险。不同于传统按攻击类型分类，该综述从数据生命周期角度组织研究，为开发者提供了一个结构化的隐私威胁视野。该工作揭示了智能体隐私的独特挑战，并指出当前防护机制的不足，为构建隐私安全的LLM智能体指明方向。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "comprehensive survey of privacy and security issues in large AI models",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-01-22-701160-v2",
+      "source": "biorxiv",
+      "title": "Membership Inference on Synthetic Single-Cell Genomic Data",
+      "abstract": "Single-cell RNA sequencing (scRNA-seq) data is subject to strict access control due to its sensitive nature, motivating the use of synthetic data generation (SDG) for privacy-preserving data sharing. We present the first adversarial privacy attack that performs meaningfully above random guessing against state-of-the-art scRNA-seq SDG methods. Our attack enables donor-level membership inference, demonstrating that leading SDG techniques fail to adequately mask which individuals were used to train the generator. We show that privacy leakage increases as the number of training donors decreases. Although the attack is designed to exploit vulnerabilities in scDesign2, we find that it also succeeds against synthetic data generated by other leading methods, including scDesign3 and scVI. This transferability indicates that an adversary can infer sensitive information from synthetic data without access to the training procedure, model parameters, or even the underlying generation algorithm. Finally, we investigate the use of perturbation with noise during the SDG process as a first-line defense, empirically evaluating its effectiveness in neutralizing the attack and its impact on utility.",
+      "authors": [
+        "Golob, S.",
+        "McKeever, P.",
+        "Pentyala, S.",
+        "De Cock, M.",
+        "Peck, J."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-06-06T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.01.22.701160v2.full.pdf",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Membership inference attack on synthetic genomic data reveals privacy risks in generative models",
+      "llm_evidence_cn": "对合成基因组数据的成员推断攻击揭示生成模型隐私风险",
+      "llm_evidence": "对合成基因组数据的成员推断攻击揭示生成模型隐私风险",
+      "canonical_evidence": "对合成基因组数据的成员推断攻击揭示生成模型隐私风险",
+      "llm_tldr_en": "First meaningful membership inference attack against synthetic scRNA-seq data, showing generative models fail to mask donor identity, with leakage worsening for fewer training donors.",
+      "llm_tldr_cn": "单细胞RNA测序数据因隐私而采用合成数据生成共享，但现有生成方法存在隐私泄漏风险。本文提出首个超越随机猜测的成员推断攻击，能够成功推断供体是否在生成器训练集中。实验表明，在训练供体较少时隐私泄漏加剧，且攻击对多种合成方法有效。该工作揭示了生物医学生成模型的隐私脆弱性，强调了需要更强的隐私保护机制。",
+      "llm_tldr": "单细胞RNA测序数据因隐私而采用合成数据生成共享，但现有生成方法存在隐私泄漏风险。本文提出首个超越随机猜测的成员推断攻击，能够成功推断供体是否在生成器训练集中。实验表明，在训练供体较少时隐私泄漏加剧，且攻击对多种合成方法有效。该工作揭示了生物医学生成模型的隐私脆弱性，强调了需要更强的隐私保护机制。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.03489v1",
+      "source": "arxiv",
+      "title": "Learn from Your Mistakes: Tree-like Self-Play for Secure Code LLMs",
+      "abstract": "While Large Language Models (LLMs) excel in code generation, they remain prone to replicating subtle yet critical vulnerabilities endemic to their training data. Current alignment techniques, such as Supervised Fine-Tuning (SFT) and Reinforcement Learning (RL), typically apply coarse-grained optimization at the sequence level. This approach often fails to address the localized nature of security flaws, where a single incorrect token choice can compromise an entire program. To bridge this gap, we introduce Tree-like Self-Play (TSP), a framework that reframes secure code generation as a fine-grained sequential decision process. Unlike standard methods that blindly maximize likelihood, TSP constructs a decision tree where the model explores branching trajectories--generating both secure \"golden paths\" and vulnerable variants. By treating code generation as a self-play game, the model learns to strictly discriminate against its own localized errors. This provides a dense, on-policy learning signal that forces self-correction precisely at the critical decision nodes where vulnerabilities typically emerge. Our experiments demonstrate that TSP fundamentally enhances model reliability. In Python security benchmarks, TSP boosts CodeLlama-7B's pass rate (SPR@1) to 75.8%, significantly outperforming SFT (57.0%) and unstructured self-play baselines. Crucially, TSP induces robust out-of-distribution generalization: the model not only reduces vulnerabilities in unseen categories (CWEs) by 24.5% but also successfully transfers security principles learned from C/C++ to diverse languages, including Python, Go, and JavaScript. This suggests that TSP does not merely memorize patches, but internalizes abstract, language-agnostic security logic.",
+      "authors": [
+        "Wenqi Chen",
+        "Ziyan Zhang",
+        "Bing Wang",
+        "Lin Liu",
+        "Hengheng Zhang",
+        "Zhengsu Chen"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-02T11:07:20+00:00",
+      "link": "https://arxiv.org/pdf/2606.03489v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Fine-grained decision process for secure code generation by LLMs",
+      "llm_evidence_cn": "面向大语言模型安全代码生成的细粒度决策过程",
+      "llm_evidence": "面向大语言模型安全代码生成的细粒度决策过程",
+      "canonical_evidence": "面向大语言模型安全代码生成的细粒度决策过程",
+      "llm_tldr_en": "Tree-like Self-Play (TSP) reframes secure code generation as a decision tree, exploring branching trajectories to avoid localized security flaws and outperforming standard alignment methods.",
+      "llm_tldr_cn": "大语言模型生成代码时常带安全漏洞，现有对齐方法粗粒度优化难以定位局部缺陷。TSP将安全代码生成重新定义为细粒度序贯决策，构建决策树探索分支轨迹，在树末注入错误以学习避免漏洞。实验显示，TSP在代码安全性和功能正确性上均优于标准微调和强化学习，为生产安全代码的LLM对齐提供了新途径。",
+      "llm_tldr": "大语言模型生成代码时常带安全漏洞，现有对齐方法粗粒度优化难以定位局部缺陷。TSP将安全代码生成重新定义为细粒度序贯决策，构建决策树探索分支轨迹，在树末注入错误以学习避免漏洞。实验显示，TSP在代码安全性和功能正确性上均优于标准微调和强化学习，为生产安全代码的LLM对齐提供了新途径。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.09590v1",
+      "source": "arxiv",
+      "title": "Clinically Grounded Privacy Evaluation of Medical LMs",
+      "abstract": "Medical language models (LMs) can memorize and reproduce protected health information, but privacy evaluations often focus on recovery of training text rather than disclosure under realistic threat models. We introduce a clinically grounded framework that evaluates leakage along a graded axis of adversarial access, ranging from publicly inferable demographics to leaked note fragments. At each tier, we measure verbatim memorization of patient-specific text and semantic leakage of sensitive diagnoses. Applying the framework to an LM pretrained on 378k clinical notes, we find that routine encounter metadata (i.e. name, date of birth, provider, practice, visit date) elicits high rates of verbatim memorization across a patient's timeline and sensitive-diagnosis recovery (AUROC 0.91 for abortion, 0.81 for HIV). At the same time, exact-match memorization can overstate disclosure: 36% of memorized tokens reflect templated documentation. Our work highlights the risks of training on longitudinal clinical data, providing a practical framework for contextual privacy evaluation of medical LMs.",
+      "authors": [
+        "Sasha Ronaghi",
+        "Sana Tonekaboni",
+        "Lena Stempfle",
+        "Vivian Utti",
+        "Jordan Li Cahoon",
+        "Nathaniel Hendrix",
+        "Ayin Vala",
+        "Marzyeh Ghassemi",
+        "Emily Alsentzer"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL",
+        "cs.CR"
+      ],
+      "published": "2026-06-08T15:02:19+00:00",
+      "link": "https://arxiv.org/pdf/2606.09590v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Clinically grounded framework for evaluating privacy leakage in medical language models",
+      "llm_evidence_cn": "用于评估医学语言模型隐私泄漏的临床实践框架",
+      "llm_evidence": "用于评估医学语言模型隐私泄漏的临床实践框架",
+      "canonical_evidence": "用于评估医学语言模型隐私泄漏的临床实践框架",
+      "llm_tldr_en": "Proposes a clinically grounded framework to evaluate privacy leakage in medical LMs, measuring verbatim memorization and semantic leakage of sensitive diagnoses under realistic threat models. Finds that routine metadata triggers high memorization rates. Highlights the need for clinically relevant privacy evaluations.",
+      "llm_tldr_cn": "现有医学语言模型隐私评估多关注训练文本恢复，忽视现实威胁模型下的泄露。本文提出一个临床实践框架，沿对抗访问等级评估泄漏，测量患者特异性文本的逐字记忆和敏感诊断的语义泄露。在预训练于37.8万份临床笔记的LM上应用，发现常规就诊元数据（如姓名、出生日期等）会引发高逐字记忆率和敏感诊断恢复。该工作强调需开展与临床相关的隐私评估，为医学AI安全提供新视角。",
+      "llm_tldr": "现有医学语言模型隐私评估多关注训练文本恢复，忽视现实威胁模型下的泄露。本文提出一个临床实践框架，沿对抗访问等级评估泄漏，测量患者特异性文本的逐字记忆和敏感诊断的语义泄露。在预训练于37.8万份临床笔记的LM上应用，发现常规就诊元数据（如姓名、出生日期等）会引发高逐字记忆率和敏感诊断恢复。该工作强调需开展与临床相关的隐私评估，为医学AI安全提供新视角。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.11283v1",
+      "source": "arxiv",
+      "title": "Fixed-Parameter Tractability of Private Synthetic Data Generation",
+      "abstract": "We study the problem of generating synthetic data under differential privacy. We establish fixed-parameter tractability (FPT) for this problem where the parameter is the treewidth of the query family's incidence graph. Our algorithms attain optimal error rates across all regimes and are realized by two different approaches: the first is based on linear programming (LP) and the FPT of the separation problem for the LP dual; the second is based on a subsampled private multiplicative weights method, where we obtain FPT for sampling from Gibbs distributions. Both approaches are unified by a dynamic programming framework over a tree decomposition.",
+      "authors": [
+        "Badih Ghazi",
+        "Cristóbal Guzmán",
+        "Pritish Kamath",
+        "Alexander Knop",
+        "Ravi Kumar",
+        "Pasin Manurangsi"
+      ],
+      "primary_category": "cs.DS",
+      "categories": [
+        "cs.DS",
+        "cs.LG",
+        "stat.ML"
+      ],
+      "published": "2026-06-09T15:14:11+00:00",
+      "link": "https://arxiv.org/pdf/2606.11283v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "private synthetic data generation under differential privacy",
+      "llm_evidence_cn": "差分隐私下的隐私合成数据生成",
+      "llm_evidence": "差分隐私下的隐私合成数据生成",
+      "canonical_evidence": "差分隐私下的隐私合成数据生成",
+      "llm_tldr_en": "Establishes fixed-parameter tractability for private synthetic data generation using treewidth, achieving optimal error rates via linear programming or private multiplicative weights over tree decomposition.",
+      "llm_tldr_cn": "该文研究差分隐私下的合成数据生成问题，通过引入参数化复杂性理论，证明当查询族关联图的树宽有界时该问题固定参数可解。具体提出了两种实现最优误差的算法：基于线性规划及对偶分离FPT的方法，和基于子采样隐私乘法权重并在树分解上动态规划采样吉布斯分布的方法。该框架统一于树分解，为结构化查询场景中的隐私数据生成提供了理论保证和实用算法。这一结果对医学研究中常见的表结构数据尤其有价值，可在保证差分隐私的同时高效生成高保真合成数据。",
+      "llm_tldr": "该文研究差分隐私下的合成数据生成问题，通过引入参数化复杂性理论，证明当查询族关联图的树宽有界时该问题固定参数可解。具体提出了两种实现最优误差的算法：基于线性规划及对偶分离FPT的方法，和基于子采样隐私乘法权重并在树分解上动态规划采样吉布斯分布的方法。该框架统一于树分解，为结构化查询场景中的隐私数据生成提供了理论保证和实用算法。这一结果对医学研究中常见的表结构数据尤其有价值，可在保证差分隐私的同时高效生成高保真合成数据。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.19803v1",
+      "source": "arxiv",
+      "title": "Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases",
+      "abstract": "Vector databases are increasingly used in security sensitive contexts with Retrieval Augmented Generation and organizational AI pipelines; however, their security capabilities remain limited. Specifically, Fine-grained Access Control (FGAC) which is required to ensure that data access adheres to user-specific policies is not fully supported in modern vector databases. Unlike relational databases, vector databases combine structured and unstructured attributes to provide semantic, approximate query results, which complicates FGAC implementation. This creates an inherent tension between enforcing FGAC policies correctly, achieving high ANN search recall and maintaining low query latency. In this paper, we present a vision for Policy-aware Vector Search by formalizing the FGAC policy model in vector databases as well as the enforcement problem. We compare various enforcement strategies, present preliminary findings, and identify key open challenges for future research in policy-aware vector search.",
+      "authors": [
+        "Lakshmi Sahithi Yalamarthi",
+        "Primal Pappachan"
+      ],
+      "primary_category": "cs.DB",
+      "categories": [
+        "cs.DB",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-06-18T05:16:05+00:00",
+      "link": "https://arxiv.org/pdf/2606.19803v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "proposes fine-grained access control for vector databases to enhance security in RAG and AI pipelines",
+      "llm_evidence_cn": "提出向量数据库细粒度访问控制以增强RAG和AI流水线安全性",
+      "llm_evidence": "提出向量数据库细粒度访问控制以增强RAG和AI流水线安全性",
+      "canonical_evidence": "提出向量数据库细粒度访问控制以增强RAG和AI流水线安全性",
+      "llm_tldr_en": "Addresses the lack of fine-grained access control in vector databases to secure RAG applications.",
+      "llm_tldr_cn": "向量数据库在检索增强生成和安全敏感应用中日益普及，但细粒度访问控制仍未有效支持。本文提出策略感知向量搜索的愿景，旨在将用户特定的访问策略集成到近似最近邻查询中，以解决语义搜索场景下的安全合规问题。这一方向有望在不牺牲搜索质量和延迟的前提下，为RAG流水线提供数据层安全增强。",
+      "llm_tldr": "向量数据库在检索增强生成和安全敏感应用中日益普及，但细粒度访问控制仍未有效支持。本文提出策略感知向量搜索的愿景，旨在将用户特定的访问策略集成到近似最近邻查询中，以解决语义搜索场景下的安全合规问题。这一方向有望在不牺牲搜索质量和延迟的前提下，为RAG流水线提供数据层安全增强。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.24408v1",
+      "source": "arxiv",
+      "title": "Natural Identifiers for Privacy and Data Audits in Large Language Models",
+      "abstract": "Assessing the privacy of large language models (LLMs) presents significant challenges. In particular, most existing methods for auditing differential privacy require the insertion of specially crafted canary data during training, making them impractical for auditing already-trained models without costly retraining. Additionally, dataset inference, which audits whether a suspect dataset was used to train a model, is infeasible without access to a private non-member held-out dataset. Yet, such held-out datasets are often unavailable or difficult to construct for real-world cases since they have to be from the same distribution (IID) as the suspect data. These limitations severely hinder the ability to conduct scalable, post-hoc audits. To enable such audits, this work introduces natural identifiers (NIDs) as a novel solution to the above-mentioned challenges. NIDs are structured random strings, such as cryptographic hashes and shortened URLs, naturally occurring in common LLM training datasets. Their format enables the generation of unlimited additional random strings from the same distribution, which can act as alternative canaries for audits and as same-distribution held-out data for dataset inference. Our evaluation highlights that indeed, using NIDs, we can facilitate post-hoc differential privacy auditing without any retraining and enable dataset inference for any suspect dataset containing NIDs without the need for a private non-member held-out dataset.",
+      "authors": [
+        "Lorenzo Rossi",
+        "Bartłomiej Marek",
+        "Franziska Boenisch",
+        "Adam Dziedzic"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-06-23T10:45:11+00:00",
+      "link": "https://arxiv.org/pdf/2606.24408v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Natural identifier method for post-hoc LLM privacy audits",
+      "llm_evidence_cn": "使用自然标识符进行LLM事后隐私审计的方法",
+      "llm_evidence": "使用自然标识符进行LLM事后隐私审计的方法",
+      "canonical_evidence": "使用自然标识符进行LLM事后隐私审计的方法",
+      "llm_tldr_en": "Introduces natural identifiers for scalable post-hoc privacy auditing of LLMs, overcoming the need for canary data or held-out datasets. Enables auditing of differential privacy and dataset inference in real-world scenarios, useful for evaluating LLM privacy.",
+      "llm_tldr_cn": "现有LLM隐私审计依赖训练时插入金丝雀数据或需保留非成员样本，难以事后执行。本文提出利用自然标识符进行可扩展事后审计，无需额外数据即可评估差分隐私和推断训练数据集。该方法为已部署模型的隐私评估提供了新工具，有助于应对真实场景中的隐私合规等挑战。",
+      "llm_tldr": "现有LLM隐私审计依赖训练时插入金丝雀数据或需保留非成员样本，难以事后执行。本文提出利用自然标识符进行可扩展事后审计，无需额外数据即可评估差分隐私和推断训练数据集。该方法为已部署模型的隐私评估提供了新工具，有助于应对真实场景中的隐私合规等挑战。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2606.26021v1",
+      "source": "arxiv",
+      "title": "Privacy Vulnerabilities of Attention Layers in Tabular Foundation Models and Protection of High-Risk Queries",
+      "abstract": "Tabular foundation models are commonly assumed to present limited privacy concerns as they are often pre-trained on large collections of synthetic data. However, these models leverage in-context learning, where sensitive records may be provided directly at inference time as labelled context examples. In this paper, we demonstrate that predictions generated via the attention mechanism leak sufficient information to enable effective Membership Inference Attacks (MIAs). To highlight this vulnerability, we propose AMIA (Attention-based Membership Inference Attack), a shadow-model-free attack that exploits the concentration of transformer attention patterns. Our results show that attention mechanisms reveal strong membership signals, which exceed classical confidence-based attacks, achieving an average gain of 7.7\\%, specially in low false-positive regimes. To mitigate this risk, we introduce an inference-time defence inspired by $k$-anonymity principles. This approach reduces the uniqueness of context-key representations without introducing random noise or retraining the model. By targeting only high-risk queries identified through AMIA scores, the defence substantially reduces membership leakage of this attack by an average of 50\\% and 25\\% against confidence-based attacks, while preserving predictive utility with only 3.9\\% performance degradation. Beyond showing that context examples are vulnerable, we further demonstrate that fine-tuning introduces an additional source of privacy risk. In particular, samples whose prediction confidence increases after fine-tuning become more susceptible to MIAs, indicating that fine-tuning can amplify memorisation and expose sensitive training information through confidence shifts.",
+      "authors": [
+        "Tânia Carvalho",
+        "Maxime Cordy"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI"
+      ],
+      "published": "2026-06-24T16:42:21+00:00",
+      "link": "https://arxiv.org/pdf/2606.26021v1",
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "reveals membership inference attack via attention patterns in tabular foundation models",
+      "llm_evidence_cn": "揭示表格基础模型中注意力模式导致的成员推理攻击隐私漏洞",
+      "llm_evidence": "揭示表格基础模型中注意力模式导致的成员推理攻击隐私漏洞",
+      "canonical_evidence": "揭示表格基础模型中注意力模式导致的成员推理攻击隐私漏洞",
+      "llm_tldr_en": "This paper demonstrates that attention mechanisms in tabular foundation models leak information enabling membership inference attacks, proposing an attack method and highlighting privacy risks in in-context learning with sensitive records.",
+      "llm_tldr_cn": "本文发现表格基础模型的注意力机制会泄露足够信息从而遭受成员推理攻击，并提出一种无需影子模型的攻击方法AMIA。研究表明，即使模型在合成数据上训练，推理时提供的敏感上下文也可能导致隐私泄露。",
+      "llm_tldr": "本文发现表格基础模型的注意力机制会泄露足够信息从而遭受成员推理攻击，并提出一种无需影子模型的攻击方法AMIA。研究表明，即使模型在合成数据上训练，推理时提供的敏感上下文也可能导致隐私泄露。",
+      "llm_tags": [
+        "query:priv-sec"
+      ],
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    }
+  ]
+}

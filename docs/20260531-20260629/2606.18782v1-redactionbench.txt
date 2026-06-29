@@ -1,0 +1,2145 @@
+Title: RedactionBench
+
+URL Source: https://arxiv.org/pdf/2606.18782v1
+
+Published Time: Thu, 18 Jun 2026 00:37:01 GMT
+
+Number of Pages: 52
+
+Markdown Content:
+# REDACTION BENCH 
+
+Sean Brynjólfsson ∗ Shashvat Jayakrishnan Esha Sali Diptanshu Purwar Madhav Aggarwal 
+
+A10 Networks, Inc. 
+
+## Abstract 
+
+LLMs are increasingly being applied to sensitive domains that require redacting personally-identifiable information (PII) before processing. While redacting PII has become a de facto data-cleaning prerequisite, existing benchmarks conflate the mechanics of extraction with the semantics of privacy. A phone number in a public directory is not equivalent to one in a medical record. Whether a given piece of information constitutes a violation depends heavily on who holds it, why, and in what context—fundamentally differentiating the redaction task from simple entity recognition. Grounded in this principle of contextual integrity, we introduce R EDACTION BENCH , a manually annotated benchmark comprising 200 diverse documents across 11 domains, with a majority seeded from real-world sources. R EDACTION BENCH also introduces a novel character-level redaction metric called R-Score that treats semantically similar redactions equally and nul-lifies the impact of shallow formatting choices (e.g., redacting a phone_number 
+
+as: " (***) ***-**** " vs. " ************** "). Extensive evaluations across Named-Entity Recognition (NER) models, entity-extraction Small Language Mod-els (SLM), and frontier LLMs equipped with agentic tools (Claude Opus, OpenAI GPT) demonstrate that contextual redaction remains an unsolved problem. Results from our human evaluation (85 participants) on R EDACTION BENCH reveal a stark dichotomy in privacy perception: annotators show consensus with our target labels for mandatory redactions (89.4%) and safe text preservations (94.1%), but fail to agree with contextual redactions (47.7%). This variance demonstrates the sub-jective nature of contextual privacy and motivates our evaluation metric R-Score ,which decouples contextual ambiguity from strict redaction precision. We com-pare 35 models using R EDACTION BENCH across model families and report their performance for PII redaction. Finally, we release R EDACTION BENCH publicly to establish a baseline for future privacy-preserving redaction systems. We hope this benchmark inspires a shift towards efficient model design and standardized evaluations for text redaction. 
+
+## 1 Introduction 
+
+Personally Identifiable Information (PII) redaction is the precise, localized masking of targeted entities to remove sensitive information while preserving overall semantic utility. This constraint to operate only on specific characters fundamentally distinguishes redaction from privacy techniques that involve rewriting using structured outputs, typically performed with generative models. By instead framing redaction as a targeted character-level binary classification task, the approach successfully avoids severe computational bottlenecks inherent to unbounded text generation. This computational efficiency makes redaction uniquely suited to "privacy-on-the-edge," where sensitive data must be sanitized on local devices before transmission over the network. Despite its                                                                                 
+
+> ∗Corresponding author: sbrynjolfson@a10networks.com
+> Preprint.
+> arXiv:2606.18782v1 [cs.CL] 17 Jun 2026 john_doe@ example.com +1 (234) 555-6789, +12345556789, +1 234 555 6789 111 Elm Street, 222 NMichigan Ave, John Hancock Center, Chicago, IL, USA 60611 Dr. John Doe –Senior Research Analyst –Some Company, Department 0.0.0.0 127.0.0.1 10.1.2.3 200.216.104.108 [x] Select me, fill me: _______, SSN: 123456789Code phrase: steve atlas chord pines thank dusty Card: Visa 4111 1111 1111 1111, last4: 1111, expires: 11 /11 Vehicle: "5N1AT2MK4FC824170" "2015 Nissan Rogue" plate=321ABC DoB: 01/23/1945 Random-datetime: 20240302T171307Z 2024-03-02T17:13:07+05:30 Syntactically sensitive: {"name":"John Doe"} <password>3x4mplePwd!!!</password>
+
+Figure 1: R EDACTION BENCH provides rich segmentations across two tiers: mandatory (red) and contextual (yellow). An alternating shade of yellow is used to disambiguate adjacent contextual spans. Combinators, which connect parts of coherent entities, are represented by light blue. irrefutable benefits in several high-stakes environments, redaction has remained largely unexamined in the peer-reviewed literature. This has led to a variety of ad hoc datasets, incomplete task definitions, and a lack of standardized evaluations and comparisons. Strikingly, neither the top 30 downloaded PII models nor the three dominant benchmarks on Hugging Face come from peer-reviewed work. This gap has been exacerbated by a shift towards sophisticated privacy applications that utilize LLMs, which remain computationally infeasible in low-resource, low-latency settings. The widespread utility of Large Language Models (LLMs) is largely driven by their robust instruction-following capabilities, which allow complex constraints—including privacy directives—to be spec-ified natively in natural language. This uniquely positions LLMs to operationalize sophisticated privacy frameworks, such as Contextual Integrity (CI)—a theory of information transfer that considers social norms and circumstances before making privacy decisions. Given enough context and an understanding of intent, contextual integrity demonstrates how the same piece of information can go from being benign in some contexts to redactable PII in others. For example, details on a quarterly financial report can be considered benign entities until " DO NOT DISTRIBUTE - INTERNAL MEMO "appears at the top. We identify three key challenges with existing works in the field of redaction: 1. While LLM-based privacy techniques have converged on using contextual integrity as a framework, current redaction techniques do not adopt a formal privacy framework. 2. Existing dataset benchmarks do not emulate real documents, making it unclear if they can generalize to them (Table 1). 3. Deployed models are siloed into their individual taxonomies, rendering them incomparable and creating an environment where each model performs best on its own benchmark. To address the above gaps, we create R EDACTION BENCH , a real-world privacy benchmark that unifies evaluation across an ecosystem of independently-evolved redaction models through a universal privacy framework. Complementing our benchmark, we introduce R-Score , a novel redaction metric with properties inspired by both the conventional F1 score and Intersection-over-Union (IoU), a metric commonly found in semantic image segmentation literature (Section 3.3). We find that Small Language Models (SLMs) finetuned for entity extraction or PII redaction are bested by smaller BERT-based and GLiNER models (Section 4). The best-performing SLM achieves an R-Score of 0.45 compared to the best BERT-based R-Score of 0.58 and GLiNER at 0.47 . Notably, the newly released Privacy Filter model [OpenAI, 2026c] achieves an R-Score of 0.58 . Across the full 200-document benchmark, frontier models equipped with agentic tool-calling harnesses achieve the highest mean R-Score of 0.71 . On the 48-document user-study split, the same class of models reaches a mean R-Score of 0.81 , exceeding the aggregated human baseline of 0.77 (Table 9). To ensure our target labels and metric reflect real-world privacy expectations, every document in REDACTION BENCH has been meticulously hand-annotated (Section 3.1). We also run a dedicated user study (Section 5), making it the first redaction benchmark with an extrinsically verified, real-world 2definition of privacy. R EDACTION BENCH serves as both a formidable target for small, dedicated edge models and a necessary sanity check for complex systems navigating obfuscation or nuanced entity classification. Table 1: R EDACTION BENCH compared to existing PII benchmarks.                                  
+
+> Benchmark Size Source Documents Median Sample Annotations Total Annotations Privacy Definition Source User Study RedactionBench (ours) 200 101 108 53,286 CI Human Yes Ai4Privacy [AI4Privacy, 2024] 43.5K 203137,093 Taxonomy Synthetic No Nemotron-PII [Steier et al., 2025] 100K 07850,340 Taxonomy Synthetic No Gretel-PII [Gretel.ai, 2024] 5.6K 0637,017 Taxonomy Synthetic No
+
+## 2 Related Work 
+
+2.1 Privacy Frameworks and Benchmarks 
+
+REDACTION BENCH adopts the contextual integrity (CI) framework of Nissenbaum [2004], which has become the standard theoretical lens for privacy in language models [Mireshghallah et al., 2024, Cheng et al., 2024, Li et al., 2025, Jeon et al., 2026]. These aforementioned works investigate CI, but not specifically redaction. Closer to our investigation are works covering anonymization, rewriting, and query-aware redaction [Sun et al., 2024, Shen et al., 2025, Garza et al., 2025, Kim et al., 2026, Ponomarenko et al., 2026], which do invoke CI, but do not make it a primary evaluation criterion. The open-source landscape for general PII redaction is anchored by three benchmarking datasets [AI4Privacy, 2024, Gretel.ai, 2024, Steier et al., 2025]. Despite widespread adoption, none are peer-reviewed because each benchmark defines its own label taxonomy rather than an explicit notion of privacy. Further, it is difficult to determine whether high performance indicates privacy-preserving behavior or simply agreement with dataset-specific labeling conventions. R EDACTION BENCH intends to alleviate this gap in future work on PII redaction, guided by the principle of CI. 
+
+2.2 Evaluation Metrics 
+
+Machine privacy practitioners have adopted various techniques from Named Entity Recognition (NER), a subfield of Natural Language Processing (NLP). The dominant convention for NER origi-nates in Ramshaw and Marcus [1995], which introduces BIO labels (Beginning, Inside, Outside) to demarcate entity boundaries (e.g., "Hi, I’m John Doe" maps to [ "Hi":O, "I’m":O, "John": B-PER, "Doe": I-PER ]). Traditionally, models have been evaluated using Precision, Recall, and F1 score [Ng et al., 2013]. Under this strict scheme, predicted spans that do not exactly match a gold span—whether off-by-one or partial—count as false positives, while undetected entities count as false negatives. Despite limitations across fuzzy boundaries, strict F1 remains the dominant reported measure across NER research [Sang and De Meulder, 2003, Mitchell et al., 2005, Walker et al., 2006, Hovy et al., 2006, Shen et al., 2021, Fries et al., 2022, Zhang et al., 2019, Meena et al., 2025] and is reported by a majority of NER and PII models (Table 16). The inadequacy of strict matching for entities with legitimate boundary variations has motivated a range of alternate formulations. Nejadgholi et al. [2020] catalogs several named tolerances— 
+
+boundary matching, subset redaction, any-fragment inclusion, core-term correction . Zhu and Li [2022] addresses the same problem from a training perspective, proposing boundary smoothing to reduce over-confident predictions at span edges. At the token level, Garza et al. [2025] introduces the SPriV score, which measures the proportion of sensitive tokens successfully masked; while intuitive, this technique fails to capture false positives, remains sensitive to tokenization, and is biased toward longer entities. Davidson et al. [2025] adopts per-class macro IoU (Jaccard index), directly rewarding character-span overlap rather than exact binary matches. Our metric subsumes the tolerance cases enumerated by Nejadgholi et al. [2020] and treats them as equivalent, scoring all degrees of partial overlap continuously rather than through a discrete taxonomy. We draw additional inspiration from image semantic segmentation, where Bhowmik et al. [2025] 
+
+> 2English subset only, train split as no explicit test split is provided.
+
+3permits multiple coverings of the same region at different granularities—analogous to how a redaction benchmark must simultaneously credit detecting “John,” “Doe,” and “John Doe” as overlapping but valid predictions of the same sensitive entity. Nested NER [Shen et al., 2021, Zaratiana et al., 2024] can achieve similar effects by predicting multiple granularities at once. 
+
+2.3 Diverse Model Architectures 
+
+NER solutions have evolved from feature statistical models to RNN and LSTM architectures, and now to the transformer era ushered in by Devlin et al. [2019]. BERT and its successors [Liu et al., 2019, He et al., 2023, Warner et al., 2025] remain standard baselines, against which the Generalist Lightweight NER (GLiNER) family [Zaratiana et al., 2024, 2025] is benchmarked. GLiNER models are themselves used as baselines when evaluating larger autoregressive models—such as LLaMA [Grattafiori et al., 2024], GPT-5 [Singh et al., 2025], Claude Opus [Anthropic, 2025] and GLM-5.1 [GLM-5-Team, 2026]—which can be prompted for extraction with custom objectives and tool calls. A variant of the standard encoder-only architecture was also recently released by OpenAI [2026c]. 
+
+## 3 Method 
+
+3.1 Benchmark Details Document Composition: We enumerate a set of 200 distinct genres 3 (Table 5, Table 6) for use in our benchmark, drawn from publicly available documents from reputable sources, including government websites, academic resources, and company-provided forms. These genres were later organized into 11 taxonomic categories, seven unstructured and four structured (Section B). 10 100 1,000 10,000 100,000  
+
+> document length (characters, log scale)
+> RedactionBench test (n=200)
+> Ai4Privacy train/en (n=43,501)
+> Nemotron-PII test (n=100,000)
+> Gretel test (n=5,000) bar: IQR; whisker: 10-90%; dot: median
+
+Figure 2: Length Distributions across popular general-purpose PII benchmarks. 
+
+Document Extraction: A majority of our source documents are in .pdf format. These documents were extracted using pdfminer as the primary text extraction tool. In extreme cases, we resort to a mix of OCR techniques such as OlmOCR [Poznanski et al., 2025], InfinityParser [Wang et al., 2025], and PaddleOCR [Cui et al., 2025]. Additional non-PDF formats, such as .doc (x), were either handled manually or via soffice , python-docx , and docx2txt .While OCR techniques helped us achieve our document targets, using LMs for extraction was es-pecially involved due to their tendency to generate homogeneous Markdown, which compromises structure. We prefer PDFMiner’s slightly mangled extractions over OCR LMs for preserving doc-ument realism. Gemini, Claude Opus, and GPT-5 helped us repair PDFMiner outputs in a strictly guided manner; edits were specifically prompted, and no generic query could be formulated (e.g., "re-pair this flattened table using \t characters instead of spaces" ). Some augmentations were achieved using regex filtering; checkboxes, for instance, lack a standardized convention, and were rendered as 2 in some documents and as [X] in others. Compared to other publicly available benchmarks, we place strong emphasis on document length diversity during curation. The longest documents in REDACTION BENCH are limited to 10 pages (Figure 2).  
+
+> 3genre refers to a document class recognized by its purpose, structure, and the conventions that govern how it is read
+
+43.2 Labeling Procedure 
+
+REDACTION BENCH has three label classes: mandatory "unsafe" entities, contextual entities, and implicit gaps between them. As the name suggests, Mandatory entities represent information units that are considered unsafe to share across all contexts. Contextual entities, on the other hand, are inherently ambiguous and require more context to be strictly categorized as safe or unsafe. Since contextual spans are not necessarily redacted under our benchmark’s metric, we overload their definition further by representing "structural" and "combination" characters—rendered in blue (Figure 1). These special characters are used as aggregators to combine entity units of the same color. This prevents an IPv4 address entity, composed of 4 mandatory sub-spans, from being considered 
+
+4× as sensitive as a single mandatory-span password. Multi-line entity boundaries are definitively broken across newline characters while labeling. Entities in R EDACTION BENCH are semantically partitioned to permit equivalent interpretations across entity boundaries. This is especially important when dealing with highly composite entities, such as addresses and names with titles and complex affixes. Our target labels decompose composite entities into their constituent parts. For instance, while "John Hancock Center" (mentioned in Figure 1) contains the name "John Hancock", the entity itself is a venue, not a person. While this behavior is entirely logical, it will be recorded as a deviation from our target labels. Language Models complement our manual annotation and provide a warm-start checkpoint via semantic pattern matching for documents with hundreds of entities. 
+
+Label Augmentation: Language models were heavily utilized to generate plausible synthetic content for our documents. Throughout this process, we observed several common failure modes which appeared to be endemic across large models (Table 8). Conventional techniques, such as structured output mode , were unable to prevent several LM failure cases. The final recipe that worked for us was to wire together prompt engineering, in-context learning [Brown et al., 2020], custom logit processors, and agentic tool calls with seed data generators (the Faker library [Faraglia et al., 2012–2026]) to construct a partially reproducible workflow. 
+
+3.3 Benchmark Metric 
+
+R-Score lies between the IoU and the strict F1 score, inheriting desirable properties from both. Drawing parallels with IoU, we assign partial credit for partially correct redactions, but, unlike the F1 score, R-Score is invariant to entity length and assigns steep penalties for imprecise boundaries. The key properties of our metric are that (1) model performance is governed by coverage of mandatory entities and (2) performance is independent of contextual semantics as long as contextual span boundaries are clean. Our metric at a high level is: 
+
+R-Score = Mandatory Entity Coverages # Mandatory Entities + Contextual Residual Penalties + False Positive Penalties Before proceeding, it is important to establish that spans comprise entities . Let P be the set of characters redacted by a user or model. Let M be the set of all mandatory spans and R be a partition of M into entities. Similarly, let C be the set of all contextual spans and Y its partition into contextual entities. Partitioning behavior is specified by our combination rules along with definitions for False Positives. Each span si contributes a local numerator and denominator score (ni, d i), pooled by the parent definition into a single, entity-level (n, d ) term. Finally, the overall R-Score can be computed over entities as: 
+
+R-Score =
+
+P 
+
+> i
+
+ni
+
+P 
+
+> i
+
+di
+
+Mandatory Entities must be covered in all cases and include unambiguously sensitive items such as API keys. For some mandatory entity r ∈ R, we compute its score as the mean coverage of its constituent spans, s ∈ r:
+
+(nr , d r ) = 
+
+
+
+mean 
+
+> s∈r
+
+|s ∩ P ||s| , 1
+
+
+
+Contextual Entities are ambiguous redactions, and therefore only contribute to the final score if attempted (i.e., with a nonzero intersection) or selected by combinators and grouping rules. Each 5constituent contextual span may be attempted or selected independently. For a contextual entity 
+
+y ∈ Y , we first define the active subset 
+
+Ay (P ) = {s ∈ y : |s ∩ P | > 0 or selected( s | P )}.
+
+If Ay (P ) is empty, the contextual entity emits no scoring term. Otherwise, the mean is taken only over active spans, so inactive contextual subspans are excluded rather than included as zero-valued terms: 
+
+(ny , d y ) = 
+
+
+
+0, 1 − mean   
+
+> s∈Ay(P)
+
+|s ∩ P ||s|
+
+
+
+.
+
+Correctly labeled contextual entities will not increase the score, yet mislabeled attempts will dock points off the final score. Necessary for completing the definition of our metric, contextual spans soak up variance from ambiguities. In documents with no mandatory labels or all contextual labels, spans behave like active optional mandatory labels and can contribute to a positive score while remaining optional: This exception is necessary because otherwise an all-contextual document would have no mandatory terms from which a positive score could be earned: 
+
+(ny , d y ) = 
+
+
+
+mean   
+
+> s∈Ay(P)
+
+|s ∩ P ||s| , 1
+
+
+
+, Ay (P )̸ = ∅.
+
+False Positives , f ∈ F , are contiguous sets of redacted characters that do not intersect the support of a contextual or mandatory span. False positives contribute (n, d ) = (0 , 1) by default and (n, d ) = (0 , 2) 
+
+when an entire gap ( ≥ 3 characters) between entities is mislabeled. Doubling the weight ( d = 2 )ensures that users are rewarded for identifying discontinuities between separate entities. This small tweak treats a full over-redaction as a double cover—false positives on both sides of a gap. 
+
+(nf , d f ) = (0 , 1 + 1 {covers_entire_gap ≥ 3})
+
+Combining Spans into Entities and Span Selection Rules: For convenience when labeling by hand, we detect "combinators" and "grouping characters" as single-character contextual labels (Algorithm 1) to group connected spans of the same color into larger entities. These heuristics help balance the weight of entities that are represented by multiple disconnected spans (e.g., the digits in an IP address 
+
+127.0.0.1 ). For example, in the full name "John M. Doe" , the space and punctuation need not be redacted. Our annotations provide permissible fine-grained segmentations: "John", "M.", "Doe" 
+
+separately, or "John M. Doe" together, are equally valid. Combining them allows us to avoid weighing this entity three times as much as a joined social security number. The contribution of a combined entity is simply the component-wise mean of the k contained spans. We also introduce a prediction-dependent selection algorithm in Algorithm 2 that forces contextual entities to be selected based on surrounding redaction choices. 
+
+## 4 Experimental Setup and Results 
+
+We evaluate 35 public model entries, corresponding to 34 unique checkpoints, on R EDACTION BENCH 
+
+and report the mean, median ( P50 ), and 20th percentile ( P20 ) performance across each category using our metric. We also report macro-averages in Table 16 across categories as heuristics for overall performance. Language models for evaluation are chosen based on their popularity, recency, and adaptability to the PII redaction task. For detailed insight into how each evaluated model was adapted for consistency while redacting spans, refer to Section I. We mark a Pareto frontier on Figure 3 to represent which models punch above their weight on R EDACTION BENCH .
+
+Token-level: Refers to models that output per-token classifications and group entities together as a post-processing step. The most common paradigm stems from classical NER, which adopts BIO (Beginning, Inside, Outside) tags for token-level classification. During post-processing, we merge non-Outside predictions that follow an Outside tag, regardless of the target label (Mandatory, Contextual, or Gap). Hence, non-Outside tags are simply mapped to a Mandatory redact decision. 
+
+Span-level: Only the Generalist Lightweight NER family (GLiNER) [Zaratiana et al., 2024, 2025] qualifies under this category. Multiple variants of this family exist, differentiated by their BERT backbones and whether they are finetuned beyond their base versions. While GLiNER models claim to work with dynamic inputs (open-vocabulary class labels as inference-time arguments), we notice 610M 100M 1B 10B 100B 1T 10T 
+
+parameters (log scale) 
+
+> 10%
+> 20%
+> 30%
+> 40%
+> 50%
+> 60%
+> 70%
+> R-Score (mean)
+> RoBERTa
+> DeBERTa-v3
+> DistilBERT
+> ModernBERT
+> OpenAI Privacy Filter
+> GLiNER
+> Gemma
+> InternLM2.5 (B2NER)
+> Llama 3.2
+> Anonymizer-4B
+> NuExtract
+> UniNER
+> OpenPipe
+> Claude
+> GPT
+> Qwen
+> GLM
+> Pareto frontier
+> deepaksiloka_pii_dete…
+> isotonic_distilbert_a…
+> h2oai_deberta_finetun…
+> ai4privacy_llama_engl…
+> knowledgator…
+> hydroxai_pii_masker
+> jakobhuss/pii-extract…
+> OpenMed/OpenMed-PII-S…
+> gretel_gliner_bi_larg…
+> openai/privacy-filter
+> Qwen/Qwen3.5-397B-A17B
+> claude-opus-4-6
+
+Figure 3: Cross-architectural comparison of model performance (mean overall R-Score ) with respect to the number of parameters. All models improving over other models in at least one dimension (size or performance) are identified along the Pareto frontier. Red icons are used for token-prediction models, yellow for span-models, green for generative models, and blue for frontier models. Compre-hensive results available in Table 16 with per-family results in Tables 17 to 19. top performance with the subset of labels used to train their finetuned extensions. R EDACTION BENCH 
+
+leverages a union of label corpora across PII-related GLiNER works as its extended evaluation set. This ensures uniformity in label formatting across sister models. For each GLiNER model, we use a single global score threshold across all samples and select it based on aggregate evaluation performance, maximizing open-vocabulary span model performance. 
+
+Generative: Models from this family apply privacy techniques by rewriting or generating structured outputs, rather than directly annotating or masking input sequences at the character level. We evaluate two types of generative models: Generative NER finetunes and general-purpose Language Models, which may or may not be supplemented with agentic tool-calling abilities. Generative NER models produce entity mappings from a set of target labels, provided alongside the query text, as structured outputs. We evaluate B2NER [Yang et al., 2025c] as a representative model from this family. B2NER variants are evaluated with fixed-size sliding windows sized to their model context limits; predictions from overlapping windows are merged before scoring. For general-purpose Language Models, we first evaluate Frontier LLMs defined by their large parameter counts ( > 100 B). We compare models with native agentic capabilities and leverage them for the PII redaction task. We observe that disguising the task as a file-editing tool call yields stronger results than free-form querying. Thus, we prompt all frontier models to edit R EDACTION BENCH 
+
+documents through their preferred file-editing tools and intercept their invocations, converting them into spans. Our tool-calling strategies and harnesses for each model are defined under Section I. 
+
+## 5 User Study 
+
+We analyze diversity in human privacy strategies and cases in which contextual integrity generates ambiguity with our user study. Users see individual windows from up to 11 documents across 7 unstructured document categories, with 8 documents randomly sampled from each category. We exclude the 4 structured categories because documents in these categories are typically handled only by domain experts. Our windows are roughly 25-line selections inside documents to avoid labeling fatigue from the full text. The surrounding text remains visible to the annotator as persistent context. Table 2: Mode-pooled human redactions evaluated on part of R EDACTION BENCH .Acad. Email Fin. Gov. Legal Med. Ops. Unstructured                                               
+
+> P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 0.69 1.00 0.85 0.68 0.79 0.82 0.67 0.81 0.78 0.51 0.68 0.70 0.70 0.83 0.82 0.50 0.59 0.64 0.67 0.74 0.75 0.61 0.78 0.77
+
+7Remaining details about our setup, such as the labeling tool (Figure 5) and user personas, have been deferred to Section C. 
+
+5.1 Redaction Units 
+
+Direct statistical analysis on the exponential space of possible redactions is hard to interpret (one-bit binary decision per character). By framing each document as a series of units , rather than individual characters, we can significantly compress the action space. In particular, a redaction unit corresponds to a single entity or a single false-positive term, as laid out in Section 3.3. We provide worked-out calculations depicting these units in Section H: 1. Entity units: we define one unit for each mandatory entity r ∈ R and one for each contextual entity y ∈ Y . These units are selected if any redacted characters intersect the entity. 2. Gap units: for each gap between entities, we define one unit, ga, with a second unit gb when the gap is three or more characters. ga is considered selected when any character in the gap has been falsely classified, while gb is selected when all gap characters are covered. 
+
+5.2 Results Human Performance: To estimate human performance on R EDACTION BENCH , we leverage user evaluations with zero starting windows to avoid any confounding effects related to varying R-Score 
+
+starting points across windows. For each character in each document, we take the most common user decision (to redact or not), with ties defaulting to no redaction. These sets of characters are then scored directly against the target labels for an overall mean R-Score of 0.77 . A category-level breakdown can be found above in Table 2. For comparison to models on the same user-study split, see the appendix Table 9. We observe that humans primarily lose points from redacting imprecisely and more than necessary, which we will establish in the next sections. 
+
+Diverse Redaction Strategies: Under our benchmark’s operating assumptions, contextual spans are undecidable under the definitions of contextual integrity alone, barring the existence of additional information. To understand how our users resolve ambiguous entities, we measured their agreement using Krippendorff’s alpha [Krippendorff, 2013]. This metric ensures accuracy by filtering out instances where independent labelers agreed purely by chance. We compute Krippendorff’s alpha across all redaction units with two or more ratings, using all windows with nonzero R-Score values. We assess inter-annotator disagreement at two levels: a global Krippendorff’s α capturing overall reliability, and a per unit-type mean pairwise disagreement (Dt) localizing where disagreement concentrates in the label space. The global α is 0.540 across all 7627 units with two or more ratings. This moderate aggregate value for α indicates that redaction decisions are not unimodal across our population, but it leaves open the localization question that our per-unit-type decomposition addresses. To isolate this disagreement, we start by comparing rates across unit-types (redacted mandatory, contextual and unredacted gaps). As shown in Figure 4a, across all redaction units, users redacted mandatory units at a rate of 89 .4% , contextual units at a rate of 47 .7% , and left gaps 94 .1% of the time. We attribute disagreement to context-sensitive units because humans have fundamentally different perspectives on privacy. While analyzing the mandatory-to-contextual redaction rate ratios for each user in Figure 4b, we observe stark differences in redaction strategies that emerge only Table 3: Disagreement on R EDACTION BENCH . Nt: qualifying units ( mu ≥ 2). ¯pt: mean redaction rate. Dt: mean pairwise disagreement with bootstrap 95% CI ( B = 1000 ). αt: within-subset Krippendorff’s α. Contextual entities show 1.80 × the disagreement of mandatory entities and 3.22 ×
+
+that of gaps.                      
+
+> Unit Type Nt¯ptDt[95% CI] αt
+> Global 7,627 0.237 —0.540 Mandatory entities (r) 590 0.894 0.183 [0.162, 0.205] 0.069 Contextual entities (y) 1,928 0.477 0.329 [0.315, 0.343] 0.303 Gaps ( ga,gb)5,109 0.059 0.102 [0.096, 0.109] 0.148
+
+8across contextual labels: some redact all contextual entities, while others redact hardly any. While the rates define average user behavior, they do not measure user disagreement. A unit-type with a 50% rate would mean that every user redacted half the units of that type (a coin flip), or that half the users always redacted and half never did (a sharp split). To distinguish these, we report per-unit-type mean pairwise disagreement Dt. Dt equals the per-item disagreement quantity in Fleiss [1971] and the per-unit observed-disagreement contribution in Krippendorff [2013]; reporting raw pairwise disagreement per stratum is established practice in NLP work on annotator disagreement and human label variation [Plank, 2022, Uma et al., 2021, Pavlick and Kwiatkowski, 2019]. We present the complete formulation for these statistical measures in Section F and Section G along with a worked example in Section H. Table 3 shows that contextual entities have 1.80 × the disagreement of mandatory entities and 3.22 ×
+
+that of gaps. We find that users agree substantially more on mandatory entities and gaps than on contextual entities. The residual disagreement rate on mandatory and gap units is asymmetric and predictable—on mandatory entities, it reflects under-redaction ( ∼ 10% ), and on gaps, it reflects over-redaction ( ∼ 6% ). Both are systematic in opposite directions and consistent with users applying a coherent, yet conservative, policy. Disagreement on contextual entities, by contrast, reflects significantly different privacy strategies rather than execution noise—consistent with the bimodal per-user redaction patterns in Figure 4b. Per-tier α values in Table 3 are suppressed for mandatory and gap entities and explained by the prevalence paradox [Feinstein and Cicchetti, 1990, Byrt et al., 1993]: when within-tier marginals are extreme, the chance baseline collapses and α understates rater consistency. We discuss this failure mode in Section F.2 and report αt as a negative control to make the failure mode apparent. Our analysis above verifies that (1) no unimodal distribution captures our users’ intrinsic redaction preferences, and (2) R EDACTION BENCH captures diversity in user redaction preferences precisely in its contextually sensitive entities. mandatory      
+
+> units
+> contextual
+> units
+> gap
+> unredacted
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100%
+> target-match rate  n=590
+> n=1928
+> n=5109
+> (a) target-match rates 025 50 75 100
+> mandatory redacted (%)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> contextual redacted (%) (b) per-user redaction rates
+
+Figure 4: (a) Mean target-match rate by unit type over all study windows, restricted to units exposed to at least two distinct users. For each qualifying unit, we compute the fraction of exposed user-windows matching the target action—redact mandatory/contextual units and leave gap units visible—then average those fractions within type; bar labels give qualifying-unit counts. (b) Per-user redaction rates under the same qualifying-unit filter. Each point’s coordinates are the user’s mandatory and contextual redaction rates; shaded ellipses show Wilson 95% confidence intervals for those two rates. 
+
+## 6 Limitations and Future Work 
+
+Currently, R EDACTION BENCH evaluates documents in isolation, without considering surrounding context, such as user queries, conversation history, or system prompts—benign information in one context can become sensitive in another. Query-aware redaction is an exciting direction to pursue for the next version of R EDACTION BENCH , providing a basis for more realistic context-conditioned evaluation. Acknowledging the possibility of co-referenced and re-identifiable entities is 9an important evaluation axis for future versions of R EDACTION BENCH . Re-introducing structured documents to the user study with domain experts can provide additional insights into entities relevant to agentic heavy-use cases and growing fields such as coding and software automation. Finally, REDACTION BENCH lacks a formal analysis of the fidelity and irregularity rate of our synthetic entities, which would further strengthen its robustness. In conclusion, the success of our "mandatory-contextual" labeling scheme captures the correct notions of human privacy and demonstrates that CI is a robust principle. Notable model-relevant takeaways from this work include frontier LLMs outperforming the average human and encoder-only models serving as reliable evaluators for privacy redaction tasks. We hope that R EDACTION BENCH 
+
+provides a standardized basis for modeling privacy with Contextual Integrity for future redaction work and encourages efficiency research in model design to drive breakthroughs beyond the currently established Pareto-optimal frontier. We acknowledge that recent work, such as OpenAI [2026c], is a meaningful step in that direction. 10 References 
+
+AI4Privacy. Pii masking 200k dataset. https://huggingface.co/datasets/ai4privacy/pii -masking-200k , 2024. ai4privacy (English). llama-ai4privacy-english-anonymiser-openpii, 2025. URL https://huggin gface.co/ai4privacy/llama-ai4privacy-english-anonymiser-openpii .ai4privacy (Multilingual). llama-ai4privacy-multilingual-categorical-anonymiser-openpii, 2025. URL 
+
+https://huggingface.co/ai4privacy/llama-ai4privacy-multilingual-categoric al-anonymiser-openpii .Anthropic. System card: Claude opus 4.5. Technical report, Anthropic, November 2025. URL https: //www-cdn.anthropic.com/bf10f64990cfda0ba858290be7b8cc6317685f47.pdf .Anthropic. claude-opus-4-6, 2026. URL https://www.anthropic.com/news/claude-opus-4 -6 .Aritra Bhowmik, Pascal Mettes, Martin R. Oswald, and Cees G. M. Snoek. Union-over-intersections: Object detection beyond winner-takes-all. In The Thirteenth International Conference on Learning Representations , 2025. URL https://openreview.net/forum?id=HqLHY4TzGj .Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. Advances in neural information processing systems , 33:1877–1901, 2020. Ted Byrt, Janet Bishop, and John B. Carlin. Bias, prevalence and kappa. Journal of Clinical Epidemiology , 46(5):423–429, 1993. Zhao Cheng, Diane Wan, Matthew Abueg, Sahra Ghalebikesabi, Ren Yi, Eugene Bagdasarian, Borja Balle, Stefan Mellem, and Shawn O’Banion. Ci-bench: Benchmarking contextual integrity of ai assistants on synthetic data, 2024. URL https://arxiv.org/abs/2409.13903 .Domenic V. Cicchetti and Alvan R. Feinstein. High agreement but low kappa: Ii. resolving the paradoxes. Journal of Clinical Epidemiology , 43(6):551–558, 1990. Cheng Cui, Ting Sun, Manhui Lin, Tingquan Gao, Yubo Zhang, Jiaxuan Liu, Xueqing Wang, Zelun Zhang, Changda Zhou, Hongen Liu, et al. Paddleocr 3.0 technical report. arXiv preprint arXiv:2507.05595 , 2025. Rory Davidson, Will Hardman, Guy Amit, Yonatan Bilu, Vincenzo Della Mea, Aleksandr Galaida, Irena Girshovitz, Mikhail Kulyabin, Mihai Horia Popescu, Kevin Roitero, Gleb Sokolov, and Chen Yanover. Snomed ct entity linking challenge. Journal of the American Medical Informatics Association , 32(9):1397–1406, 2025. doi: 10.1093/jamia/ocaf104. deepaksiloka. PII-Detection-V2.1, 2024. URL https://huggingface.co/deepaksiloka/PI I-Detection-V2.1 .Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Jill Burstein, Christy Doran, and Thamar Solorio, editors, Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers) , pages 4171–4186, Minneapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: 10.18653/v1/N19-1423. URL https://aclanthology.org/N 19-1423/ .distil-labs (Gemma 3 270m). Distil-PII-gemma-3-270m-it, 2025. URL https://huggingface.co /distil-labs/Distil-PII-gemma-3-270m-it .distil-labs (Llama 3.2 1B). Distil-PII-Llama-3.2-1B-Instruct, 2025. URL https://huggingface. co/distil-labs/Distil-PII-Llama-3.2-1B-Instruct .distil-labs (Llama 3.2 3B). Distil-PII-Llama-3.2-3B-Instruct, 2025. URL https://huggingface. co/distil-labs/Distil-PII-Llama-3.2-3B-Instruct .11 E3-JSI. gliner-multi-pii-domains-v1, 2024. URL https://huggingface.co/E3-JSI/gliner-m ulti-pii-domains-v1 .Bradley Efron and Robert J. Tibshirani. An Introduction to the Bootstrap . Chapman & Hall, New York, 1993. eternisai. Anonymizer-4B, 2025. URL https://huggingface.co/eternisai/Anonymizer-4B .Daniele Faraglia et al. Faker: A python package that generates fake data, 2012–2026. URL 
+
+https://github.com/joke2k/faker . Version 40.15.0. Alvan R. Feinstein and Domenic V. Cicchetti. High agreement but low kappa: I. the problems of two paradoxes. Journal of Clinical Epidemiology , 43(6):543–549, 1990. Joseph L. Fleiss. Measuring nominal scale agreement among many raters. Psychological Bulletin , 76 (5):378–382, 1971. Jason Fries, Leon Weber, Natasha Seelam, Gabriel Altay, Debajyoti Datta, Samuele Garda, Sunny Kang, Rosaline Su, Wojciech Kusa, Samuel Cahyawijaya, et al. Bigbio: A framework for data-centric biomedical natural language processing. Advances in Neural Information Processing Systems , 35:25792–25806, 2022. Leon Garza, Anantaa Kotal, Aritran Piplai, Lavanya Elluri, Prajit Kumar Das, and Aman Chadha. Prvl: Quantifying the capabilities and risks of large language models for pii redaction. In 2025 IEEE 7th International Conference on Trust, Privacy and Security in Intelligent Systems, and Applications (TPS-ISA) , pages 148–159, 2025. doi: 10.1109/TPS-ISA67132.2025.00025. GLM-5-Team. Glm-5: from vibe coding to agentic engineering, 2026. URL https://arxiv.org/ abs/2602.15763 .Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 , 2024. Gretel.ai. Synthetic financial pii multilingual dataset. https://huggingface.co/datasets/gr etelai/synthetic_pii_finance_multilingual , 2024. gretelai. gretel-gliner-bi-large-v1.0, 2024. URL https://huggingface.co/gretelai/gretel -gliner-bi-large-v1.0 .h2oai. deberta_finetuned_pii, 2024. URL https://huggingface.co/h2oai/deberta_finetun ed_pii .Pengcheng He, Jianfeng Gao, and Weizhu Chen. DeBERTav3: Improving deBERTa using ELECTRA-style pre-training with gradient-disentangled embedding sharing. In The Eleventh International Conference on Learning Representations , 2023. URL https://openreview.net/forum?id= sE7-XhLxHA .hivetrace (Bi-encoder). gliner-guard-biencoder, 2026. URL https://huggingface.co/hivetra ce/gliner-guard-biencoder .hivetrace (Uni-encoder). gliner-guard-uniencoder, 2026. URL https://huggingface.co/hivet race/gliner-guard-uniencoder .Eduard Hovy, Mitchell Marcus, Martha Palmer, Lance Ramshaw, and Ralph Weischedel. OntoNotes: The 90% solution. In Robert C. Moore, Jeff Bilmes, Jennifer Chu-Carroll, and Mark Sanderson, editors, Proceedings of the Human Language Technology Conference of the NAACL, Companion Volume: Short Papers , pages 57–60, New York City, USA, June 2006. Association for Computa-tional Linguistics. URL https://aclanthology.org/N06-2015/ .hydroxai. pii_model_weight, 2024. URL https://huggingface.co/hydroxai/pii_model_we ight .iiiorg. piiranha-v1-detect-personal-information, 2024. URL https://huggingface.co/iiiorg/ piiranha-v1-detect-personal-information .12 Isotonic. distilbert_finetuned_ai4privacy_v2, 2023. URL https://huggingface.co/Isotonic/ distilbert_finetuned_ai4privacy_v2 .jakobhuss. pii-extractor-gemma-3-270m-it, 2026. URL https://huggingface.co/jakobhuss /pii-extractor-gemma-3-270m-it .Hyunjun Jeon, Kyuyoung Kim, and Jinwoo Shin. Redacbench: Can AI erase your secrets? In 
+
+The Fourteenth International Conference on Learning Representations , 2026. URL https: //openreview.net/forum?id=wf73W2xatC .Hyunwoo Kim, Niloofar Mireshghallah, Michael Duan, Rui Xin, Shuyue Stella Li, Jaehun Jung, David Acuna, Qi Pang, Hanshen Xiao, G. Edward Suh, Sewoong Oh, Yulia Tsvetkov, Pang Wei Koh, and Yejin Choi. Privasis: Synthesizing the largest ”public” private dataset from scratch, 2026. URL https://openreview.net/forum?id=8gJuTTY12B .knowledgator. gliner-pii-base-v1.0, 2025. URL https://huggingface.co/knowledgator/gl iner-pii-base-v1.0 .Klaus Krippendorff. Content Analysis: An Introduction to Its Methodology . SAGE Publications, Thousand Oaks, CA, 3rd edition, 2013. ISBN 978-1412983150. lakshyakh93. deberta_finetuned_pii, 2023. URL https://huggingface.co/lakshyakh93/deb erta_finetuned_pii .Haoran Li, Wei Fan, Yulin Chen, Jiayang Cheng, Tianshu Chu, Xuebing Zhou, Peizhao Hu, and Yangqiu Song. Privacy checklist: Privacy violation detection grounding on contextual integrity theory, 2025. URL https://arxiv.org/abs/2408.10053 .Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. Roberta: A robustly optimized bert pretraining approach. arXiv preprint arXiv:1907.11692 , 2019. Bharti Meena, Joanna Skubisz, Harshit Rajgarhia, Nand Dave, Kiran Ganesh, Shivali Dalmia, Abhishek Mukherji, Vasudevan Sundarababu, and Olga Pospelova. Scalable Multilingual PII Annotation for Responsible AI in LLMs . In 2025 IEEE International Conference on Data Mining Workshops (ICDMW) , pages 367–375, Los Alamitos, CA, USA, November 2025. IEEE Computer Society. doi: 10.1109/ICDMW69685.2025.00049. URL https://doi.ieeecomputersociet y.org/10.1109/ICDMW69685.2025.00049 .Niloofar Mireshghallah, Hyunwoo Kim, Xuhui Zhou, Yulia Tsvetkov, Maarten Sap, Reza Shokri, and Yejin Choi. Can LLMs keep a secret? testing privacy implications of language models via contextual integrity theory. In The Twelfth International Conference on Learning Representations ,2024. URL https://openreview.net/forum?id=gmg7t8b4s0 .Alexis Mitchell, Stephanie Strassel, Shudong Huang, and Ramez Zakhary. Ace 2004 multilingual training corpus LDC2005T09, 2005. URL https://catalog.ldc.upenn.edu/LDC2005T09 .Isar Nejadgholi, Kathleen C. Fraser, and Berry de Bruijn. Extensive error analysis and a learning-based evaluation of medical entity recognition systems to approximate user experience. In Dina Demner-Fushman, Kevin Bretonnel Cohen, Sophia Ananiadou, and Junichi Tsujii, editors, Proceedings of the 19th SIGBioMed Workshop on Biomedical Language Processing , pages 177–186, Online, July 2020. Association for Computational Linguistics. doi: 10.18653/v1/2020.bionlp-1.19. URL 
+
+https://aclanthology.org/2020.bionlp-1.19/ .Hwee Tou Ng, Siew Mei Wu, Yuanbin Wu, Christian Hadiwinoto, and Joel Tetreault. The CoNLL-2013 shared task on grammatical error correction. In Hwee Tou Ng, Joel Tetreault, Siew Mei Wu, Yuanbin Wu, and Christian Hadiwinoto, editors, Proceedings of the Seventeenth Conference on Computational Natural Language Learning: Shared Task , pages 1–12, Sofia, Bulgaria, August 2013. Association for Computational Linguistics. URL https://aclanthology.org/W13-360 1/ .Yixin Nie, Xiang Zhou, and Mohit Bansal. What can we learn from collective human opinions on natural language inference data? In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 9131–9143, 2020. 13 Helen Nissenbaum. Privacy as contextual integrity. Washington Law Review , 79(1):119–158, 2004. URL https://digitalcommons.law.uw.edu/wlr/vol79/iss1/10 .numind (NuExtract 1.5). NuExtract-1.5-tiny, 2024. URL https://huggingface.co/numind/Nu Extract-1.5-tiny .numind (NuExtract 2.0 2B). NuExtract-2.0-2B, 2025. URL https://huggingface.co/numind/ NuExtract-2.0-2B .numind (NuExtract 2.0 4B). NuExtract-2.0-4B, 2025. URL https://huggingface.co/numind/ NuExtract-2.0-4B .nvidia. gliner-PII, 2025. URL https://huggingface.co/nvidia/gliner-PII .OpenAI. gpt-5.4, 2026a. URL https://developers.openai.com/api/docs/models/gpt-5 .4/ .OpenAI. openai/privacy-filter, 2026b. URL https://openai.com/index/introducing-opena i-privacy-filter/ .OpenAI. Privacy filter. https://huggingface.co/openai/privacy-filter , 2026c. Accessed May 5, 2026. OpenMed Science. OpenMed-PII-SuperClinical-Large-434M-v1: PII Detection Model, 2026. URL 
+
+https://huggingface.co/openmed/OpenMed-PII-SuperClinical-Large-434M-v1 .OpenPipe. PII-Redact-General, 2025. URL https://huggingface.co/OpenPipe/PII-Redac t-General .Ellie Pavlick and Tom Kwiatkowski. Inherent disagreements in human textual inferences. Transac-tions of the Association for Computational Linguistics , 7:677–694, 2019. Barbara Plank. The “problem” of human label variation: On ground truth in data, modeling and evaluation. In Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing (EMNLP) , pages 10671–10682, 2022. Mariia Ponomarenko, Sepideh Abedini, Masoumeh Shafieinejad, D. B. Emerson, Shubhankar Moha-patra, and Xi He. CAPID: Context-aware PII detection for question-answering systems. In Selene Baez Santamaria, Sai Ashish Somayajula, and Atsuki Yamaguchi, editors, Proceedings of the 19th Conference of the European Chapter of the Association for Computational Linguistics (Volume 4: Student Research Workshop) , pages 320–331, Rabat, Morocco, March 2026. Association for Computational Linguistics. ISBN 979-8-89176-383-8. doi: 10.18653/v1/2026.eacl-srw.23. URL 
+
+https://aclanthology.org/2026.eacl-srw.23/ .Jake Poznanski, Aman Rangapur, Jon Borchardt, Jason Dunkelberger, Regan Huff, Daniel Lin, Christopher Wilhelm, Kyle Lo, and Luca Soldaini. olmocr: Unlocking trillions of tokens in pdfs with vision language models. arXiv preprint arXiv:2502.18443 , 2025. Prolific. Prolific, 2026. URL https://www.prolific.com . Online participant recruitment platform. Qwen Team. Qwen3.5: Towards Native Multimodal Agents, February 2026. URL https://qwen .ai/blog?id=qwen3.5 .Lance Ramshaw and Mitch Marcus. Text chunking using transformation-based learning. In Third Workshop on Very Large Corpora , 1995. URL https://aclanthology.org/W95-0107/ .Erik Tjong Kim Sang and Fien De Meulder. Introduction to the conll-2003 shared task: Language-independent named entity recognition. In Proceedings of the seventh conference on Natural language learning at HLT-NAACL 2003 , pages 142–147, 2003. Hao Shen, Zhouhong Gu, Haokai Hong, and Weili Han. Pii-bench: Evaluating query-aware privacy protection systems, 2025. URL https://arxiv.org/abs/2502.18545 .14 Yongliang Shen, Xinyin Ma, Zeqi Tan, Shuai Zhang, Wen Wang, and Weiming Lu. Locate and label: A two-stage identifier for nested named entity recognition. In Chengqing Zong, Fei Xia, Wenjie Li, and Roberto Navigli, editors, Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers) , pages 2782–2794, Online, August 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.acl-long.216. URL https://aclanthology .org/2021.acl-long.216/ .Aaditya Singh, Adam Fry, Adam Perelman, Adam Tart, Adi Ganesh, Ahmed El-Kishky, Aidan McLaughlin, Aiden Low, AJ Ostrow, Akhila Ananthram, et al. Openai gpt-5 system card, 2025. URL https://arxiv.org/abs/2601.03267 .Amy Steier, Andre Manoel, Alexa Haushalter, and Maarten Van Segbroeck. Nemotron-pii: Synthe-sized data for privacy-preserving ai, 2025. URL https://huggingface.co/datasets/nvid ia/Nemotron-PII .Xiongtao Sun, Gan Liu, Zhipeng He, Hui Li, and Xiaoguang Li. Deprompt: Desensitization and evaluation of personal identifiable information in large language model prompts, 2024. URL 
+
+https://arxiv.org/abs/2408.08930 .tanaos. tanaos-text-anonymizer-v1, 2025. URL https://huggingface.co/tanaos/tanaos-t ext-anonymizer-v1 .Together AI. Together ai: Ai-native cloud, 2026. URL https://www.together.ai/ .Alexandra N. Uma, Tommaso Fornaciari, Dirk Hovy, Silviu Paun, Barbara Plank, and Massimo Poesio. Learning from disagreement: A survey. Journal of Artificial Intelligence Research , 72: 1385–1470, 2021. urchade. gliner_multi_pii-v1, 2024. URL https://huggingface.co/urchade/gliner_multi_ pii-v1 .Pauli Virtanen, Ralf Gommers, Travis E. Oliphant, Matt Haberland, Tyler Reddy, David Cournapeau, Evgeni Burovski, Pearu Peterson, Warren Weckesser, Jonathan Bright, Stéfan J. van der Walt, Matthew Brett, Joshua Wilson, K. Jarrod Millman, Nikolay Mayorov, Andrew R. J. Nelson, Eric Jones, Robert Kern, Eric Larson, C J Carey, ˙ Ilhan Polat, Yu Feng, Eric W. Moore, Jake VanderPlas, Denis Laxalde, Josef Perktold, Robert Cimrman, Ian Henriksen, E. A. Quintero, Charles R. Harris, Anne M. Archibald, Antônio H. Ribeiro, Fabian Pedregosa, Paul van Mulbregt, and SciPy 1.0 Contributors. SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python. Nature Methods , 17:261–272, 2020. doi: 10.1038/s41592-019-0686-2. Christopher Walker, Stephanie Strassel, Julie Medero, and Kazuaki Maeda. Ace 2005 multilingual training corpus LDC2006T06, 2006. URL https://catalog.ldc.upenn.edu/LDC2006T06 .Baode Wang, Biao Wu, Weizhen Li, Meng Fang, Zuming Huang, Jun Huang, Haozhe Wang, Yanjie Liang, Ling Chen, Wei Chu, et al. Infinity parser: Layout aware reinforcement learning for scanned document parsing. arXiv preprint arXiv:2506.03197 , 2025. Benjamin Warner, Antoine Chaffin, Benjamin Clavié, Orion Weller, Oskar Hallström, Said Taghadouini, Alexis Gallagher, Raja Biswas, Faisal Ladhak, Tom Aarsen, et al. Smarter, better, faster, longer: A modern bidirectional encoder for fast, memory efficient, and long context finetun-ing and inference. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 2526–2547, 2025. Edwin B. Wilson. Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association , 22(158):209–212, 1927. doi: 10.1080/01621459.1927.10502953. Yuming Yang, Wantong Zhao, Caishuang Huang, Junjie Ye, Xiao Wang, Huiyuan Zheng, Yang Nan, Yuran Wang, Xueying Xu, Kaixin Huang, Yunke Zhang, Tao Gui, Qi Zhang, and Xuanjing Huang. Beyond Boundaries: Learning a Universal Entity Taxonomy across Datasets and Languages for Open Named Entity Recognition. In Proceedings of the 31st International Conference on Computational Linguistics , pages 10902–10923, Abu Dhabi, UAE, January 2025a. Association for Computational Linguistics. URL https://aclanthology.org/2025.coling-main.725/ .15 Yuming Yang, Wantong Zhao, Caishuang Huang, Junjie Ye, Xiao Wang, Huiyuan Zheng, Yang Nan, Yuran Wang, Xueying Xu, Kaixin Huang, Yunke Zhang, Tao Gui, Qi Zhang, and Xuanjing Huang. Beyond Boundaries: Learning a Universal Entity Taxonomy across Datasets and Languages for Open Named Entity Recognition. In Proceedings of the 31st International Conference on Computational Linguistics , pages 10902–10923, Abu Dhabi, UAE, January 2025b. Association for Computational Linguistics. URL https://aclanthology.org/2025.coling-main.725/ .Yuming Yang, Wantong Zhao, Caishuang Huang, Junjie Ye, Xiao Wang, Huiyuan Zheng, Yang Nan, Yuran Wang, Xueying Xu, Kaixin Huang, et al. Beyond boundaries: Learning a universal entity taxonomy across datasets and languages for open named entity recognition. In Proceedings of the 31st International Conference on Computational Linguistics , pages 10902–10923, 2025c. Urchade Zaratiana, Nadi Tomeh, Pierre Holat, and Thierry Charnois. GLiNER: Generalist Model for Named Entity Recognition using Bidirectional Transformer, 2023. Urchade Zaratiana, Nadi Tomeh, Pierre Holat, and Thierry Charnois. Gliner: Generalist model for named entity recognition using bidirectional transformer. In Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) , pages 5364–5376, 2024. Urchade Zaratiana, Gil Pasternak, Oliver Boyd, George Hurn-Maloney, and Ash Lewis. Gliner2: An efficient multi-task information extraction system with schema-driven interface. arXiv preprint arXiv:2507.18546 , 2025. Y. Zhang, Q. Chen, Z. Yang, et al. Biowordvec, improving biomedical word embeddings with subword information and mesh. Scientific Data , 6:52, May 2019. doi: 10.1038/s41597-019-0055-0. URL 
+
+https://doi.org/10.1038/s41597-019-0055-0 .Wenxuan Zhou, Sheng Zhang, Yu Gu, Muhao Chen, and Hoifung Poon. UniversalNER: Targeted Distillation from Large Language Models for Open Named Entity Recognition. 2023. Enwei Zhu and Jinpeng Li. Boundary smoothing for named entity recognition. In Smaranda Muresan, Preslav Nakov, and Aline Villavicencio, editors, Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 7096–7108, Dublin, Ireland, May 2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.acl-long.49 0. URL https://aclanthology.org/2022.acl-long.490/ .16 Appendix 
+
+## A Contextual Integrity for Language Model Interactions 
+
+Contextual Integrity (CI) is a theory of information transfer that considers social norms and cir-cumstances before making privacy decisions [Nissenbaum, 2004]. Of particular interest to our investigation is CI for AI assistants. Messages with AI assistants are typically sent over the network, which introduces significant risks in heavily regulated domains. Many privacy concerns are not addressable solely with standard redaction techniques, but in certain circumstances, we can outline their use cases. Using CI, we can narrow our investigation of redaction privacy in the context of the following assumptions: 1. Feasibility : There exists a redacted version of the document that does not violate any policies while still maintaining positive utility. 2. Permission : Users can access all the information an assistant has access to, but the opposite does not hold. 3. Snoop-free and Stateless : The service or any downstream adversary is stateless and cannot compile additional information using external sources. 
+
+## B REDACTION BENCH Dataset Insights 
+
+Table 4: Composition of R EDACTION BENCH 
+
+Category Count Source Structure 
+
+Academic 16 Real Unstructured Emails 16 Synthetic Unstructured Financial 18 Real Unstructured Government 16 Real Unstructured Legal 18 Real Unstructured Medical 16 Real Unstructured Operations 15 Real Unstructured Code 16 Synthetic Structured Files 36 Mixed Structured Logs 17 Synthetic Structured Terminal 16 Synthetic Structured Our definition of contextual integrity in the previous section has implications for coding assistants in REDACTION BENCH . For documents with code, concerns regarding intellectual property are assumed to have already been handled by the administrators. Thus, if context is strictly code-related, the goal of redaction is limited to removing secrets and preventing doxxing, since actions taken locally can pose risks of revealing contributor identities. Structured formats in R EDACTION BENCH follow a well-defined syntax that allows them to be parsed programmatically (code, logs, terminal output, files). Alternatively, unstructured formats convey information in natural language, either as free-form prose or as standardized documents and web forms. We rely on real documents wherever possible and leverage synthetic samples when suitable real-world examples are hard to find (Table 7), resulting in a final balanced corpus of 101 real and 99 synthetic documents. 17 Table 5: R EDACTION BENCH ’s unstructured categories and the precise constituent genre names. Itali-cized text represents synthetically generated genres, meaning they were created without a reference 
+
+Category Genres academic academic_probation_appeal course_syllabus diploma disciplinary_record enrollment fafsa financial_aid_award_letter grade_appeal graded_assignment recommendation_letter report_card research_agreement student_grievance title_ix transcript transcript_request 
+
+emails bank_alert hr_onboarding internal_creds job_application legal_thread medical_referral meeting_invite newsletter_announce order_receipt password_reset personal_social phishing_lure robotarium_newsletter server_alert shipping_confirm travel_itinerary 
+
+financial 1040 account_application acord_claim_form bank_statement bitcoin_wallet_export card_statement chargeback_rebuttal_letter deposit_slip direct_deposit_authorization_form flight invoice k1 receipt remittance_advice signature_card sim_registration w9 wire_transfer_request 
+
+government birth_certificate building_permit census_form customs_declaration drivers_license form_i_589 jury_summons police_report public_records_request social_security tax_lien vaccination vehicle_title_registration visa voter_registration_card workers_compensation_claim 
+
+legal bail_bond bylaws cease_desist certificate_of_incorporation declarations ds_160 ds_2019 employment i765_ead i9 lease_agreement marital_settlement offer_letter pip prenuptial promissory_note qdro sofa 
+
+medical behavioral_health_safety_plan break_the_glass cms_1500 confinement_form consultation_note discharge_summary ecg_tracing explanation_of_benefits mds_3 operative_report prescription prior_authorization_request_form psychotherapy_notes radiology_report sterilization_consent triage_note 
+
+operations benefits_enrollment bill_of_lading boarding_pass hotel_reservation interview_schedule offer_letter onboarding_packet pay_stub proof_of_delivery property_tax resignation_letter session_transcript shipping_label transfer_notice uber_receipt 
+
+Table 6: R EDACTION BENCH ’s structured categories and the precise constituent genre names. Itali-cized text represents synthetically generated genres, meaning they were created without a reference 
+
+Category Genres code bashrc c_program css_file dockerfile github_actions_ci go_service html_page java_properties javascript_config makefile php_config python_db_script ruby_config rust_main sql_seed terraform_main 
+
+files browser_storage crypto_wallet_export csv_api_keys_export csv_financial csv_identity_export csv_server_inventory dotenv exchange_api_config gpg_export hl7_adt_message htpasswd ics_calendar json_api_response json_aws_config json_package_lock jwt_tokens ldap_dump mrz_passport_batch ndjson_app_errors ndjson_audit_log ndjson_cloudtrail password_manager_csv recovery_keys ssh_config terraform_tfvars toml_config toml_pyproject xml_incident_report xml_junit_results xml_maven_pom xml_rss_feed yaml_ansible_playbook yaml_docker_compose yaml_k8s_secret loan_agreement vcf 
+
+logs apache_combined_log app_structured_json auth_syslog blockchain_node_log ci_runner_log cloudtrail_json docker_daemon_log firewall_log gcp_audit_log kubernetes_events mysql_slow_query nginx_access_log postgresql_audit_log redis_log smtp_log vpn_log windows_event_log 
+
+terminal ansible_deploy_session aws_cli_session ci_cd_runner_session core_dump_session database_admin_session docker_compose_session env_leak_session git_history_session incident_response_session kubernetes_session nvtop_monitoring_session package_install_session python_traceback_session reverse_shell_forensics ssh_tunneling_session sysadmin_recon_session 
+
+18 Table 7: Justifications for synthetic samples per domain 
+
+Domain Justification Emails We considered various classic email datasets such as the Enron emails and even contro-versial contemporary piles, but these human-authored emails tend to be short, terse, low in complexity, and seldom contain sensitive content. Furthermore, a large number are auto-generated, no-reply emails. 
+
+Code While many examples of code can be compiled readily, they rarely contain sensitive information, and most cannot be trivially augmented into plausible samples. To achieve a threshold of realism, we generated samples in which sensitive information, such as API keys, was more likely. With the popularity of coding assistants, synthetically generated code is also an increasingly large portion of real code. 
+
+Files We used synthetic file data to avoid exposing or reproducing real PII while still capturing the structure of common machine-readable formats such as JSON, XML, YAML, etc. 
+
+Logs All public log datasets we found contained only benign content. Therefore, similar to code, we generate our own log data to increase the density of sensitive information. 
+
+Terminal Similar to code. Table 8: Observed "Giveaway" Patterns in Augmented Entities: A tabulation of the faked entity patterns which we systematically corrected within R EDACTION BENCH ’s synthetically augmented en-tities. These are patterns we noticed in many other benchmarks, especially when freeform generation is involved. 
+
+Pattern Description and example matches 
+
+overrepresented_entities Natural entities reused across too many documents, including names, surnames, organizations, domains, handles, localparts, and address or place names (e.g., Priya ; Dmitri ; Fatima ; Okafor ; companies with Harbor* or Shore* in their names). 
+
+low_entropy_literal Explicit placeholder or toy fragments, including cases where the fragment appeared inside a longer identifier, URL, secret, or file path (e.g., abc123 ; 1a2b3c ; a1b2c3 ; qwerty ; asdf ; zxcv ; deadbeef ). 
+
+alphabetic_sequence_run Ascending, descending, wrapped, or mixed-case alphabetic runs, including ordered material embedded in longer tokens (e.g., ABCDEFGHIJKLMNOPQRSTUVWXYZ ; abcdefghijklmnopqrstuvwxyz ;
+
+AbCdEfGh ; ZyXwVuTsRqPoNmLk ). 
+
+sequential_numeric_run Ascending or descending digit runs, including those embedded in IDs, account numbers, URLs, or secrets (e.g., 123456 ; 0987654321 ; DE75500700100987654321 ). 
+
+digit_permutation_run Length-six-or-longer digit strings where all digits are unique, suggesting sampled-without-replacement fake identifiers (e.g., 487321 ; 1048576 ; 81520467 ; 3902718456 ). 
+
+interleaved_numeric Long digit strings where alternating positions form arithmetic ladders (e.g., 13572468 ; 24681357 ). 
+
+alternating_alnum_run Repeated letter-digit or digit-letter alternation, case-insensitive. Prefix-bearing keys, hex-like strings, and structured business identifiers were handled here when the payload had this structure (e.g., 
+
+1a2b3c4d ; 0a6b7c8d9e0f1a2b ; 0x9y8z7w6v5u4t3s ; TXN-20260211-9F4K2M7Q1R ). 
+
+period3_alnum_run Period-three alphanumeric cycles such as lower/upper/digit or digit/lower/upper (e.g., aB1cD2eF3 ;
+
+1aB2cD3eF ). 
+
+repeated_char_run Repeated-character padding or placeholder material, including repeated runs embedded in longer tokens (e.g., 00000 ; aaaaa ; XXXXX ). 
+
+fake_555_triplet Phone numbers or phone-like spans containing the fake 555 exchange (e.g., 555 ; (312) 555-9481 ). 
+
+top_of_hour_time Templated clock times with zero minutes and seconds, typically betraying themselves through repeated top-of-hour entries within the same log (e.g., 14:00:00 ; 15:00:00 ; 16:00:00 ). 
+
+top_of_hour_compact_utc Compact UTC timestamps ending in top-of-hour 0000Z, flagged when several such values appear together in the same record (e.g., 20260314140000Z ; 20260314150000Z ). 
+
+fake_mac_staircase MAC addresses whose octets form the synthetic 00:1A:2B:3C base or an arithmetic staircase with three-or-more consecutive 0x11 or 0xEF steps (e.g., 00:1A:2B:3C:4D:5E ; 11:22:33:44:55:66 ). 
+
+masked_ssn_last4_pair Masked SSNs whose visible last four have repeated-pair structure, especially when several such values co-occur in one document (e.g., XXX-XX-1122 together with XXX-XX-3344 ; XXX-XX-7788 together with XXX-XX-9900 ). 
+
+pattern_match Tokens identified by their structural shape alone—a syntactic prefix, delimiter, or recognizable surface form. The matched payload is re-randomized unconditionally as a safety net for any low-entropy fragment the content-based detectors above might have missed inside. Covers UUIDs; debug-hex literals starting with 0xDEAD, 0xBEEF, 0xC0DE, or 0xBADF00D; req_ and evt_ identifiers; bcrypt and SHA256 fingerprints; txid= and addr= assignments; bech32 Bitcoin addresses; WIF private keys; and ASCII-armored key or certificate blocks (e.g., a1b2c3d4-e5f6-7890-abcd-ef1234567890 ;
+
+0xDEAD9F3A ; req_a1b2c3d4e5f6 ; evt_AbCdEfGhIjKlMnOp ;
+
+$2b$10$Hcr5LxVz1rQwT0NaTbX2bO9pUaC8PwR3H6oG2QmK1FjV5sZeRfYqW ;
+
+SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123 ;
+
+txid=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0 ;
+
+bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh ; addr=1A2B3C4D5E6F7G8H9I0J1K2L3M ;
+
+privkey WIF: KxFqZmNq3bR4sLkM7pW8nQ2vZyX6cT3aFqRzS5wYbVdLh ;
+
+BEGIN PGP PUBLIC KEY BLOCK ). 
+
+19 C User Study Details 
+
+We conduct the user study on Prolific [Prolific, 2026], with 85 participants residing in the United States, aged 25-65, and holding at least a Bachelor’s degree. Users were compensated at a mean rate of $13 .08 /hr with a median completion time of 00:27:32. Users completed a brief tutorial to get comfortable with the mechanics of our redaction tool and were instructed to think critically about what units of text were sensitive, given the document type. Users were permitted to search the web to alleviate doubts regarding unfamiliar terms, fields, documents, or entities. We collected user consent for participation and timestamped edits. Although our target labels in REDACTION BENCH are ternary, users were only given the option to redact or not, without knowledge of the target labels. Each participant’s edits were manually reviewed; four participants were rejected and resampled due to bad-faith attempts. 
+
+C.1 Study Setup 
+
+Our user study was limited to unstructured documents since structured documents require domain expertise. From each of the seven unstructured categories, we randomly selected eight representative documents, for a total of 56. Each document was viewed by 16 users, and each user was assigned 10-11 documents, ensuring broad coverage of each document in the user study. The assignment aims to minimize overlap so that no two users view the same set of documents. We further randomized the viewing window for each user along a separate axis: partial/incorrect/noisy initial redactions in the starting window R-Score (see Figure 6a). To expedite the labeling process and minimize labeling fatigue, randomized windows were limited to 25 or fewer lines. The remaining context was greyed out but was available to the user for additional context (Figure 5). Each user saw approximately the same distribution of starting window scores. We aggregated all windows with a starting score of 0.0—the leftmost, skinny column in Figure 6a—to estimate human performance for an apples-to-apples comparison with the models (Table 9). Document Redaction User Study 
+
+> Annotation Phase
+
+Training 4/4 complete, Annotation 5/16 complete 
+
+> Task mode: use document context, preserve utility, and redact only information that should not be disclosed.
+
+Use the numbered cells to navigate between available documents.                                                  
+
+> CURRICULUM TASKS
+> 12345678910 11 12 13 14 15 16
+> Ready. Highlight text to redact, or click an existing redaction to clear it.
+> || B Partnership’s name, address, city, state, and ZIP code || Emerald Logistics Network LP || 900 Freightmaster Blvd || Atlanta, GA 30318 || || C IRS center where partnership filed return: || KANSAS CITY, MO || || D Check if this is a publicly traded partnership (PTP) [ ] # || Part II Information About the Partner || || E Partner’s SSN or TIN (Do not use TIN of a disregarded entity. See instructions.) || 81-3344550 || || F Name, address, city, state, and ZIP code for partner entered in E. See instructions. || Redstone Freightways LLC || 400 Distribution Way, Suite 2B || Nashville, TN 37211 || || G [ ] General partner or LLC member-manager [X] Limited partner or other LLC member || H1 [X] Domestic partner [ ] Foreign partner || H2 If the partner is a disregarded entity (DE), enter the partner’s: || TIN ___________________________ Name __________________________________________________ || I1 What type of entity is this partner? || S-Corporation || I2 If this partner is a retirement plan (IRA/SEP/Keogh/etc.), check here . [ ] || || J Partner’s share of profit, loss, and capital (see instructions): || Beginning Ending || Profit 22.500000 % 22.500000 % || Loss 22.500000 % 22.500000 % || Capital 22.500000 % 22.500000 %
+> Previous Document Next Document Jump To Window Mark Verified
+
+Opaque preview 
+
+Document 7 of 16 Hide Progress Panel    
+
+> Redact this selection? Redact Clear Cancel
+
+Figure 5: Redaction Study Tool. User’s view of a labeling window from our study tool. Grayed-out regions are not editable but provide global context—users can scroll within the edit window to view the rest of the document. Users can toggle an opaque preview to help focus on the state of the final document. 20 Table 9: Evaluations on the user study subset with 48 total documents for comparison. A significant gap remains between frontier models and specially-finetuned models. Frontier models match or exceed human performance on the benchmark. 
+
+Family Variant Overall 48   
+
+> P20 P50
+
+Mean 
+
+Frontier gpt-5.4 0.69 0.90 0.81 Frontier Qwen/Qwen3.5-397B-A17B 0.66 0.88 0.80 Frontier claude-opus-4-6 0.62 0.89 0.79 Frontier zai-org/GLM-5.1 0.61 0.92 0.77 Human Aggregated performance (mode decision per label) on windows with starting R-Score 0 0.61 0.78 0.77 OpenAI Privacy Filter openai/privacy-filter 0.36 0.72 0.64 B2NER internlm/internlm2-20b 0.39 0.63 0.60 DeBERTa OpenMed/OpenMed-PII-SuperClinical-Large-434M-v1 0.35 0.65 0.59 GLiNER gretelai/gretel-gliner-bi-large-v1.0 0.39 0.60 0.56 B2NER internlm/internlm2_5-7b 0.31 0.56 0.54 GLiNER nvidia/gliner-PII 0.28 0.58 0.52 SLM / extractor eternisai/Anonymizer-4B 0.04 0.58 0.51 SLM / extractor jakobhuss/pii-extractor-gemma-3-270m-it 0.23 0.56 0.51 GLiNER E3-JSI/gliner-multi-pii-domains-v1 0.20 0.53 0.48 RoBERTa iiiorg/piiranha-v1-detect-personal-information 0.24 0.48 0.47 DeBERTa hydroxai/pii_model_weight 0.32 0.48 0.46 SLM / extractor numind/NuExtract-1.5-tiny 0.14 0.47 0.44 GLiNER urchade/gliner_multi_pii-v1 0.19 0.45 0.44 ModernBERT ai4privacy/llama-ai4privacy-english-anonymiser-openpii 0.24 0.45 0.43 SLM / extractor numind/NuExtract-2.0-2B 0.21 0.43 0.43 SLM / extractor Universal-NER/UniNER-7B-all 0.22 0.43 0.42 SLM / extractor distil-labs/Distil-PII-Llama-3.2-3B-Instruct 0.00 0.40 0.42 GLiNER knowledgator/gliner-pii-base-v1.0 0.11 0.42 0.41 SLM / extractor numind/NuExtract-2.0-4B 0.18 0.32 0.36 DeBERTa h2oai/deberta_finetuned_pii † 0.04 0.37 0.34 DeBERTa lakshyakh93/deberta_finetuned_pii † 0.04 0.37 0.34 ModernBERT ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii 0.15 0.30 0.32 DistilBERT Isotonic/distilbert_finetuned_ai4privacy_v2 0.08 0.28 0.32 RoBERTa tanaos/tanaos-text-anonymizer-v1 0.00 0.30 0.29 GLiNER hivetrace/gliner-guard-uniencoder 0.11 0.29 0.28 GLiNER hivetrace/gliner-guard-biencoder 0.08 0.27 0.27 DistilBERT deepaksiloka/PII-Detection-V2.1 0.04 0.20 0.25 GLiNER urchade/gliner_multi-v2.1 0.06 0.22 0.23 SLM / extractor distil-labs/Distil-PII-Llama-3.2-1B-Instruct 0.00 0.00 0.19 SLM / extractor OpenPipe/PII-Redact-General 0.00 0.12 0.14 SLM / extractor distil-labs/Distil-PII-gemma-3-270m-it 0.00 0.00 0.06  
+
+> †
+
+These two public uploads share byte-identical Hugging Face artifacts and are counted as one unique checkpoint in model totals. 
+
+C.2 Non-expert Annotators 
+
+We define a requisite property of an expert to be invariance to starting conditions. Since a redaction configuration can be achieved from a random initial state, we assume that an expert redactor will always be able to optimize our metric with the right redactions. To test the objectivity of our users, we randomize the initial state of each window with varying levels of initial redactions (Figure 6a) and observe the resulting scores in each condition (Figure 6b). We tested whether partially revealed target labels bias users towards the set of solutions favored by our metric. We used a one-sided Spearman rank correlation test across all 831 windows and measured a significant positive relationship ( ρ = 0 .158 , p = 2 .4 × 10 −6) between starting and ending scores (Figure 6b). For a detailed explanation about the Spearman rank correlation test refer Section D. In conclusion, our users are not experts, as they are influenced by initial configurations. We therefore limit our estimate of human performance to windows with an initial R-Score of 0.0 to avoid our partial redactions from biasing final statistics. We report a per-category breakdown of human scores across the unstructured categories in Table 2. Furthermore, we evaluated models on the same split of unstructured documents presented to our users, as shown in Table 9. Windows with non-zero starting conditions reveal additional information about human behavior and the performance threshold of our benchmark, which we cover in the next section. 
+
+C.3 Performance Threshold on R EDACTION BENCH 
+
+With our samples from diverse starting conditions, we can estimate the threshold at which participants may no longer agree with the R-Score . This is a useful quantity to estimate the maximum score a 21 ==0 
+
+> (0, 0.2)
+> [0.2, 0.4)
+> [0.4, 0.6)
+> [0.6, 0.8)
+> [0.8, 1)
+> ==1
+
+starting window score bin   
+
+> 0
+> 50
+> 100
+> 150
+> 200
+> count
+> n=218
+> n=150 n=150
+> n=98
+> n=61 n=69
+> n=85
+
+(a) ==0 
+
+> (0, 0.2)
+> [0.2, 0.4)
+> [0.4, 0.6)
+> [0.6, 0.8)
+> [0.8, 1)
+> ==1
+
+starting window score bin    
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> mean ending r-score  n=218
+> n=150 n=150
+> n=98 n=61
+> n=69
+> n=85
+
+(b) 
+
+Figure 6: (a) The distribution of initial conditions, R-Score, for each redaction window with endpoints excluded. (b) An estimation of the mean R-Score after user edits with bins based on starting score. Confidence intervals are estimated at 95% using bootstrapping with n = 2000 . We note a significant positive correlation as more target label information is injected—this is a coarse view of the underlying continuous distribution for which we computed Spearman’s rho in Section C.2. 0
+
+> (0, 0.2]
+> [0.2, 0.4]
+> [0.4, 0.6]
+> [0.6, 0.8]
+> [0.8, 1)
+> 1
+
+starting window score bin 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> P(improvement or hold)
+
+n=218 n=150 n=152 n=98 
+
+n=63 
+
+n=65 
+
+n=85 
+
+Figure 7: Probability of non-decrease in R-Score after user edits as a function of the starting annotation window’s R-Score . Separate bins at 0.0 and 1.0 performance are shown as thin bars. To estimate the confidence in proportion, we used Wilson’s 95% binomial confidence intervals. 22 model is expected to achieve. We observe a reversal in R-Score values driven by our gold labeler’s decisions beyond the saturation threshold. In Figure 7, we estimate the probability that a user improved or maintained their window’s R-Score 
+
+and the expected final score after all edits, including special bins for 0.0 and 1.0. Because the space of possible redactions is large, maintaining a high probability that R-Score does not decrease as user annotations approach the gold labels can serve as a proxy for the quality of our labels. This confirms that there is no threshold at which the median participant disagrees with the R-Score ,thus median performance should be near 1.0 on the user study subset. 
+
+C.4 Smoothness of R-Score and Edit-Trajectories 
+
+We derive additional dynamics from the sequence of edits for each user across all initial conditions. We can assume that each user was optimizing an unknown internal privacy function, with each local edit performing a "gradient ascent" on the hypothetical function, since the participants received no information about the metric. We plot the evolution of the score distribution over edit-time (proportion of edits made) in Figure 8. 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> edit time (0=initial condition, 1=final edit)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> window score vs gold
+> 10 −2
+> 10 −1
+> Weighted flow mass
+
+Figure 8: Evolution of the window score distribution as a fraction of user edits made. We see evidence corroborating the analysis in Figure 6b: windows that start with higher R-Score 
+
+are more likely to fully maximize the score with user edits. Along with the property that our score does not saturate, this shows that performance exceeding our human baseline or the frontier model baseline Table 9 may both be achievable and desirable. 
+
+C.4.1 Diagram Construction 
+
+The x-axis is normalized edit time : 0 is the initial condition, each edit is placed at edit_step /
+
+total_edit_count , and 1 is the final state. The y-axis is the window score. Only trajectories with at least three annotation edits and at least two valid score observations are included. Trajectories are weighted inversely by starting-score bin density Figure 6a. For each point, the flow direction is computed toward the best score reachable within the next two edit observations, then normalized to a unit vector. Color indicates where edit trajectories are concentrated, while arrows indicate the typical near-term direction of score movement from those regions. 23 D Spearman’s Rank Correlation Coefficient 
+
+We use Spearman’s Rank Correlation Coefficient to predict whether a window’s starting R-Score 
+
+predicts its ending R-Score (Section C.2). Spearman’s coefficient, which tests whether one ordinal or continuous variable predicts another, makes no assumptions about linearity or normality and is robust to outliers. 
+
+D.1 Formal Definition 
+
+For n paired observations (xi, y i), let R(xi) and R(yi) denote the ranks of xi and yi within their respective samples. Spearman’s ρ is the Pearson correlation of the ranks: 
+
+ρ =
+
+P
+
+> i
+
+ R(xi) − ¯Rx
+
+   R(yi) − ¯Ry
+
+qP
+
+> i
+
+ R(xi) − ¯Rx
+
+2 P
+
+> i
+
+ R(yi) − ¯Ry
+
+2 .
+
+When there are no ties in either variable, this simplifies to: 
+
+ρ = 1 − 6 P 
+
+> i
+
+d2
+
+> i
+
+n(n2 − 1) ,
+
+where di = R(xi) − R(yi) is the rank difference for pair i. ρ is bounded in [−1, 1] : ρ = 1 and 
+
+ρ = −1 indicate perfect monotonically increasing and decreasing relationships respectively, and 
+
+ρ = 0 indicates no monotonic relationship. 
+
+D.2 Significance Test 
+
+Given two variables that are independently random ( ρ = 0 ), the test statistic 
+
+t = ρ
+
+r n − 21 − ρ2
+
+is approximately t-distributed with n−2 degrees of freedom for sufficiently large n (typically n ≥ 10 ). The two-sided p-value is p = 2 · Pr( Tn−2 ≥ | t|); the one-sided p-value—appropriate when the alter-native hypothesis specifies the direction of the relationship, as in Section C.2 where impressionability predicts a positive association between starting and ending R-Score —halves this. For small n, exact 
+
+p-values via permutation tests over all n! rank arrangements are tractable; scipy.stats.spearmanr 
+
+[Virtanen et al., 2020], which we use, automatically selects the appropriate method. 
+
+## E Wilson Score Intervals for Binomial Proportions 
+
+When estimating a binomial proportion—such as the probability of improvement—we report Wilson’s 95% confidence intervals [Wilson, 1927]. This interval remains well-behaved for proportions near 0 or 1, rather than overshooting as would occur with a standard normal estimate. For k successes in n trials, let ˆp = k/n and let z = 1 .96 denote the standard-normal 97.5th percentile (2.5% probability tails on each side). The Wilson interval is: 
+
+ˆp + z2
+
+> 2n
+
+1 + z2
+
+> n
+
+± z
+
+1 + z2
+
+> n
+
+r ˆp(1 − ˆp)
+
+n + z2
+
+4n2 .
+
+## F Krippendorff’s Alpha 
+
+Because the vast majority of tokens in a document are unredacted, a random labeler could achieve an artificially high agreement rate simply by predicting “safe text.” Krippendorff’s α corrects for this by establishing a ratio of observed disagreement to expected chance disagreement [Krippendorff, 2013]. The resulting α coefficient ranges from 1.0 (perfect reliability) to 0.0 (no reliability, equivalent to random noise), with negative values indicating systematic disagreement. 24 F.1 Formal Definition 
+
+For a coding task with n ratings spread across qualifying units (units with ≥ 2 raters): 
+
+α = 1 − Do
+
+De
+
+,Do = 1
+
+n
+
+X
+
+> u
+
+2 nu0 nu1
+
+mu − 1 , De = 2 n0 n1
+
+n(n − 1) ,
+
+where mu is the number of raters on unit u, nuc is the count of class c on unit u, and nc is the global marginal across all qualifying units. This formulation accommodates variable mu (units have different rater counts due to windowing). 
+
+F.2 Per-Unit-Type alpha and the Prevalence Paradox 
+
+A natural question is whether the global α can be stratified by target unit-type to localize where disagreement concentrates. The within-subset variant restricts both Do and De to a unit-type t:
+
+αt = 1 − Do(t)
+
+De(t) ,Do(t) = 1
+
+nt
+
+X  
+
+> u:t(u)= t
+
+2 nu0 nu1
+
+mu − 1 , De(t) = 2 n0(t) n1(t)
+
+nt(nt − 1) .
+
+This stratification fails under the prevalence paradox [Feinstein and Cicchetti, 1990, Cicchetti and Feinstein, 1990, Byrt et al., 1993]: when within-unit-type marginals are extreme, the chance baseline 
+
+De(t) collapses, suppressing αt even when raw agreement is high. Mandatory entities (Red) skew toward redaction; benign gaps (Gap) skew toward non-redaction. Both classes, therefore, fail under 
+
+αt for structural rather than empirical reasons. We report αt as a negative control to make the failure mode visible and motivate the alternative metric below. 
+
+## G Per-Unit-Type Mean Pairwise Disagreement 
+
+G.1 Formulation 
+
+We report the mean pairwise disagreement per unit-type, to compute the stratified disagreement across each of the three unit-types. For unit u with mu raters and ku redactions: 
+
+Du = ku(mu − ku)
+
+ mu
+
+> 2
+
+ , Dt = 1
+
+Nt
+
+X  
+
+> u:t(u)= t
+
+Du,
+
+where Nt is the number of qualifying units in unit-type t. Du has two equivalent interpretations. 
+
+Combinatorially, it is the fraction of distinct rater pairs on unit u that disagree: of the  mu
+
+> 2
+
+ pairs, exactly ku(mu − ku) consist of one redactor and one non-redactor. Probabilistically, if raters vote independently with redaction probability pu, then Du is the unbiased estimator of 2pu(1 − pu) —the chance a random pair disagrees, maximized at pu = 0 .5. High Du thus identifies units where the rater pool splits near 50/50; low Du identifies near-consensus in either direction. This quantity is well-studied under different names: it equals the per-item disagreement 1 − Pi
+
+in Fleiss [1971], the per-unit observed-disagreement contribution in Krippendorff [2013], and the Gini impurity of the unit’s decision distribution. Reporting raw pairwise disagreement per stratum follows established practice in NLP work on annotator disagreement and human label variation [Plank, 2022, Uma et al., 2021, Pavlick and Kwiatkowski, 2019, Nie et al., 2020]. 
+
+Dt is bounded in [0 , R/ (2( R − 1))] , where R = min u mu. Dt is directly comparable across unit-types because no marginal-derived chance term is involved. 
+
+G.2 Computation 
+
+1. Filter to units with mu ≥ 2 raters. 25 2. For each unit, compute ku and mu, then Du = ku(mu − ku)/ mu
+
+> 2
+
+.3. For each unit-type t, compute Dt as the mean of Du over unit-type-t units. 4. Compute global α on all qualifying units pooled. 5. Compute αt per unit-type (Section F.2) as the negative control. 6. Bootstrap 95% CIs on Dt by resampling units within unit-type ( B = 1000 ; Efron and Tibshirani, 1993). 
+
+## H R-Score Worked Example and Unit Construction 
+
+We illustrate an example and the calculation of metrics for a 10-unit window, drawn from a R EDAC -
+
+> TION
+
+BENCH -style document fragment, as shown in Figure 1. 
+
+Vehicle:  
+
+> gagb
+
+"
+
+> y
+
+5N1AT2MK4FC824170 
+
+> r
+
+" 
+
+> yga
+
+"2015 Nissan Rogue" 
+
+> y
+
+plate=  
+
+> gagb
+
+321ABC 
+
+> r
+
+Color encodes target label unit-type: Red (mandatory), Yellow (contextual), Gap (benign). After unit construction (combinators between same unit-type reds absorbed into r; gaps longer than three characters split into two units), this yields the 10-unit target sequence ga gb y r y g a y g a gb r; the unit-by-unit mapping is given in Table 10. Four labelers (User 1–User 4) annotate each unit, shown in Table 11. Table 10: Source token to unit mapping for the worked example 
+
+Unit GT Source token 
+
+1 ga Vehicle: (split a) 2 gb Vehicle: (split b) 3 y " (open quote) 4 r 5N1AT2MK4FC824170 (VIN) 5 y " (close quote) 6 ga (single space) 7 y "2015 Nissan Rogue" (y merged) 8 ga plate= (split a) 9 gb plate= (split b) 10 r 321ABC        
+
+> Adjacent whitespace is absorbed into the surrounding gunit before the >3 character split rule is applied; Vehicle: (units 1–2) absorbs the trailing space and plate= (units 8–9) absorbs the leading space.
+
+Table 11: User labels (1 represents a redacted unit) 
+
+Unit 1 2 3 4 5 6 7 8 9 10 
+
+GT ga gb y r y ga y ga gb r
+
+User 1 0 0 1 1 0 0 1 0 1 1User 2 0 0 0 1 1 0 0 0 1 1User 3 0 0 1 1 0 0 1 0 0 0User 4 0 0 0 1 1 0 0 0 0 0
+
+With the total number of users mu = 4 for every unit,  mu
+
+> 2
+
+ = 6 . Per-unit values for Du and Krippendorff’s per-unit contribution are shown in Table 12 and Table 13. 
+
+Per-unit-type Dt. Averaging Du within each unit-type: 
+
+Dr = 12 (0 + 0 .667) = 0.333 (units 4, 10) 
+
+Dy = 13 (0 .667 + 0 .667 + 0 .667) = 0.667 (units 3, 5, 7; theoretical max for m = 4 )
+
+Dg = 15 (0 + 0 + 0 + 0 + 0 .667) = 0.133 (units 1, 2, 6, 8, 9) 26 Table 12: Per-unit pairwise disagreement Du = ku(mu−ku)/ mu
+
+> 2
+
+.
+
+Unit GT Labels k m k(m−k)  m
+
+> 2
+
+ Du
+
+1 ga [0,0,0,0] 0 4 0 6 0.000 2 gb [0,0,0,0] 0 4 0 6 0.000 3 y [1,0,1,0] 2 4 4 6 0.667 4 r [1,1,1,1] 4 4 0 6 0.000 5 y [0,1,0,1] 2 4 4 6 0.667 6 ga [0,0,0,0] 0 4 0 6 0.000 7 y [1,0,1,0] 2 4 4 6 0.667 8 ga [0,0,0,0] 0 4 0 6 0.000 9 gb [1,1,0,0] 2 4 4 6 0.667 10 r [1,1,0,0] 2 4 4 6 0.667 
+
+Table 13: Per-unit Krippendorff disagreement contribution 2 nu0 nu1 /(mu − 1) .
+
+Unit GT Labels nu0 nu1 Contrib Decimal 1 ga [0,0,0,0] 4 0 0/3 0.000 2 gb [0,0,0,0] 4 0 0/3 0.000 3 y [1,0,1,0] 2 2 8/3 2.667 4 r [1,1,1,1] 0 4 0/3 0.000 5 y [0,1,0,1] 2 2 8/3 2.667 6 ga [0,0,0,0] 4 0 0/3 0.000 7 y [1,0,1,0] 2 2 8/3 2.667 8 ga [0,0,0,0] 4 0 0/3 0.000 9 gb [1,1,0,0] 2 2 8/3 2.667 10 r [1,1,0,0] 2 2 8/3 2.667 
+
+Global α. Pool all 40 ratings (10 units × 4 raters). 
+
+Observed disagreement Do. Sum the per-unit contributions from Table 13 across all ten units: 
+
+X
+
+> u
+
+2 nu0 nu1
+
+mu − 1 = 0 + 0 + 83 + 0 + 83 + 0 + 83 + 0 + 83 + 83 = 40 3 ≈ 13 .333 .
+
+The five contributing units (3, 5, 7, 9, 10) each have a 2-2 rater split; the other five (1, 2, 4, 6, 8) have unanimous labels and drop out. Then: 
+
+Do = 1
+
+n
+
+X
+
+> u
+
+2 nu0 nu1
+
+mu − 1 = 40 /340 = 13 ≈ 0.333 .
+
+Expected disagreement De. Tallied across all 40 ratings in Table 11: n1 = 14 “redact” votes (5+4+3+2 summed across users 1–4) and n0 = 26 “don’t redact” votes. Then: 
+
+De = 2 n0 n1
+
+n(n − 1) = 2 · 26 · 14 40 · 39 = 728 1560 ≈ 0.467 .
+
+Coefficient. 
+
+αglobal = 1 − Do
+
+De
+
+= 1 − 0.333 0.467 = 0.286 .
+
+Per-unit-type α (negative control). Table 14 computes αt within each unit-type subset. To anchor the reader, take Red (units 4, 10): each unit has mu = 4 raters, so nr = 8 ratings. Tallying labels in those rows of Table 11 gives n1(r) = 6 “redact” votes and n0(r) = 2 . Summing per-unit contributions for the same units from Table 13 gives 0 + 8 /3 = 8 /3, so Do(r) = (8 /3) /8 = 0 .333 .The chance term is De(r) = 2 · 2 · 6/(8 · 7) = 24 /56 = 0 .429 , and αr = 1 − 0.333 /0.429 = 0 .222 .The same recipe applies to Yellow and Gap types: 27 Table 14: Per-unit-type Krippendorff’s α on the worked example. 
+
+Unit-Type Units nt n0(t) n1(t) Do(t) De(t) αt
+
+Red 4, 10 8 2 6 (8 /3) /8 = 0 .333 24 /56 = 0 .429 0.222 
+
+Yellow 3, 5, 7 12 6 6 8/12 = 0 .667 72 /132 = 0 .545 −0.222 
+
+Gap 1, 2, 6, 8, 9 20 18 2 (8 /3) /20 = 0 .133 72 /380 = 0 .189 0.297 
+
+Reading. Table 15 consolidates the per-unit-type metrics. Dt cleanly separates the unit-types, with Yellow disagreement 2−5× higher than Red or Gap. The variance-concentration claim—annotators converge on Red and Gap, diverge on Yellow—is supported. Per-unit-type α values are suppressed by the prevalence paradox on Red and Gap (extreme marginals depress De(t)) and by genuinely high disagreement on Yellow (driving αy negative). Table 15: Summary of disagreement metrics on the worked example. ¯pt is the within-unit-type mean redaction rate; values near 1 (Red) or 0 (Gap) signal that the prevalence paradox is in play. 
+
+Dy /D r = 2 .00 and Dy /D g = 5 .00 confirm that disagreement concentrates on Yellow. 
+
+Unit-Type Nt ¯pt Dt αt Notes Red 2 0.750 0.333 0.222 paradox: skewed to 1 
+
+Yellow 3 0.500 0.667 −0.222 at theoretical max 
+
+Gap 5 0.100 0.133 0.297 paradox: skewed to 0 
+
+Global 10 0.350 — 0.286 global inter-annotator agreement 
+
+28 Algorithm 1 Combinator structure construction 
+
+Require: Document text ; disjoint half-open spans partitioned into red R and yellow Y (adjacency allowed). 
+
+Ensure: Red fusion groups, contextual components, paired-delimiter ranges, effective connector markers.  
+
+> 1:
+
+Connector types (each joins two adjacent labeled spans a, b ):  
+
+> 2:
+
+PUNCT : a single yellow separator char, excluding \ / @ , brackets, braces, parentheses, quotes, backticks, and ASCII letters/digits — e.g. the . in 127.0 , not the @ in user@g . 
+
+> 3:
+
+SLASH : a / between two digit-only spans — e.g. 03/14 , not host/10 . 
+
+> 4:
+
+BRIDGE : a closing delimiter then yellow whitespace — e.g. (415) 555 , not unmatched (415 . 
+
+> 5:
+
+PAIR : matched brackets/braces/parentheses/angle brackets/quotes enclosing yellow spans — e.g. [ABC] , not bare [ABC . 
+
+> 6:
+
+function CONNECTOR STRUCTURE (text , R, Y ) 
+
+> 7:
+
+Init red_graph , yellow_graph : node set R ∪ Y , no edges  
+
+> 8:
+
+effective_markers ← [ ] ; pair_ranges ← [ ]  
+
+> 9:
+
+for all PUNCT connectors c between neighbors a, b do  
+
+> 10:
+
+Add edge (a, b ) to both graphs; append c to effective_markers  
+
+> 11:
+
+end for  
+
+> 12:
+
+for all SLASH connectors c between digit spans a, b do  
+
+> 13:
+
+Add edge (a, b ) to yellow_graph ; append c to effective_markers  
+
+> 14:
+
+end for  
+
+> 15:
+
+for all BRIDGE connectors between a, b (delimiter d, whitespace w) do  
+
+> 16:
+
+Add edge (a, b ) to yellow_graph ; append d, w to effective_markers  
+
+> 17:
+
+end for  
+
+> 18:
+
+for all PAIR ranges with delimiters o, ℓ enclosing yellow spans do  
+
+> 19:
+
+Append inclusive range o . . . ℓ to pair_ranges ; append o, ℓ to effective_markers  
+
+> 20:
+
+end for  
+
+> 21:
+
+red_fusion_groups ← red spans grouped by connected component of red_graph  
+
+> 22:
+
+context_components ← yellow spans grouped by connected component of 
+
+yellow_graph  
+
+> 23:
+
+return red_fusion_groups , context_components , pair_ranges ,
+
+effective_markers  
+
+> 24:
+
+end function 
+
+29 Algorithm 2 Prediction-dependent contextual selection and entity fusion 
+
+Require: Target red spans target_red , target yellow spans target_yellow , merged predictions 
+
+pred_merged ; together one touch-connected target over R ∪ Y .
+
+Ensure: Fused red entities, selected contextual spans, fused contextual entities.  
+
+> 1:
+
+From Alg. 1: red_fusion_groups , context_components , pair_ranges ,
+
+effective_markers . 
+
+> 2:
+
+Note: red fusion groups are unconditional; contextual selection is prediction-dependent. Red spans may bridge contextual components, but only yellow spans are returned as context.  
+
+> 3:
+
+function SELECTED CONTEXTUAL SPANS (target_yellow , pred_merged ) 
+
+> 4:
+
+selected ← yellow spans directly intersected by any prediction  
+
+> 5:
+
+repeat  
+
+> 6:
+
+Add to selected any contextual component that selected touches ▷ Y1 in Y1-Red-Y 2
+
+also pulls in Y2 
+
+> 7:
+
+Add to selected any pair range with a delimiter in selected ▷ [ in [ABC] pulls in the whole range  
+
+> 8:
+
+until selected stops growing  
+
+> 9:
+
+return selected  
+
+> 10:
+
+end function  
+
+> 11:
+
+function FUSED ENTITY GROUPS (target_red , target_yellow ) 
+
+> 12:
+
+red_entities ← red_fusion_groups  
+
+> 13:
+
+Init contextual graph: one node per span in target_yellow , no edges  
+
+> 14:
+
+Link all yellow spans within each contextual component ▷ groups e.g. 555-5678  
+
+> 15:
+
+Link all yellow spans within each pair range ▷ groups e.g. [ABC]  
+
+> 16:
+
+contextual_entities ← yellow spans grouped by connected component of the contextual graph  
+
+> 17:
+
+Remove singletons whose only span is an effective connector marker  
+
+> 18:
+
+return red_entities , contextual_entities  
+
+> 19:
+
+end function 
+
+30 I Model Evaluations 
+
+Frontier models with unavailable open weights are all run using an API platform. For Anthropic [2026], Singh et al. [2025], we run inference from their respective API platforms. For GLM-5-Team [2026], Qwen Team [2026] we run inference with Together AI [2026]. For all local models, including our largest Yang et al. [2025c], we use a single NVIDIA H100 Hopper GPU (80GB VRAM). Detailed per-model configurations, prompt templates, tool definitions, label sources, and backend identifiers are provided in the supplemental model configuration section below (Section J). Table 16: Overall comparison of all models, grouped by model family. 
+
+Family Base model Model [Citation] Params Unstructured Overall 
+
+P20 P50 Mean P20 P50 Mean 
+
+Gen. – claude-opus-4-6 [Anthropic, 2026] ∼ 5.0T 0.62 0.89 0.81 0.45 0.78 0.71 – gpt-5.4 [OpenAI, 2026a] ∼ 5.0T 0.67 0.90 0.80 0.36 0.73 0.66 – Qwen/Qwen3.5-397B-A17B [Qwen Team, 2026] 397.0B 0.52 0.83 0.74 0.25 0.65 0.59 – zai-org/GLM-5.1 [GLM-5-Team, 2026] 754.0B 0.66 0.92 0.78 0.00 0.72 0.56 internlm/internlm2-20b internlm/internlm2-20b [Yang et al., 2025a] 19.9B 0.32 0.65 0.60 0.15 0.43 0.45 internlm/internlm2_5-7b internlm/internlm2_5-7b [Yang et al., 2025b] 7.7B 0.27 0.61 0.54 0.10 0.37 0.40 unsloth/gemma-3-270m-it jakobhuss/pii-extractor-gemma-3-270m-it [jakobhuss, 2026] 268M 0.25 0.60 0.53 0.04 0.39 0.40 Qwen/Qwen3-4B eternisai/Anonymizer-4B [eternisai, 2025] 4.0B 0.05 0.64 0.52 0.00 0.25 0.36 meta-llama/Llama-3.2-3B-Instruct distil-labs/Distil-PII-Llama-3.2-3B-Instruct [distil-labs (Llama 3.2 3B), 2025] 3.2B 0.02 0.50 0.47 0.00 0.26 0.34 Qwen/Qwen2-VL-2B-Instruct numind/NuExtract-2.0-2B [numind (NuExtract 2.0 2B), 2025] 2.0B 0.22 0.44 0.46 0.00 0.25 0.32 huggyllama/llama-7b Universal-NER/UniNER-7B-all [Zhou et al., 2023] 7.0B 0.19 0.42 0.44 0.05 0.25 0.32 Qwen/Qwen2.5-0.5B numind/NuExtract-1.5-tiny [numind (NuExtract 1.5), 2024] 494M 0.23 0.48 0.46 0.00 0.26 0.31 Qwen/Qwen2.5-VL-3B-Instruct numind/NuExtract-2.0-4B [numind (NuExtract 2.0 4B), 2025] 4.0B 0.17 0.34 0.40 0.00 0.23 0.29 meta-llama/Llama-3.2-1B-Instruct distil-labs/Distil-PII-Llama-3.2-1B-Instruct [distil-labs (Llama 3.2 1B), 2025] 1.2B 0.00 0.12 0.28 0.00 0.00 0.18 meta-llama/Llama-3.2-1B-Instruct OpenPipe/PII-Redact-General [OpenPipe, 2025] 1.2B 0.00 0.12 0.17 0.00 0.05 0.11 google/gemma-3-270m distil-labs/Distil-PII-gemma-3-270m-it [distil-labs (Gemma 3 270m), 2025] 268M 0.00 0.00 0.15 0.00 0.00 0.09 Token custom gpt-oss-like classifier openai/privacy-filter [OpenAI, 2026b] 1.4B/179M A ∗ 0.43 0.75 0.68 0.31 0.59 0.58 microsoft/deberta-v3-large OpenMed/OpenMed-PII-SuperClinical-Large-434M-v1 [OpenMed Science, 2026] 434M 0.35 0.63 0.58 0.20 0.45 0.46 microsoft/deberta-v3-base hydroxai/pii_model_weight [hydroxai, 2024] 184M 0.32 0.50 0.51 0.13 0.36 0.38 microsoft/mdeberta-v3-base iiiorg/piiranha-v1-detect-personal-information [iiiorg, 2024] 278M 0.23 0.45 0.45 0.07 0.34 0.34 answerdotai/ModernBERT-base ai4privacy/llama-ai4privacy-english-anonymiser-openpii [ai4privacy (English), 2025] 150M 0.19 0.42 0.40 0.03 0.23 0.27 microsoft/deberta-base h2oai/deberta_finetuned_pii [h2oai, 2024] † 139M 0.15 0.37 0.38 0.01 0.17 0.25 microsoft/deberta-base lakshyakh93/deberta_finetuned_pii [lakshyakh93, 2023] † 139M 0.15 0.37 0.38 0.01 0.17 0.25 distilbert-base-uncased Isotonic/distilbert_finetuned_ai4privacy_v2 [Isotonic, 2023] 66M 0.12 0.28 0.35 0.00 0.11 0.22 answerdotai/ModernBERT-base ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii [ai4privacy (Multilingual), 2025] 150M 0.14 0.29 0.31 0.02 0.18 0.21 tanaos/tanaos-NER-v1 tanaos/tanaos-text-anonymizer-v1 [tanaos, 2025] 124M 0.10 0.33 0.33 0.00 0.10 0.20 distilbert-base-uncased deepaksiloka/PII-Detection-V2.1 [deepaksiloka, 2024] 66M 0.10 0.29 0.32 0.00 0.09 0.20 Span microsoft/deberta-v3-large gretelai/gretel-gliner-bi-large-v1.0 [gretelai, 2024] 569M 0.33 0.56 0.54 0.29 0.47 0.47 microsoft/deberta-v3-large nvidia/gliner-PII [nvidia, 2025] 445M 0.30 0.58 0.54 0.17 0.40 0.42 urchade/gliner_multi_pii-v1 E3-JSI/gliner-multi-pii-domains-v1 [E3-JSI, 2024] 289M 0.20 0.50 0.48 0.05 0.32 0.35 microsoft/mdeberta-v3-base urchade/gliner_multi_pii-v1 [urchade, 2024] 289M 0.19 0.44 0.43 0.09 0.28 0.33 microsoft/deberta-v3-small knowledgator/gliner-pii-base-v1.0 [knowledgator, 2025] 166M 0.13 0.40 0.40 0.06 0.25 0.30 jhu-clsp/mmBERT-small hivetrace/gliner-guard-uniencoder [hivetrace (Uni-encoder), 2026] 147M 0.10 0.26 0.28 0.07 0.20 0.24 jhu-clsp/mmBERT-small hivetrace/gliner-guard-biencoder [hivetrace (Bi-encoder), 2026] 144M 0.08 0.23 0.27 0.05 0.18 0.22 microsoft/mdeberta-v3-base urchade/gliner_multi-v2.1 [Zaratiana et al., 2023] 289M 0.11 0.22 0.27 0.00 0.17 0.21 
+
+∗ The ’A’ in this parameter count (1.4B/179M A) indicates that the model has 179M active parameters from a pool of 1.4B. 
+
+† The h2oai and lakshyakh93 uploads point to byte-identical Hugging Face artifacts for the shared pytorch_model.bin ,configuration, tokenizer, and training arguments. 
+
+31 Table 17: Detailed evaluations of all models within the token-based family. 
+
+Model Params Code Files Logs Term. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+openai/privacy-filter 1.4B/179M A 0.44 0.60 0.62 0.29 0.47 0.47 0.15 0.26 0.23 0.31 0.42 0.40 
+
+OpenMed/OpenMed-PII-SuperClinical-Large-434M-v1 434M 0.11 0.28 0.26 0.17 0.36 0.37 0.09 0.16 0.17 0.14 0.28 0.28 
+
+hydroxai/pii_model_weight 184M 0.01 0.06 0.12 0.07 0.24 0.27 0.06 0.17 0.21 0.08 0.09 0.15 
+
+iiiorg/piiranha-v1-detect-personal-information 278M 0.00 0.00 0.08 0.06 0.16 0.22 0.06 0.21 0.22 0.08 0.21 0.23 
+
+ai4privacy/llama-ai4privacy-english-anonymiser-openpii 150M 0.00 0.04 0.05 0.02 0.08 0.14 0.02 0.09 0.10 0.00 0.02 0.06 
+
+ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii 150M 0.00 0.03 0.04 0.01 0.05 0.12 0.01 0.07 0.09 0.00 0.01 0.05 
+
+h2oai/deberta_finetuned_pii 139M 0.00 0.00 0.04 0.03 0.07 0.11 0.00 0.01 0.01 0.00 0.05 0.07 
+
+lakshyakh93/deberta_finetuned_pii 139M 0.00 0.00 0.04 0.03 0.07 0.11 0.00 0.01 0.01 0.00 0.05 0.07 
+
+Isotonic/distilbert_finetuned_ai4privacy_v2 66M 0.00 0.00 0.02 0.01 0.03 0.06 0.00 0.01 0.01 0.00 0.02 0.03 
+
+tanaos/tanaos-text-anonymizer-v1 124M 0.00 0.00 0.01 0.00 0.02 0.06 0.00 0.00 0.00 0.00 0.00 0.01 
+
+deepaksiloka/PII-Detection-V2.1 66M 0.00 0.00 0.06 0.00 0.01 0.05 0.00 0.00 0.01 0.00 0.00 0.00 
+
+Model Params Acad. Email Fin. Gov. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+openai/privacy-filter 1.4B/179M A 0.57 0.85 0.78 0.46 0.70 0.64 0.31 0.73 0.60 0.36 0.58 0.59 
+
+OpenMed/OpenMed-PII-SuperClinical-Large-434M-v1 434M 0.40 0.68 0.65 0.27 0.57 0.53 0.31 0.55 0.52 0.42 0.68 0.64 
+
+hydroxai/pii_model_weight 184M 0.51 0.68 0.70 0.39 0.52 0.51 0.32 0.56 0.51 0.29 0.33 0.38 
+
+iiiorg/piiranha-v1-detect-personal-information 278M 0.25 0.59 0.51 0.37 0.43 0.45 0.14 0.34 0.35 0.34 0.48 0.50 
+
+ai4privacy/llama-ai4privacy-english-anonymiser-openpii 150M 0.27 0.42 0.43 0.19 0.48 0.39 0.14 0.42 0.36 0.37 0.51 0.49 
+
+ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii 150M 0.20 0.31 0.34 0.14 0.27 0.26 0.13 0.32 0.29 0.18 0.40 0.36 
+
+h2oai/deberta_finetuned_pii 139M 0.20 0.41 0.43 0.04 0.28 0.31 0.22 0.36 0.35 0.24 0.38 0.43 
+
+lakshyakh93/deberta_finetuned_pii 139M 0.20 0.41 0.43 0.04 0.28 0.31 0.22 0.36 0.35 0.24 0.38 0.43 
+
+Isotonic/distilbert_finetuned_ai4privacy_v2 66M 0.19 0.39 0.39 0.08 0.19 0.25 0.24 0.30 0.35 0.19 0.40 0.44 
+
+tanaos/tanaos-text-anonymizer-v1 124M 0.24 0.38 0.40 0.00 0.11 0.18 0.20 0.35 0.37 0.15 0.40 0.42 
+
+deepaksiloka/PII-Detection-V2.1 66M 0.20 0.32 0.39 0.01 0.13 0.19 0.13 0.18 0.25 0.11 0.39 0.33 
+
+Model Params Legal Med. Ops. All 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+openai/privacy-filter 1.4B/179M A 0.67 0.80 0.78 0.60 0.72 0.74 0.31 0.73 0.64 0.31 0.59 0.58 
+
+OpenMed/OpenMed-PII-SuperClinical-Large-434M-v1 434M 0.45 0.57 0.54 0.25 0.62 0.53 0.58 0.73 0.68 0.20 0.45 0.46 
+
+hydroxai/pii_model_weight 184M 0.40 0.50 0.47 0.33 0.45 0.54 0.33 0.50 0.47 0.13 0.36 0.38 
+
+iiiorg/piiranha-v1-detect-personal-information 278M 0.24 0.45 0.47 0.20 0.46 0.43 0.15 0.56 0.46 0.07 0.34 0.34 
+
+ai4privacy/llama-ai4privacy-english-anonymiser-openpii 150M 0.10 0.26 0.29 0.20 0.39 0.39 0.23 0.43 0.44 0.03 0.23 0.27 
+
+ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii 150M 0.11 0.23 0.24 0.14 0.21 0.29 0.27 0.39 0.38 0.02 0.18 0.21 
+
+h2oai/deberta_finetuned_pii 139M 0.18 0.24 0.29 0.14 0.37 0.37 0.22 0.50 0.51 0.01 0.17 0.25 
+
+lakshyakh93/deberta_finetuned_pii 139M 0.18 0.24 0.29 0.14 0.37 0.37 0.22 0.50 0.51 0.01 0.17 0.25 
+
+Isotonic/distilbert_finetuned_ai4privacy_v2 66M 0.12 0.20 0.22 0.09 0.39 0.34 0.23 0.38 0.47 0.00 0.11 0.22 
+
+tanaos/tanaos-text-anonymizer-v1 124M 0.14 0.20 0.24 0.13 0.31 0.31 0.15 0.47 0.41 0.00 0.10 0.20 
+
+deepaksiloka/PII-Detection-V2.1 66M 0.12 0.31 0.30 0.09 0.43 0.39 0.10 0.35 0.38 0.00 0.09 0.20 
+
+Table 18: Detailed evaluations of all models within the span-based family. 
+
+Model Params Code Files Logs Term. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+gretelai/gretel-gliner-bi-large-v1.0 569M 0.30 0.55 0.51 0.16 0.31 0.35 0.25 0.39 0.36 0.27 0.35 0.36 
+
+nvidia/gliner-PII 445M 0.07 0.12 0.19 0.18 0.35 0.34 0.10 0.20 0.22 0.13 0.18 0.23 
+
+E3-JSI/gliner-multi-pii-domains-v1 289M 0.00 0.00 0.07 0.00 0.15 0.24 0.06 0.18 0.20 0.00 0.09 0.15 
+
+urchade/gliner_multi_pii-v1 289M 0.01 0.02 0.04 0.06 0.25 0.27 0.08 0.15 0.16 0.06 0.19 0.19 
+
+knowledgator/gliner-pii-base-v1.0 166M 0.00 0.01 0.04 0.06 0.25 0.27 0.05 0.10 0.14 0.04 0.13 0.14 
+
+hivetrace/gliner-guard-uniencoder 147M 0.01 0.02 0.04 0.09 0.23 0.25 0.06 0.10 0.13 0.11 0.16 0.16 
+
+hivetrace/gliner-guard-biencoder 144M 0.01 0.01 0.03 0.08 0.21 0.23 0.05 0.08 0.11 0.09 0.13 0.13 
+
+urchade/gliner_multi-v2.1 289M 0.00 0.00 0.04 0.00 0.08 0.17 0.00 0.17 0.16 0.00 0.02 0.10 
+
+Model Params Acad. Email Fin. Gov. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+gretelai/gretel-gliner-bi-large-v1.0 569M 0.40 0.59 0.62 0.29 0.44 0.44 0.36 0.59 0.57 0.35 0.56 0.55 
+
+nvidia/gliner-PII 445M 0.30 0.47 0.50 0.32 0.63 0.56 0.33 0.54 0.49 0.39 0.65 0.60 
+
+E3-JSI/gliner-multi-pii-domains-v1 289M 0.19 0.61 0.55 0.34 0.51 0.52 0.27 0.59 0.51 0.30 0.60 0.56 
+
+urchade/gliner_multi_pii-v1 289M 0.20 0.42 0.43 0.26 0.60 0.53 0.29 0.53 0.49 0.28 0.56 0.50 
+
+knowledgator/gliner-pii-base-v1.0 166M 0.20 0.44 0.45 0.31 0.50 0.45 0.18 0.44 0.43 0.26 0.48 0.45 
+
+hivetrace/gliner-guard-uniencoder 147M 0.07 0.18 0.22 0.27 0.38 0.37 0.13 0.29 0.26 0.15 0.37 0.38 
+
+hivetrace/gliner-guard-biencoder 144M 0.08 0.19 0.24 0.22 0.39 0.36 0.11 0.28 0.25 0.13 0.35 0.35 
+
+urchade/gliner_multi-v2.1 289M 0.12 0.25 0.29 0.15 0.31 0.28 0.05 0.14 0.18 0.21 0.32 0.32 
+
+Model Params Legal Med. Ops. All 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+gretelai/gretel-gliner-bi-large-v1.0 569M 0.33 0.58 0.50 0.33 0.50 0.51 0.36 0.53 0.58 0.29 0.47 0.47 
+
+nvidia/gliner-PII 445M 0.28 0.50 0.49 0.26 0.51 0.47 0.55 0.73 0.65 0.17 0.40 0.42 
+
+E3-JSI/gliner-multi-pii-domains-v1 289M 0.15 0.40 0.36 0.13 0.24 0.24 0.42 0.62 0.62 0.05 0.32 0.35 
+
+urchade/gliner_multi_pii-v1 289M 0.11 0.30 0.31 0.09 0.20 0.22 0.41 0.56 0.57 0.09 0.28 0.33 
+
+knowledgator/gliner-pii-base-v1.0 166M 0.21 0.41 0.37 0.06 0.11 0.13 0.26 0.49 0.52 0.06 0.25 0.30 
+
+hivetrace/gliner-guard-uniencoder 147M 0.09 0.18 0.19 0.05 0.16 0.20 0.23 0.40 0.40 0.07 0.20 0.24 
+
+hivetrace/gliner-guard-biencoder 144M 0.07 0.14 0.16 0.05 0.14 0.18 0.22 0.39 0.39 0.05 0.18 0.22 
+
+urchade/gliner_multi-v2.1 289M 0.04 0.18 0.24 0.10 0.21 0.27 0.10 0.26 0.32 0.00 0.17 0.21 
+
+32 Table 19: Detailed evaluations of all models within the generative family. 
+
+Model Params Code Files Logs Term. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+claude-opus-4-6 5.0T 0.35 0.58 0.58 0.47 0.76 0.65 0.21 0.37 0.44 0.32 0.66 0.60 
+
+gpt-5.4 5.0T 0.27 0.45 0.44 0.38 0.54 0.56 0.23 0.36 0.38 0.27 0.39 0.42 
+
+zai-org/GLM-5.1 754.0B 0.00 0.24 0.29 0.00 0.00 0.30 0.00 0.00 0.08 0.00 0.35 0.35 
+
+Qwen/Qwen3.5-397B-A17B 397.0B 0.14 0.40 0.37 0.00 0.48 0.42 0.00 0.25 0.33 0.26 0.30 0.43 
+
+B2NER-InternLM2.5 19.9B 0.02 0.13 0.17 0.08 0.24 0.29 0.09 0.25 0.25 0.12 0.21 0.21 
+
+jakobhuss/pii-extractor-gemma-3-270m-it 268M 0.00 0.14 0.25 0.01 0.15 0.23 0.03 0.07 0.13 0.00 0.29 0.27 
+
+B2NER-InternLM2.5-7B 7.7B 0.03 0.07 0.09 0.12 0.27 0.28 0.09 0.19 0.21 0.07 0.12 0.18 
+
+distil-labs/Distil-PII-Llama-3.2-3B-Instruct 3.2B 0.00 0.00 0.09 0.00 0.13 0.22 0.01 0.14 0.12 0.00 0.00 0.14 
+
+numind/NuExtract-1.5-tiny 494M 0.00 0.00 0.07 0.00 0.07 0.15 0.03 0.07 0.07 0.00 0.00 0.08 
+
+eternisai/Anonymizer-4B 4.0B 0.00 0.06 0.15 0.00 0.00 0.15 0.01 0.12 0.17 0.00 0.00 0.13 
+
+Universal-NER/UniNER-7B-all 7.0B 0.00 0.02 0.03 0.05 0.15 0.20 0.10 0.13 0.19 0.02 0.07 0.13 
+
+numind/NuExtract-2.0-2B 2.0B 0.00 0.00 0.06 0.00 0.07 0.18 0.00 0.04 0.07 0.00 0.08 0.12 
+
+numind/NuExtract-2.0-4B 4.0B 0.00 0.00 0.10 0.00 0.05 0.17 0.05 0.11 0.15 0.00 0.15 0.18 
+
+OpenPipe/PII-Redact-General 1.2B 0.00 0.01 0.01 0.00 0.00 0.04 0.00 0.02 0.05 0.00 0.02 0.04 
+
+distil-labs/Distil-PII-gemma-3-270m-it 268M 0.00 0.00 0.00 0.00 0.00 0.06 0.00 0.00 0.00 0.00 0.00 0.00 
+
+distil-labs/Distil-PII-Llama-3.2-1B-Instruct 1.2B 0.00 0.00 0.06 0.00 0.00 0.06 0.00 0.00 0.00 0.00 0.00 0.00 
+
+Model Params Acad. Email Fin. Gov. 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+claude-opus-4-6 5.0T 0.61 0.93 0.85 0.68 0.87 0.77 0.71 0.93 0.86 0.56 0.75 0.73 
+
+gpt-5.4 5.0T 0.73 0.93 0.80 0.64 0.81 0.74 0.83 0.98 0.88 0.62 0.89 0.79 
+
+zai-org/GLM-5.1 754.0B 0.80 0.96 0.77 0.07 0.84 0.63 0.89 0.95 0.88 0.60 0.88 0.76 
+
+Qwen/Qwen3.5-397B-A17B 397.0B 0.73 0.91 0.80 0.49 0.73 0.67 0.57 0.89 0.75 0.62 0.86 0.80 
+
+B2NER-InternLM2.5 19.9B 0.55 0.77 0.68 0.37 0.49 0.53 0.38 0.53 0.54 0.32 0.61 0.61 
+
+jakobhuss/pii-extractor-gemma-3-270m-it 268M 0.32 0.69 0.61 0.13 0.45 0.41 0.28 0.56 0.51 0.22 0.68 0.56 
+
+B2NER-InternLM2.5-7B 7.7B 0.25 0.56 0.53 0.11 0.55 0.47 0.27 0.69 0.59 0.37 0.48 0.54 
+
+distil-labs/Distil-PII-Llama-3.2-3B-Instruct 3.2B 0.52 0.64 0.69 0.00 0.05 0.25 0.21 0.31 0.39 0.22 0.52 0.47 
+
+numind/NuExtract-1.5-tiny 494M 0.33 0.46 0.49 0.17 0.47 0.40 0.24 0.42 0.39 0.11 0.46 0.43 
+
+eternisai/Anonymizer-4B 4.0B 0.20 0.41 0.46 0.17 0.51 0.50 0.00 0.15 0.36 0.01 0.67 0.53 
+
+Universal-NER/UniNER-7B-all 7.0B 0.16 0.55 0.48 0.18 0.36 0.38 0.18 0.42 0.39 0.34 0.61 0.57 
+
+numind/NuExtract-2.0-2B 2.0B 0.26 0.47 0.48 0.25 0.43 0.43 0.22 0.32 0.40 0.18 0.49 0.45 
+
+numind/NuExtract-2.0-4B 4.0B 0.27 0.37 0.44 0.22 0.40 0.41 0.11 0.32 0.35 0.18 0.40 0.40 
+
+OpenPipe/PII-Redact-General 1.2B 0.02 0.14 0.14 0.00 0.09 0.14 0.09 0.22 0.25 0.04 0.11 0.16 
+
+distil-labs/Distil-PII-gemma-3-270m-it 268M 0.00 0.00 0.21 0.00 0.00 0.07 0.00 0.00 0.02 0.00 0.00 0.16 
+
+distil-labs/Distil-PII-Llama-3.2-1B-Instruct 1.2B 0.03 0.38 0.40 0.00 0.05 0.25 0.00 0.15 0.22 0.00 0.37 0.39 
+
+Model Params Legal Med. Ops. All 
+
+P20 P50 Mean P20 P50 Mean P20 P50 Mean P20 P50 Mean 
+
+claude-opus-4-6 5.0T 0.51 0.77 0.72 0.64 0.97 0.84 0.83 0.88 0.90 0.45 0.78 0.71 
+
+gpt-5.4 5.0T 0.70 0.87 0.79 0.35 0.74 0.66 0.87 1.00 0.91 0.36 0.73 0.66 
+
+zai-org/GLM-5.1 754.0B 0.68 0.84 0.76 0.67 0.94 0.80 0.89 0.95 0.87 0.00 0.72 0.56 
+
+Qwen/Qwen3.5-397B-A17B 397.0B 0.28 0.83 0.66 0.32 0.75 0.66 0.75 0.90 0.83 0.25 0.65 0.59 
+
+B2NER-InternLM2.5 19.9B 0.20 0.68 0.55 0.25 0.53 0.56 0.64 0.71 0.73 0.15 0.43 0.45 
+
+jakobhuss/pii-extractor-gemma-3-270m-it 268M 0.12 0.51 0.44 0.19 0.60 0.51 0.51 0.74 0.70 0.04 0.39 0.40 
+
+B2NER-InternLM2.5-7B 7.7B 0.22 0.64 0.51 0.17 0.60 0.52 0.54 0.64 0.63 0.10 0.37 0.40 
+
+distil-labs/Distil-PII-Llama-3.2-3B-Instruct 3.2B 0.00 0.49 0.47 0.00 0.54 0.51 0.20 0.41 0.50 0.00 0.26 0.34 
+
+numind/NuExtract-1.5-tiny 494M 0.11 0.39 0.42 0.33 0.60 0.59 0.37 0.50 0.51 0.00 0.26 0.31 
+
+eternisai/Anonymizer-4B 4.0B 0.22 0.72 0.62 0.26 0.65 0.58 0.00 0.80 0.58 0.00 0.25 0.36 
+
+Universal-NER/UniNER-7B-all 7.0B 0.20 0.34 0.37 0.18 0.38 0.34 0.30 0.55 0.54 0.05 0.25 0.32 
+
+numind/NuExtract-2.0-2B 2.0B 0.30 0.55 0.54 0.33 0.50 0.55 0.00 0.30 0.33 0.00 0.25 0.32 
+
+numind/NuExtract-2.0-4B 4.0B 0.02 0.23 0.31 0.19 0.37 0.48 0.00 0.40 0.39 0.00 0.23 0.29 
+
+OpenPipe/PII-Redact-General 1.2B 0.00 0.06 0.10 0.01 0.09 0.11 0.06 0.18 0.29 0.00 0.05 0.11 
+
+distil-labs/Distil-PII-gemma-3-270m-it 268M 0.00 0.00 0.19 0.00 0.00 0.18 0.00 0.00 0.21 0.00 0.00 0.09 
+
+distil-labs/Distil-PII-Llama-3.2-1B-Instruct 1.2B 0.00 0.00 0.06 0.00 0.09 0.25 0.00 0.53 0.42 0.00 0.00 0.18 
+
+33 J Supplemental Model Configurations 
+
+Overview 
+
+This supplement records the per-model inference configurations, prompt templates, tool definitions, label sources, and backend identifiers used for the model evaluations in R EDACTION BENCH .
+
+J.1 Frontier and Generative Models 
+
+claude-opus-4-6 Frontier LLMs 
+
+Source: frontier tool overload (MultiEdit) 
+
+Model ref: claude-opus-4-6 
+
+Parameter count: Unknown 
+
+Backend: generative.harnessed.anthropic 
+
+Request mode: tool-call (forced; OpenAI sends two ‘role=user‘ messages, Anthropic concatenates them into one) 
+
+Tools: MultiEdit (required args: file_path, edits) — Apply multiple string replacements to benchmark_input.txt. List every substring that should be redacted as a separate edit with old_string set to the substring (verbatim) and new_string set to "REDACTED". The harness will perform the replacements after intercepting your edit list. 
+
+Inference settings: batch_size=1 
+
+Notes: Frontier LLM: forced single tool call to ‘MultiEdit‘. The harness intercepts the call, parses the tool arguments, and recovers redaction spans from the substrings the model emits (the system prompt instructs the model to mark them with the marker characters used by ‘_parse_marked_entity‘ in ‘_harness.py‘). The model is never asked to enumerate PII labels. 
+
+System prompt: 
+
+You are reviewing one document for public release. Your job is to identify every substring that should be redacted (names, addresses, phone numbers, emails, IDs, account numbers, dates of birth, medical or financial details, anything that could identify a person or sensitive entity) and emit them through a single `MultiEdit ` tool call against benchmark_input.txt. Each edit in the `edits ` array should set: - `old_string ` to a substring that exists verbatim in the document - `new_string ` to `REDACTED `
+
+Rules: - Use the narrowest substring possible (just the name, just the phone number — not the surrounding sentence). - One substring per edit. Add as many edits as needed. - If a substring appears multiple times, list it once. Setting `replace_all: true ` is fine but optional. - Make exactly one `MultiEdit ` tool call. Do not call any other tool. Do not emit text before or after the tool call. 
+
+User template ( {text} = the chunk being processed): 
+
+Path: benchmark_input.txt Document (full): {text} User request: Redact this document as best as possible for public release. Make exactly one tool call as instructed in the system prompt. 
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+[ { "type": "function", "function": { "name": "MultiEdit", "description": "Apply multiple string replacements to benchmark_input.txt. List every substring that should be redacted as a separate edit with old_string set to the substring (verbatim) and new_string set to \"REDACTED\". The harness will perform the replacements after intercepting your edit list.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "file_path": { "type": "string", "description": "The file to edit. Always benchmark_input.txt." }, "edits": { "type": "array", "description": "One entry per substring to redact. Each entry has old_string (the substring) and new_string (\"REDACTED\").", "items": { "type": "object", "additionalProperties": false, "properties": { "old_string": { "type": "string" }, "new_string": { "type": "string" }, "replace_all": { "type": "boolean" }}, "required": [ "old_string", "new_string" ]}}}, "required": [ "file_path", "edits" ]}}}]
+
+34 zai-org/GLM-5.1 Frontier LLMs 
+
+Source: frontier tool overload (bash) 
+
+Model ref: zai-org/GLM-5.1 
+
+Parameter count: 754,000,000,000 
+
+Backend: generative.harnessed.togetherai 
+
+Request mode: tool-call (forced; OpenAI sends two ‘role=user‘ messages, Anthropic concatenates them into one) 
+
+Tools: bash (required args: command) — Run a single shell command that redacts every PII or sensitive substring from benchmark_input.txt. Use chained ‘sed -i‘ substitutions, one per substring to redact. The harness will execute the command after intercepting it. 
+
+Inference settings: batch_size=1 
+
+Notes: Frontier LLM: forced single tool call to ‘bash‘. The harness intercepts the call, parses the tool arguments, and recovers redaction spans from the substrings the model emits (the system prompt instructs the model to mark them with the marker characters used by ‘_parse_marked_entity‘ in ‘_harness.py‘). The model is never asked to enumerate PII labels. 
+
+System prompt: 
+
+You are reviewing one document for public release. Your job is to identify every substring that should be redacted (names, addresses, phone numbers, emails, IDs, account numbers, dates of birth, medical or financial details, anything that could identify a person or sensitive entity) and emit them through a single `bash ` tool call. The command should be a single `sed ` invocation that chains every substitution against benchmark_input.txt. Example shape: 
+
+``` 
+
+sed -i 's/<substring1>/REDACTED/g; s/<substring2>/REDACTED/g; s/<substring3>/REDACTED/g ' benchmark_input.txt 
+
+``` 
+
+Rules: - Each `s/<substring>/REDACTED/g ` substitution targets one substring that exists verbatim in the document. - Use the narrowest substring possible (just the name, just the phone number — not the surrounding sentence). - Chain every substitution into one `sed ` call using `;` separators (or use multiple `-e ` flags — both are fine). - If a substring contains a `/`, switch the delimiter for that substitution to `#` or `|`, e.g. 
+
+`s#https://example.com#REDACTED#g `.- Make exactly one `bash ` tool call. Do not call any other tool. Do not emit text before or after the tool call. 
+
+User template ( {text} = the chunk being processed): 
+
+Path: benchmark_input.txt Document (full): {text} User request: Redact this document as best as possible for public release. Make exactly one tool call as instructed in the system prompt. 
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+[ { "type": "function", "function": { "name": "bash", "description": "Run a single shell command that redacts every PII or sensitive substring from benchmark_input.txt. Use chained `sed -i ` substitutions, one per substring to redact. The harness will execute the command after intercepting it.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "command": { "type": "string", "description": "A single shell command. Prefer `sed -i 's/<old1>/REDACTED/g; s/<old2>/REDACTED/g; ... '
+
+benchmark_input.txt `." }}, "required": [ "command" ]}}}]
+
+35 gpt-5.4 Frontier LLMs 
+
+Source: frontier tool overload (predict_entities) 
+
+Model ref: gpt-5.4 
+
+Parameter count: Unknown 
+
+Backend: generative.harnessed.openai 
+
+Request mode: tool-call (forced; OpenAI sends two ‘role=user‘ messages, Anthropic concatenates them into one) 
+
+Tools: predict_entities (required args: entities) — Identify every substring in the document that should be redacted for public release. For each PII or sensitive item, include a short verbatim snippet from the document that contains it, and wrap the exact substring to redact in ⟨ ⟩ markers. Return all items in the ‘entities‘ list in a single tool call. 
+
+Inference settings: batch_size=1 
+
+Notes: Frontier LLM: forced single tool call to ‘predict_entities‘. The harness intercepts the call, parses the tool arguments, and recovers redaction spans from the substrings the model emits (the system prompt instructs the model to mark them with the marker characters used by ‘_parse_marked_entity‘ in ‘_harness.py‘). The model is never asked to enumerate PII labels. 
+
+System prompt: 
+
+You are reviewing one document for public release. Your job is to identify every substring that should be redacted (names, addresses, phone numbers, emails, IDs, account numbers, dates of birth, medical or financial details, anything that could identify a person or sensitive entity) and emit them through a single `predict_entities ` tool call. Marking format: - There is a single label: redact. - Mark every substring to redact using ⟨ ⟩ markers. - Do not use any other marker format. Entity rules: - Each entity must match document text verbatim. - Use narrow entity-level spans when possible (just the name, just the phone number — not the surrounding sentence). - You may include multiple ⟨ ⟩ spans in one entity string when they form a single logical redaction target. - If nothing should be redacted, return an empty list. - Make exactly one `predict_entities ` tool call. Do not call any other tool. Do not emit text before or after the tool call. 
+
+User template ( {text} = the chunk being processed): 
+
+Path: benchmark_input.txt Document (full): {text} User request: Redact this document as best as possible for public release. Make exactly one tool call as instructed in the system prompt. 
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+[ { "type": "function", "function": { "name": "predict_entities", "description": "Identify every substring in the document that should be redacted for public release. For each PII or sensitive item, include a short verbatim snippet from the document that contains it, and wrap the exact substring to redact in ⟨ ⟩ markers. Return all items in the `entities ` list in a single tool call.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "entities": { "type": "array", "description": "One entry per redaction target. Each entry is a verbatim snippet from the document with the sensitive substring wrapped in ⟨ ⟩ markers, e.g. \"Contact ⟨John Smith ⟩ at\" or simply \" ⟨john@example.com ⟩\". A single entry may contain multiple ⟨ ⟩ spans when they form one logical entity.", "items": { "type": "string" }}}, "required": [ "entities" ]}}}]
+
+36 Qwen/Qwen3.5-397B-A17B Frontier LLMs 
+
+Source: frontier tool overload (bash) 
+
+Model ref: Qwen/Qwen3.5-397B-A17B 
+
+Parameter count: 397,000,000,000 
+
+Backend: generative.harnessed.togetherai 
+
+Request mode: tool-call (forced; OpenAI sends two ‘role=user‘ messages, Anthropic concatenates them into one) 
+
+Tools: bash (required args: command) — Run a single shell command that redacts every PII or sensitive substring from benchmark_input.txt. Use chained ‘sed -i‘ substitutions, one per substring to redact. The harness will execute the command after intercepting it. 
+
+Inference settings: batch_size=1 
+
+Notes: Frontier LLM: forced single tool call to ‘bash‘. The harness intercepts the call, parses the tool arguments, and recovers redaction spans from the substrings the model emits (the system prompt instructs the model to mark them with the marker characters used by ‘_parse_marked_entity‘ in ‘_harness.py‘). The model is never asked to enumerate PII labels. 
+
+System prompt: 
+
+You are reviewing one document for public release. Your job is to identify every substring that should be redacted (names, addresses, phone numbers, emails, IDs, account numbers, dates of birth, medical or financial details, anything that could identify a person or sensitive entity) and emit them through a single `bash ` tool call. The command should be a single `sed ` invocation that chains every substitution against benchmark_input.txt. Example shape: 
+
+``` 
+
+sed -i 's/<substring1>/REDACTED/g; s/<substring2>/REDACTED/g; s/<substring3>/REDACTED/g ' benchmark_input.txt 
+
+``` 
+
+Rules: - Each `s/<substring>/REDACTED/g ` substitution targets one substring that exists verbatim in the document. - Use the narrowest substring possible (just the name, just the phone number — not the surrounding sentence). - Chain every substitution into one `sed ` call using `;` separators (or use multiple `-e ` flags — both are fine). - If a substring contains a `/`, switch the delimiter for that substitution to `#` or `|`, e.g. 
+
+`s#https://example.com#REDACTED#g `.- Make exactly one `bash ` tool call. Do not call any other tool. Do not emit text before or after the tool call. 
+
+User template ( {text} = the chunk being processed): 
+
+Path: benchmark_input.txt Document (full): {text} User request: Redact this document as best as possible for public release. Make exactly one tool call as instructed in the system prompt. 
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+[ { "type": "function", "function": { "name": "bash", "description": "Run a single shell command that redacts every PII or sensitive substring from benchmark_input.txt. Use chained `sed -i ` substitutions, one per substring to redact. The harness will execute the command after intercepting it.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "command": { "type": "string", "description": "A single shell command. Prefer `sed -i 's/<old1>/REDACTED/g; s/<old2>/REDACTED/g; ... '
+
+benchmark_input.txt `." }}, "required": [ "command" ]}}}]
+
+37 B2NER-InternLM2.5-7B B2NER 
+
+Source: compact natural-language PII list (10 entries; NER-format prompt with full label list per chunk) 
+
+Model ref: internlm/internlm2_5-7b 
+
+Parameter count: 7,748,194,304 
+
+Backend: generative.b2ner_internlm2_5 
+
+Request mode: b2ner_instruction (raw causal-LM completion; no chat template) 
+
+Labels (10): person name, email address, phone number, address, date, credit card number, ssn, ip address, url, username 
+
+LoRA adapter: Umean/B2NER-Internlm2.5-7B-LoRA 
+
+Compatibility stack: transformers==4.42.3 / peft==0.11.1 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, max_input_tokens=4096, max_new_tokens=512, pre-ferred_outer_batch_size=1, text_chunk_tokens=2048 
+
+Notes: We pin transformers/peft to the versions used in the original B2NER release: newer versions emit empty generations under this PEFT-LoRA setup. The base model is loaded from the Model ref above and the LoRA adapter is then attached. 
+
+Instruction template ( {labels_str} = comma-joined label list; {text} = the chunk being processed): 
+
+> Given the label set of entities, please recognize all the entities in the text. The answer format should be "entity label: entity; entity label: entity". Label Set: {labels_str} Text: {text} Answer:
+
+B2NER-InternLM2.5-20B B2NER 
+
+Source: compact natural-language PII list (10 entries; NER-format prompt with full label list per chunk) 
+
+Model ref: internlm/internlm2-20b 
+
+Parameter count: 19,861,522,432 
+
+Backend: generative.b2ner_internlm2_5 
+
+Request mode: b2ner_instruction (raw causal-LM completion; no chat template) 
+
+Labels (10): person name, email address, phone number, address, date, credit card number, ssn, ip address, url, username 
+
+LoRA adapter: Umean/B2NER-Internlm2-20B-LoRA 
+
+Compatibility stack: transformers==4.42.3 / peft==0.11.1 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, max_input_tokens=4096, max_new_tokens=512, pre-ferred_outer_batch_size=1, text_chunk_tokens=2048 
+
+Notes: We pin transformers/peft to the versions used in the original B2NER release: newer versions emit empty generations under this PEFT-LoRA setup. The base model is loaded from the Model ref above and the LoRA adapter is then attached. 
+
+Instruction template ( {labels_str} = comma-joined label list; {text} = the chunk being processed): 
+
+> Given the label set of entities, please recognize all the entities in the text. The answer format should be "entity label: entity; entity label: entity". Label Set: {labels_str} Text: {text} Answer:
+
+38 Universal-NER/UniNER-7B-all SLMs / Extractors 
+
+Source: DEFAULT_SHARED_OPENPII_LABELS (per-label inference; one prompt per label per chunk) 
+
+Model ref: Universal-NER/UniNER-7B-all 
+
+Parameter count: 7,000,000,000 
+
+Backend: generative.universal_ner_uniner_7b_all 
+
+Request mode: uniner_chat (custom; one prompt per label per chunk) 
+
+Labels (91): medical_record_number, date_of_birth, ssn, date, first_name, email, last_name, customer_id, employee_id, name, street_address, phone_number, ipv4, credit_card_number, license_plate, address, user_name, de-vice_identifier, bank_routing_number, date_time, company_name, unique_identifier, biometric_identifier, ac-count_number, city, certificate_license_number, time, postcode, vehicle_identifier, coordinate, country, api_key, ipv6, password, health_plan_beneficiary_number, national_id, tax_id, url, state, swift_bic, cvv, pin, pre-fix, imei, gender, job_area, job_type, job_title, street, secondary_address, county, age, user_agent, ac-count_name, currency_symbol, amount, credit_card_issuer, sex, ip_address, ethereum_address, bitcoin_address, middle_name, iban, vehicle_registration_number, currency, currency_name, currency_code, building_number, ordinal_direction, masked_number, zip_code, bic, mac_address, gps_coordinates, vin, eye_color, height, occupa-tion, credit_debit_card, education_level, race_ethnicity, employment_status, fax_number, language, political_view, http_cookie, religious_belief, blood_type, sexuality, username, unique_id 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=48, max_input_tokens=8192, max_new_tokens=128, max_prompts_per_batch=4, preferred_outer_batch_size=1, torch_dtype=bfloat16 
+
+User template ( {text} = the chunk being processed): 
+
+> A virtual assistant answers questions from a user based on the provided text. USER: Text: {text} ASSISTANT: I 've read this text.</s>USER: What describes {label} in the text? ASSISTANT:
+
+39 distil-labs/Distil-PII-gemma-3-270m-it SLMs / Extractors 
+
+Source: open prompt (strategy=distil) 
+
+Model ref: distil-labs/Distil-PII-gemma-3-270m-it 
+
+Backend: generative.distil_labs_distil_pii_gemma_3_270m_it 
+
+Request mode: chat 
+
+Inference settings: batch_size=4, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=4096, torch_dtype=bfloat16 
+
+System prompt: 
+
+You are a problem solving model working on task_description XML block: <task_description> Produce a redacted version of texts, removing sensitive personal data while preserving operational signals. The model must return a single json blob with: * **redacted_text** is the input with minimal, in-place replacements of redacted entities. * **entities** as an array of objects with exactly three fields {value: original_value, replacement_token: replacement, reason: reasoning}. ## What to redact ( → replacement token) * **PERSON** — customer/patient/person names (first/last/full; identifying initials) → `[PERSON] `
+
+* **EMAIL** — any email, including obfuscated `name(at)domain(dot)com ` → `[EMAIL] `
+
+* **PHONE** — any international/national format (separators/emoji bullets allowed) → `[PHONE] `
+
+* **ADDRESS** — street + number; full postal lines; apartment/unit numbers → `[ADDRESS] `
+
+* **SSN** — US Social Security numbers → `[SSN] `
+
+* **ID** — national IDs (PESEL, NIN, Aadhaar, DNI, etc.) when personal → `[ID] `
+
+* **UUID** — person-scoped system identifiers (e.g., MRN/NHS/patient IDs/customer UUIDs) → `[UUID] `
+
+* **CREDIT_CARD** — 13–19 digits (spaces/hyphens allowed) → `[CARD_LAST4:####] ` (keep last-4 only) * **IBAN** — IBAN/bank account numbers → `[IBAN_LAST4:####] ` (keep last-4 only) * **GENDER** — self-identification (male/female/non-binary/etc.) → `[GENDER] `
+
+* **AGE** — stated ages ("I 'm 29", "age: 47", "29 y/o") → `[AGE_YEARS:##] `
+
+* **RACE** — race/ethnicity self-identification → `[RACE] `
+
+* **MARITAL_STATUS** — married/single/divorced/widowed/partnered → `[MARITAL_STATUS] `
+
+## Keep (do not redact) * Card **last-4** when only last-4 is present (e.g., "ending 9021", " •••• 9021"). * Operational IDs: order/ticket/invoice numbers, shipment tracking, device serials, case IDs. * Non-personal org info: company names, product names, team names. * Cities/countries alone (redact full street+number, not plain city/country mentions). ## Output schema (exactly these fields) * **redacted_text** The original text with all the sensitive information replaced with redacted tokens * **entities** Array with all the replaced elements, each element represented by following fields * **replacement_token**: one of `[PERSON] | [EMAIL] | [PHONE] | [ADDRESS] | [SSN] | [ID] | [UUID] | [CREDIT_CARD] | [IBAN] | [GENDER] | [AGE] | [RACE] | [MARITAL_STATUS] `
+
+* **value**: original text that was redacted * **reason**: brief string explaining the rule/rationale for example { "redacted_text": "Hi, I 'm [PERSON] and my email is [EMAIL].", "entities": [ { "type": "PERSON", "value": "John Smith", "reason": "person name"}, { "type": "EMAIL", "value": "john.smith@example.com", "reason": "email"} ]}</task_description> You will be given a single task with context in the context XML block and the task in the question XML block Solve the task in question block based on the context in context block. Generate only the answer, do not generate anything else 
+
+User template ( {text} = the chunk being processed): 
+
+Now for the real task, solve the task in question block based on the context in context block. Generate only the solution, do not generate anything else <context> {text} </context> <question>Redact provided text according to the task description and return redacted elements.</question> 
+
+40 distil-labs/Distil-PII-Llama-3.2-1B-Instruct SLMs / Extractors 
+
+Source: open prompt (strategy=distil) 
+
+Model ref: distil-labs/Distil-PII-Llama-3.2-1B-Instruct 
+
+Backend: generative.distil_labs_distil_pii_llama_3_2_1b_instruct 
+
+Request mode: chat 
+
+Inference settings: batch_size=2, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=4096, torch_dtype=bfloat16, use_redacted_text_alignment=true 
+
+System prompt: 
+
+You are a problem solving model working on task_description XML block: <task_description> Produce a redacted version of texts, removing sensitive personal data while preserving operational signals. The model must return a single json blob with: * **redacted_text** is the input with minimal, in-place replacements of redacted entities. * **entities** as an array of objects with exactly three fields {value: original_value, replacement_token: replacement, reason: reasoning}. ## What to redact ( → replacement token) * **PERSON** — customer/patient/person names (first/last/full; identifying initials) → `[PERSON] `
+
+* **EMAIL** — any email, including obfuscated `name(at)domain(dot)com ` → `[EMAIL] `
+
+* **PHONE** — any international/national format (separators/emoji bullets allowed) → `[PHONE] `
+
+* **ADDRESS** — street + number; full postal lines; apartment/unit numbers → `[ADDRESS] `
+
+* **SSN** — US Social Security numbers → `[SSN] `
+
+* **ID** — national IDs (PESEL, NIN, Aadhaar, DNI, etc.) when personal → `[ID] `
+
+* **UUID** — person-scoped system identifiers (e.g., MRN/NHS/patient IDs/customer UUIDs) → `[UUID] `
+
+* **CREDIT_CARD** — 13–19 digits (spaces/hyphens allowed) → `[CARD_LAST4:####] ` (keep last-4 only) * **IBAN** — IBAN/bank account numbers → `[IBAN_LAST4:####] ` (keep last-4 only) * **GENDER** — self-identification (male/female/non-binary/etc.) → `[GENDER] `
+
+* **AGE** — stated ages ("I 'm 29", "age: 47", "29 y/o") → `[AGE_YEARS:##] `
+
+* **RACE** — race/ethnicity self-identification → `[RACE] `
+
+* **MARITAL_STATUS** — married/single/divorced/widowed/partnered → `[MARITAL_STATUS] `
+
+## Keep (do not redact) * Card **last-4** when only last-4 is present (e.g., "ending 9021", " •••• 9021"). * Operational IDs: order/ticket/invoice numbers, shipment tracking, device serials, case IDs. * Non-personal org info: company names, product names, team names. * Cities/countries alone (redact full street+number, not plain city/country mentions). ## Output schema (exactly these fields) * **redacted_text** The original text with all the sensitive information replaced with redacted tokens * **entities** Array with all the replaced elements, each element represented by following fields * **replacement_token**: one of `[PERSON] | [EMAIL] | [PHONE] | [ADDRESS] | [SSN] | [ID] | [UUID] | [CREDIT_CARD] | [IBAN] | [GENDER] | [AGE] | [RACE] | [MARITAL_STATUS] `
+
+* **value**: original text that was redacted * **reason**: brief string explaining the rule/rationale for example { "redacted_text": "Hi, I 'm [PERSON] and my email is [EMAIL].", "entities": [ { "type": "PERSON", "value": "John Smith", "reason": "person name"}, { "type": "EMAIL", "value": "john.smith@example.com", "reason": "email"} ]}</task_description> You will be given a single task with context in the context XML block and the task in the question XML block Solve the task in question block based on the context in context block. Generate only the answer, do not generate anything else 
+
+User template ( {text} = the chunk being processed): 
+
+Now for the real task, solve the task in question block based on the context in context block. Generate only the solution, do not generate anything else <context> {text} </context> <question>Redact provided text according to the task description and return redacted elements.</question> 
+
+41 distil-labs/Distil-PII-Llama-3.2-3B-Instruct SLMs / Extractors 
+
+Source: open prompt (strategy=distil) 
+
+Model ref: distil-labs/Distil-PII-Llama-3.2-3B-Instruct 
+
+Backend: generative.distil_labs_distil_pii_llama_3_2_3b_instruct 
+
+Request mode: chat 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=4096, torch_dtype=bfloat16 
+
+System prompt: 
+
+You are a problem solving model working on task_description XML block: <task_description> Produce a redacted version of texts, removing sensitive personal data while preserving operational signals. The model must return a single json blob with: * **redacted_text** is the input with minimal, in-place replacements of redacted entities. * **entities** as an array of objects with exactly three fields {value: original_value, replacement_token: replacement, reason: reasoning}. ## What to redact ( → replacement token) * **PERSON** — customer/patient/person names (first/last/full; identifying initials) → `[PERSON] `
+
+* **EMAIL** — any email, including obfuscated `name(at)domain(dot)com ` → `[EMAIL] `
+
+* **PHONE** — any international/national format (separators/emoji bullets allowed) → `[PHONE] `
+
+* **ADDRESS** — street + number; full postal lines; apartment/unit numbers → `[ADDRESS] `
+
+* **SSN** — US Social Security numbers → `[SSN] `
+
+* **ID** — national IDs (PESEL, NIN, Aadhaar, DNI, etc.) when personal → `[ID] `
+
+* **UUID** — person-scoped system identifiers (e.g., MRN/NHS/patient IDs/customer UUIDs) → `[UUID] `
+
+* **CREDIT_CARD** — 13–19 digits (spaces/hyphens allowed) → `[CARD_LAST4:####] ` (keep last-4 only) * **IBAN** — IBAN/bank account numbers → `[IBAN_LAST4:####] ` (keep last-4 only) * **GENDER** — self-identification (male/female/non-binary/etc.) → `[GENDER] `
+
+* **AGE** — stated ages ("I 'm 29", "age: 47", "29 y/o") → `[AGE_YEARS:##] `
+
+* **RACE** — race/ethnicity self-identification → `[RACE] `
+
+* **MARITAL_STATUS** — married/single/divorced/widowed/partnered → `[MARITAL_STATUS] `
+
+## Keep (do not redact) * Card **last-4** when only last-4 is present (e.g., "ending 9021", " •••• 9021"). * Operational IDs: order/ticket/invoice numbers, shipment tracking, device serials, case IDs. * Non-personal org info: company names, product names, team names. * Cities/countries alone (redact full street+number, not plain city/country mentions). ## Output schema (exactly these fields) * **redacted_text** The original text with all the sensitive information replaced with redacted tokens * **entities** Array with all the replaced elements, each element represented by following fields * **replacement_token**: one of `[PERSON] | [EMAIL] | [PHONE] | [ADDRESS] | [SSN] | [ID] | [UUID] | [CREDIT_CARD] | [IBAN] | [GENDER] | [AGE] | [RACE] | [MARITAL_STATUS] `
+
+* **value**: original text that was redacted * **reason**: brief string explaining the rule/rationale for example { "redacted_text": "Hi, I 'm [PERSON] and my email is [EMAIL].", "entities": [ { "type": "PERSON", "value": "John Smith", "reason": "person name"}, { "type": "EMAIL", "value": "john.smith@example.com", "reason": "email"} ]}</task_description> You will be given a single task with context in the context XML block and the task in the question XML block Solve the task in question block based on the context in context block. Generate only the answer, do not generate anything else 
+
+User template ( {text} = the chunk being processed): 
+
+Now for the real task, solve the task in question block based on the context in context block. Generate only the solution, do not generate anything else <context> {text} </context> <question>Redact provided text according to the task description and return redacted elements.</question> 
+
+42 numind/NuExtract-1.5-tiny SLMs / Extractors 
+
+Source: NuExtract JSON schema template — documented list-of-strings (17 fields, model-side schema-following) 
+
+Model ref: numind/NuExtract-1.5-tiny 
+
+Parameter count: 494,032,768 
+
+Backend: generative.nuextract_1_5_tiny 
+
+Request mode: nuextract <|input|>/<|output|> raw completion (see prompt skeleton below) 
+
+Labels (17): name, email, phone_number, address, ssn, date_of_birth, credit_card_number, iban, bank_account_number, ip_address, medical_record_number, license_number, account_number, url, username, password, api_key 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=1024, text_chunk_tokens=2000 
+
+Prompt skeleton ( {template_json} = the JSON schema below; {text} = the chunk being processed): 
+
+> <|input|> ### Template: {template_json} ### Text: {text} <|output|>
+
+NuExtract JSON schema ( template_json ): 
+
+> { "account_number": [ "" ], "address": [ "" ], "api_key": [ "" ], "bank_account_number": [ "" ], "credit_card_number": [ "" ], "date_of_birth": [ "" ], "email": [ "" ], "iban": [ "" ], "ip_address": [ "" ], "license_number": [ "" ], "medical_record_number": [ "" ], "name": [ "" ], "password": [ "" ], "phone_number": [ "" ], "ssn": [ "" ], "url": [ "" ], "username": [ "" ]}
+
+43 numind/NuExtract-2.0-2B SLMs / Extractors 
+
+Source: NuExtract JSON schema template — typed verbatim-string (17 fields, model-side schema-following) 
+
+Model ref: numind/NuExtract-2.0-2B 
+
+Parameter count: 2,000,000,000 
+
+Backend: generative.nuextract_2_0_2b 
+
+Request mode: chat with ‘template‘ chat-template kwarg (NuExtract-2.0 chat template ingests the JSON schema) 
+
+Labels (17): account_number, address, api_key, bank_account_number, credit_card_number, date_of_birth, email, iban, ip_address, license_number, medical_record_number, name, password, phone_number, ssn, url, username 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=4096, text_chunk_tokens=2000, torch_dtype=bfloat16 
+
+Prompt skeleton ( {template_json} = the JSON schema below; {text} = the chunk being processed): 
+
+> {text}
+
+NuExtract JSON schema ( template_json ): 
+
+> { "account_number": "verbatim-string", "address": "verbatim-string", "api_key": "verbatim-string", "bank_account_number": "verbatim-string", "credit_card_number": "verbatim-string", "date_of_birth": "verbatim-string", "email": "verbatim-string", "iban": "verbatim-string", "ip_address": "verbatim-string", "license_number": "verbatim-string", "medical_record_number": "verbatim-string", "name": "verbatim-string", "password": "verbatim-string", "phone_number": "verbatim-string", "ssn": "verbatim-string", "url": "verbatim-string", "username": "verbatim-string" }
+
+numind/NuExtract-2.0-4B SLMs / Extractors 
+
+Source: NuExtract JSON schema template — documented list-of-strings (17 fields, model-side schema-following) 
+
+Model ref: numind/NuExtract-2.0-4B 
+
+Parameter count: 4,000,000,000 
+
+Backend: generative.nuextract_2_0_4b 
+
+Request mode: chat with ‘template‘ chat-template kwarg (NuExtract-2.0 chat template ingests the JSON schema) 
+
+Labels (17): name, email, phone_number, address, ssn, date_of_birth, credit_card_number, iban, bank_account_number, ip_address, medical_record_number, license_number, account_number, url, username, password, api_key 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=4096, text_chunk_tokens=2000, torch_dtype=bfloat16 
+
+Prompt skeleton ( {template_json} = the JSON schema below; {text} = the chunk being processed): 
+
+> {text}
+
+NuExtract JSON schema ( template_json ): 
+
+> { "account_number": [ "" ], "address": [ "" ], "api_key": [ "" ], "bank_account_number": [ "" ], "credit_card_number": [ "" ], "date_of_birth": [ "" ], "email": [ "" ], "iban": [ "" ], "ip_address": [ "" ], "license_number": [ "" ], "medical_record_number": [ "" ], "name": [ "" ], "password": [ "" ], "phone_number": [ "" ], "ssn": [ "" ], "url": [ "" ], "username": [ "" ]}
+
+44 OpenPipe/PII-Redact-General SLMs / Extractors 
+
+Source: open prompt (strategy=openpipe) 
+
+Model ref: OpenPipe/PII-Redact-General 
+
+Parameter count: 1,235,814,400 
+
+Backend: generative.openpipe_pii_redact_general 
+
+Request mode: chat (with tool-call contract) 
+
+Tools: report_entities (required args: entities) — Return exact entity substrings to redact. 
+
+Inference settings: batch_size=4, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=1024, max_span_chars=40, text_chunk_tokens=1024, torch_dtype=bfloat16 
+
+System prompt:   
+
+> Find personally identifying or sensitive entities in the user text and call `report_entities `exactly once. Return exact substrings only, not whole sentences, explanations, punctuation, or common words. Include names, organizations, locations, dates/times, addresses, emails, phone numbers, URLs, account identifiers, credentials, demographic attributes, and person-or organization-linked monetary values.
+
+User template ( {text} = the chunk being processed): 
+
+> Text to inspect: {text}
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+> [ { "type": "function", "function": { "name": "report_entities", "description": "Return exact entity substrings to redact.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "entities": { "type": "array", "items": { "type": "string" }}}, "required": [ "entities" ]}}}]
+
+jakobhuss/pii-extractor-gemma-3-270m-it SLMs / Extractors 
+
+Source: open prompt (strategy=jakobhuss) 
+
+Model ref: jakobhuss/pii-extractor-gemma-3-270m-it 
+
+Backend: generative.jakobhuss_pii_extractor_gemma_3_270m_it 
+
+Request mode: chat 
+
+Inference settings: batch_size=4, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=512, torch_dtype=bfloat16 
+
+User template ( {text} = the chunk being processed):   
+
+> List PII or secret substrings that should be redacted. Return either JSON with `entities `or a concise plain list. {text}
+
+45 eternisai/Anonymizer-4B SLMs / Extractors 
+
+Source: open prompt (strategy=eternisai) 
+
+Model ref: eternisai/Anonymizer-4B 
+
+Backend: generative.eternisai_anonymizer_4b 
+
+Request mode: chat (with tool-call contract) 
+
+Tools: replace_entities (required args: replacements) — List replacements for PII entities. 
+
+Inference settings: batch_size=1, chunk_overlap_tokens=64, do_sample=false, max_input_tokens=8192, max_new_tokens=512, torch_dtype=bfloat16 
+
+System prompt: 
+
+You are an anonymizer. Your task is to identify and replace all personally identifiable information (PII) in the given text. Replace PII entities with semantically equivalent alternatives that preserve the context needed for a good response. If no PII is found or replacement is not needed, return an empty replacements list. 
+
+User template ( {text} = the chunk being processed): 
+
+Text to anonymize: {text} /no_think 
+
+Tool definition (JSON; sent to the model as the only allowed function call): 
+
+[ { "type": "function", "function": { "name": "replace_entities", "description": "List replacements for PII entities.", "parameters": { "type": "object", "additionalProperties": false, "properties": { "replacements": { "type": "array", "items": { "type": "object", "additionalProperties": true, "properties": { "original": { "type": "string" }, "replacement": { "type": "string" }}, "required": [ "original", "replacement" ]}}}, "required": [ "replacements" ]}}}]
+
+46 J.2 Span-Based GLiNER Models 
+
+hivetrace/gliner-guard-biencoder GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: hivetrace/gliner-guard-biencoder 
+
+Parameter count: 144,392,726 
+
+Backend: spanbased.hivetrace_gliner_guard_biencoder 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (32): person, first_name, last_name, alias, title, country, region, city, district, street, building, unit, postal_code, landmark, address, company, government, education, media, product, email, phone, social_account, messenger, passport, national_id, document_id, date_of_birth, event_date, card_number, bank_account, crypto_wallet 
+
+Inference settings: batch_size=16, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.01, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+hivetrace/gliner-guard-uniencoder GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: hivetrace/gliner-guard-uniencoder 
+
+Parameter count: 146,941,205 
+
+Backend: spanbased.hivetrace_gliner_guard_uniencoder 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (32): person, first_name, last_name, alias, title, country, region, city, district, street, building, unit, postal_code, landmark, address, company, government, education, media, product, email, phone, social_account, messenger, passport, national_id, document_id, date_of_birth, event_date, card_number, bank_account, crypto_wallet 
+
+Inference settings: batch_size=16, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.01, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+nvidia_gliner_pii GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: nvidia/gliner-PII 
+
+Parameter count: 445,463,040 
+
+Backend: spanbased.nvidia_gliner_pii 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (55): account_number, age, api_key, bank_routing_number, biometric_identifier, blood_type, certifi-cate_license_number, city, company_name, coordinate, country, county, credit_debit_card, customer_id, cvv, date, date_of_birth, date_time, device_identifier, education_level, email, employee_id, employment_status, fax_number, first_name, gender, health_plan_beneficiary_number, http_cookie, ipv4, ipv6, language, last_name, license_plate, mac_address, medical_record_number, national_id, occupation, password, phone_number, pin, political_view, postcode, race_ethnicity, religious_belief, sexuality, ssn, state, street_address, swift_bic, tax_id, time, unique_id, url, user_name, vehicle_identifier 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.6531, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+47 urchade/gliner_multi_pii-v1 GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: urchade/gliner_multi_pii-v1 
+
+Parameter count: 288,949,504 
+
+Backend: spanbased.urchade_gliner_multi_pii_v1 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (53): person, organization, phone number, address, passport number, email, credit card number, social security number, health insurance id number, date of birth, mobile phone number, bank account number, medication, cpf, driver’s license number, tax identification number, medical condition, identity card number, national id number, ip address, email address, iban, credit card expiration date, username, health insurance number, registration number, student id number, insurance number, flight number, landline phone number, blood type, cvv, reservation number, digital signature, social media handle, license plate number, cnpj, postal code, passport_number, serial number, vehicle registration number, credit card brand, fax number, visa number, insurance company, identity document number, transaction number, national health insurance number, cvc, birth certificate number, train ticket number, passport expiration date, social_security_number 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.1019, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+gretel_gliner_bi_large_v1_0 GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: gretelai/gretel-gliner-bi-large-v1.0 
+
+Parameter count: 569,075,712 
+
+Backend: spanbased.gretel_gliner_bi_large_v1_0 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (42): medical_record_number, date_of_birth, ssn, date, first_name, email, last_name, customer_id, employee_id, name, street_address, phone_number, ipv4, credit_card_number, license_plate, address, user_name, de-vice_identifier, bank_routing_number, date_time, company_name, unique_identifier, biometric_identifier, ac-count_number, city, certificate_license_number, time, postcode, vehicle_identifier, coordinate, country, api_key, ipv6, password, health_plan_beneficiary_number, national_id, tax_id, url, state, swift_bic, cvv, pin 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.1019, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+knowledgator/gliner-pii-base-v1.0 GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: knowledgator/gliner-pii-base-v1.0 
+
+Parameter count: 166,023,936 
+
+Backend: spanbased.knowledgator_gliner_pii_base_v1_0 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (35): name, first name, last name, name medical professional, dob, age, gender, marital status, email address, phone number, ip address, url, location address, location street, location city, location state, location country, location zip, account number, bank account, routing number, credit card, credit card expiration, cvv, ssn, money, condition, medical process, drug, dose, blood type, injury, organization medical facility, healthcare number, medical code 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.255, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+48 E3-JSI/gliner-multi-pii-domains-v1 GLiNER 
+
+Source: per-model PII training labels (label_profile=’model’) 
+
+Model ref: E3-JSI/gliner-multi-pii-domains-v1 
+
+Parameter count: 288,949,504 
+
+Backend: spanbased.e3_jsi_gliner_multi_pii_domains_v1 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (51): person, organization, phone number, address, passport number, email, credit card number, social security number, health insurance id number, date of birth, mobile phone number, bank account number, medication, cpf, driver’s license number, tax identification number, medical condition, identity card number, national id number, ip address, email address, iban, credit card expiration date, username, health insurance number, registration number, student id number, insurance number, flight number, landline phone number, blood type, cvv, reservation number, digital signature, social media handle, license plate number, cnpj, postal code, serial number, vehicle registration number, credit card brand, fax number, visa number, insurance company, identity document number, transaction number, national health insurance number, cvc, birth certificate number, train ticket number, passport expiration date 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.01, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+gliner_multi_v21 GLiNER 
+
+Source: GLiNER zero-shot label list (label_profile=’model’) 
+
+Model ref: urchade/gliner_multi-v2.1 
+
+Parameter count: 288,949,504 
+
+Backend: spanbased.gliner_multi_v21 
+
+Request mode: GLiNER zero-shot span tagging (model.predict_entities) 
+
+Labels (172): medical record number, date of birth, ssn, date, first name, email, last name, customer id, employee id, name, street address, phone number, ipv4, credit card number, license plate, address, user name, device identifier, bank routing number, date time, company name, unique identifier, biometric identifier, account number, city, certificate license number, time, postcode, vehicle identifier, coordinate, country, api key, ipv6, password, health plan beneficiary number, national id, tax id, url, state, swift bic, cvv, pin, age, blood type, county, credit debit card, education level, employment status, fax number, gender, http cookie, language, mac address, occupation, political view, race ethnicity, religious belief, sexuality, unique id, prefix, imei, job area, job type, job title, street, secondary address, user agent, account name, currency symbol, amount, credit card issuer, sex, ip address, ethereum address, bitcoin address, middle name, iban, vehicle registration number, currency, currency name, currency code, building number, ordinal direction, masked number, zip code, bic, gps coordinates, vin, eye color, height, username, name medical professional, dob, marital status, email address, location address, location street, location city, location state, location country, location zip, bank account, routing number, credit card, credit card expiration, money, condition, medical process, drug, dose, injury, organization medical facility, healthcare number, medical code, person, organization, passport number, social security number, health insurance id number, mobile phone number, bank account number, medication, cpf, driver’s license number, tax identification number, medical condition, identity card number, national id number, credit card expiration date, health insurance number, registration number, student id number, insurance number, flight number, landline phone number, reservation number, digital signature, social media handle, license plate number, cnpj, postal code, serial number, credit card brand, visa number, insurance company, identity document number, transaction number, national health insurance number, cvc, birth certificate number, train ticket number, passport expiration date, alias, title, region, district, building, unit, landmark, company, government, education, media, product, phone, social_account, messenger, passport, document_id, event_date, card_number, crypto_wallet 
+
+Inference settings: batch_size=4, chunk_infer_batch_size=2, chunk_tokens=384, preferred_outer_batch_size=4, thresh-old=0.1019, threshold_source=optimized 
+
+Notes: GLiNER models accept the zero-shot label list at inference; we feed the model its own training labels (the MODEL_LABELS list exported from each backend module). The decision threshold is optimised on a held-out slice. 
+
+49 J.3 Fixed-Label Token Classifiers 
+
+openai/privacy-filter OpenAI Privacy Filter 
+
+Source: OpenAI Privacy Filter API (closed PII categories) 
+
+Model ref: openai/privacy-filter 
+
+Parameter count: 1,399,486,865 
+
+Backend: tokenbased.openai_privacy_filter 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: attn_implementation=kernels-community/vllm-flash-attn3, batch_size=1, preferred_outer_batch_size=1, use_bf16=true 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+ai4privacy_llama_english_anonymiser_openpii ModernBERT (BIO) 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: ai4privacy/llama-ai4privacy-english-anonymiser-openpii 
+
+Parameter count: 149,607,171 
+
+Backend: tokenbased.ai4privacy_llama_english_anonymiser_openpii 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=16, chunk_infer_batch_size=8, chunk_overlap_tokens=64, chunk_tokens=512, min_score=0, preferred_outer_batch_size=32 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii Mod-ernBERT (BIO) 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: ai4privacy/llama-ai4privacy-multilingual-categorical-anonymiser-openpii 
+
+Parameter count: 149,635,624 
+
+Backend: tokenbased.ai4privacy_llama_multilingual_categorical_anonymiser_openpii 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=16, chunk_infer_batch_size=8, chunk_overlap_tokens=64, chunk_tokens=512, min_score=0, preferred_outer_batch_size=32 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+hydroxai_pii_masker DeBERTa-v3 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: hydroxai/pii_model_weight 
+
+Parameter count: 183,841,549 
+
+Backend: tokenbased.hydroxai_pii_masker 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: base_model=microsoft/deberta-v3-base, batch_size=8, chunk_infer_batch_size=8, chunk_overlap_tokens=64, chunk_tokens=512, min_score=0, preferred_outer_batch_size=32 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+50 iiiorg/piiranha-v1-detect-personal-information RoBERTa / Other 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: iiiorg/piiranha-v1-detect-personal-information 
+
+Parameter count: 278,232,594 
+
+Backend: tokenbased.iiiorg_piiranha_v1_detect_personal_information 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=8, chunk_infer_batch_size=8, chunk_overlap_tokens=64, chunk_tokens=512, min_score=0, preferred_outer_batch_size=32 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+isotonic_distilbert_ai4privacy_v2 DistilBERT (BIO) 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: Isotonic/distilbert_finetuned_ai4privacy_v2 
+
+Parameter count: 66,448,239 
+
+Backend: tokenbased.isotonic_distilbert_ai4privacy_v2 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=32, min_score=0 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+lakshyakh93_deberta_finetuned_pii DeBERTa-v3 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: lakshyakh93/deberta_finetuned_pii 
+
+Parameter count: 277,381,864 
+
+Backend: tokenbased.lakshyakh93_deberta_finetuned_pii 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=32, min_score=0, use_bf16=false 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+h2oai_deberta_finetuned_pii DeBERTa-v3 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: h2oai/deberta_finetuned_pii 
+
+Parameter count: 138,690,932 
+
+Backend: tokenbased.h2oai_deberta_finetuned_pii 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=32, min_score=0, use_bf16=false 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+tanaos/tanaos-text-anonymizer-v1 RoBERTa / Other 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: tanaos/tanaos-text-anonymizer-v1 
+
+Parameter count: 124,063,499 
+
+Backend: tokenbased.tanaos_tanaos_text_anonymizer_v1 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=16, min_score=0 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+51 deepaksiloka_pii_detection_v21 DistilBERT (BIO) 
+
+Source: model-internal BIO taxonomy (closed; non-O outputs are mapped to redact) 
+
+Model ref: deepaksiloka/PII-Detection-V2.1 
+
+Parameter count: 66,402,099 
+
+Backend: tokenbased.deepaksiloka_pii_detection_v21 
+
+Request mode: token-classification (BIO head) 
+
+Inference settings: batch_size=32, min_score=0 
+
+Notes: Closed-vocabulary token classifier: the label inventory is fixed by the model’s classification head and is not user-configurable. Any non-O tag is treated as a redaction. 
+
+52

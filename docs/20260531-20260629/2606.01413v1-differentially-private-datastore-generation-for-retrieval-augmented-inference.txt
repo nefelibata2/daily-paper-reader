@@ -1,0 +1,318 @@
+Title: Differentially Private Datastore Generation for Retrieval-Augmented Inference
+
+URL Source: https://arxiv.org/pdf/2606.01413v1
+
+Published Time: Tue, 02 Jun 2026 01:43:58 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# Differentially Private Datastore Generation for Retrieval-Augmented Inference 
+
+Abdelrahman Abouelenein 1,2 and Marwan Torki 1 
+
+> 1
+
+Department of Computer and Systems Engineering Alexandria University, Egypt 
+
+{Abdelrahman, mtorki}@alexu.edu.eg  
+
+> 2
+
+Microsoft 
+
+Abstract. It is crucial for modern on-device AI systems that rely on retrieval-augmented inference to release and share datastores without compromising individual privacy. This can be achieved using Differential Privacy (DP), which provides a formal guarantee that ensures individual contributions remain indistinguishable, even under adversarial analysis. In this paper, we introduce a hashing-based probability generation frame-work designed to enable the creation and release of differentially private datastores. Our approach employs locality-sensitive hashing (LSH) to efficiently partition high-dimensional data into buckets. We then add calibrated DP noise to the accumulated vote for each bucket, generating a probability distribution across classes. Our method is broadly appli-cable to any pipeline requiring secure key,value datastore creation and release. We conducted experiments on seven datasets with varying sam-ple sizes and class counts, ranging from 2 to 14. At ε=5, our released DP datastore achieves strong privacy protection with only an average 2.6% drop in accuracy. Finally, we benchmark DP datastore resilience to membership inference attacks, reducing attack accuracy to 53.60%. 
+
+Keywords: Differentially Private Datastore · Membership Inference At-tack. 
+
+# 1 Introduction 
+
+Recently, there has been growing interest in pretraining large language models (LLMs) due to their coherent and superior natural language generation abilities across multiple NLP tasks, compared to smaller language models [16, 15]. Nev-ertheless, pretrained LLMs still require fine-tuning, which becomes an essential tool to ground the model and align it to the user’s preference. Unfortunately, finetuning LLMs is challenging due to the size and sensitivity of these large models, which require considerable hyperparameter tuning and substantial resources to host and train them. Retrieval-augmented generation (RAG) has been proposed as an alternative to avoid fine-tuning altogether while achieving similar objectives in many cases. The goal of the retriever is to fetch the most suitable information from the datastore according to the provided context and inject it into the LLM generation pipeline.   
+
+> arXiv:2606.01413v1 [cs.CR] 31 May 2026 2Abdelrahman Abouelenein and Marwan Torki
+
+Fig. 1: RAG Taxonomy based on the stage where the knowledge is being injected. Various frameworks exist for classifying RAG systems. As illustrated in Fig-ure 1, one widely adopted taxonomy [19] categorizes systems based on the spe-cific stage at which the retriever incorporates external knowledge. Each RAG family offers distinct advantages; for example, input-layer integration retrieves exemplars into the context window to guide reasoning, while output-layer in-tegration provides finer granularity by fusing retrieved distributions with the model’s logits. We categorize these key,value datastore dependent techniques under the umbrella of Retrieval-Augmented Inference (RAI). This term emphasizes that, whether the system performs logit-level fusion [3, 13, 12] or relies solely on the datastore for label assignment [11], the final output is dynamically contingent upon a k, v retrieval step performed at each inference step. The privacy of these pipelines remains an overlooked challenge. Introduced by [21], differential privacy (DP) offers a formal way to reason about privacy risk. Intuitively, a mechanism is differentially private if its output is nearly the same whether or not any single individual record is included in the dataset, preventing an adversary from confidently inferring one person’s partic-ipation. The parameter ε quantifies this indistinguishability: smaller ε implies stronger privacy, while larger ε yields weaker privacy but typically better util-ity. Many practical systems use ( ε, δ ) –DP, where δ is a failure probability that allows the privacy guarantee to be violated on rare tail events. In practice, ε is treated as a privacy budget: applying DP mechanisms multiple times increases the total privacy loss. Some solutions [17, 20] attempted to rewrite the data with differential privacy (DP) guarantees, ensuring that the rewritten data is safe for public release. Unfortunately, the privacy budget ε was sacrificed to rewrite the Title Suppressed Due to Excessive Length 3
+
+data while maintaining utility, yielding a minimal privacy guarantee. As stated by [18], this is considered a tier 3 ε, making it susceptible to privacy attacks. On the other hand, [2] was one of the few works to introduce DP to the in-context learning RAG framework. Although their proposed method provides good utility under strong DP guarantees, it is inefficient due to the inference cost of formulating differentially private shots. While [4, 2] successfully introduced DP to the RAG framework, they fall short of bounding global privacy spending. In other words, each query increases the cumulative privacy cost, which could eventually lead to a privacy breach. To avoid this unbounded privacy-budget accumulation, we are motivated to generate a privacy-preserving datastore with a fixed privacy budget. Locality-Sensitive Hashing (LSH) is often used as a heuristic for datastore privacy because it maps high-dimensional data to compact hash codes while ap-proximately preserving similarity. Beyond privacy, hashing-based indexing can make retrieval substantially more efficient. Instead of scanning the full datastore, LSH uses hash tables to generate a small candidate set with simple operations such as bit comparisons and bucket lookups [22]. However, recent work shows that similarity-preserving hashes can still leak sensitive information and there-fore should not be treated as privacy-preserving mechanisms on their own. In [29], the authors show that MinHash/SimHash-based systems (e.g., Google’s FLoC and the MinHash Hierarchy) are vulnerable to inference and reconstruc-tion attacks that operate solely on released hash values. We observe a similar leakage pattern in our setting: even with LSH, membership inference remains effective on non-private datastores, highlighting the need for DP. Several recent work on DP approximate nearest-neighbor rely on ε–δ differen-tial privacy to achieve scalability and dimension independent utility. This is done via truncated noise mechanisms and advanced composition. Notably, [24, 25, 27] focus on answering fuzzy approximate counting queries in high-dimensional spaces, where a nonzero δ is required to control tail events and cumulative pri-vacy loss across many hash partitions. Existing LSH-based DP methods [24–26] are designed to release scalar ap-proximate counts at query time, and do not consider constructing a label-level histogram suitable for downstream inference. As a result, they cannot directly support multi-class classification. We extend this line of work from fuzzy ap-proximate neighbor counting to histogram-based vote aggregation. This enables multi-class prediction while releasing the resulting datastore itself under pure 
+
+ε-DP guarantees, allowing unrestricted downstream use without additional pri-vacy loss. Motivated by these findings, we propose an approach that operates under pure ε-differential privacy, eliminating any δ-dependent failure probability and providing strictly stronger privacy guarantees. This is an important distinction when releasing reusable data structures rather than answering individual queries. To address these challenges, our contributions are: 
+
+∗ DP SimHash Bucketing and Datastore Release. We propose a hashing-based ε-DP framework that leverages Locality-Sensitive Hashing (LSH), 4 Abdelrahman Abouelenein and Marwan Torki 
+
+specifically SimHash, to partition data into similarity-preserving buckets, and release a differentially private datastore that includes the hash func-tions and a noisy bucket-level class vote histogram. 
+
+∗ Robust Retrieval at Query Time. At query time, we hash the query into T independent SimHash tables and retrieve the corresponding bucket aggregate from each table. Aggregating votes across tables mitigates hashing variance and improves recall. 
+
+∗ Fixed Privacy Budget. Our release is a one-shot mechanism that bounds the global privacy cost regardless of the number of downstream queries. 
+
+∗ Integration with KNN-Prompting. We demonstrate easy integration by applying our method to the KNN-Prompting [11] framework. 
+
+∗ Empirical Study and Attack Evaluation. We provide an extensive em-pirical study of the interaction between hashing parameters and DP param-eters, and show resilience to membership inference attacks. 
+
+# 2 Background 
+
+This section introduces the main concepts used throughout the paper. Retrieval-augmented inference describes how predictions can be made from a datastore at query time. LSH provides a way to group similar embeddings into reusable buckets. Differential privacy provides the formal guarantee used when releasing bucket-level class-count histograms. The privacy guarantee relies on a bounded-contribution property: each record contributes to one class count in one bucket per hash table. 
+
+2.1 Retrieval-Augmented Inference 
+
+Retrieval-augmented inference (RAI) uses a datastore at inference time: a query embedding retrieves nearby datastore entries, and their associated values are converted into a prediction distribution. Section 3 follows this template, but replaces exact neighbor retrieval with DP-noised bucket-level aggregates. The core of the RAI framework lies in the generation of the non-parametric distribution, pkNN . At each inference step t, the system encodes the current context into a query vector ˆht and retrieves the k-nearest neighbors Nt from a datastore. The probability for a candidate token ˆyt is derived from the similarity of these neighbors to the query according to the following relation: 
+
+pkNN (ˆ yt | x, y <t ) ∝ X
+
+> (hi,y i)∈N t
+
+1[ˆ yt = yi] exp − d(hi, ˆht)
+
+τ
+
+!
+
+, (1) where d(·, ·) is a task-appropriate distance or dissimilarity measure and τ is the temperature. This exponential weighting follows standard kNN-based retrieval formulations; the specific choice of d depends on the retrieval setup. Here, d is a generic retrieval dissimilarity (e.g., Euclidean, squared Euclidean, or angular), and our DP release does not depend on this weighting form. While the generation Title Suppressed Due to Excessive Length 5
+
+of pkNN is consistent across RAI methods, its application depends on the specific architecture. In kNN-LM and kNN-MT, this retrieved distribution is fused with the parametric language model distribution pLM via an interpolation coefficient 
+
+λ, such that p(ˆ y) = λp kNN (ˆ y) + (1 − λ)pLM (ˆ y). In contrast, kNN-prompting, particularly in calibration-free settings, relies solely on the retrieved distribution 
+
+pkNN to determine the final output. 
+
+2.2 Locality-Sensitive Hashing for Approximate Nearest Neighbor 
+
+Let X be a representation space equipped with a distance or dissimilarity mea-sure d(·, ·). Given a dataset D = {x1, . . . , x n} ⊆ X and a query point q ∈ X , the (exact) nearest neighbor problem returns 
+
+NN( q; D) = arg min  
+
+> x∈D
+
+d(q, x ). (2) Approximate nearest neighbor (ANN) relaxes this objective for efficiency, typi-cally allowing a multiplicative or additive approximation. In our method, this ANN notation is used only to motivate similarity-preserving bucketing. The actual implementation operates on normalized embedding vec-tors, and the privacy guarantee comes from the DP noise added to the released bucket histograms in Section 3. Thus, neither the DP guarantee nor the datas-tore construction requires d to satisfy the metric axioms; in our experiments, X
+
+is simply the normalized embedding space Rm, and d denotes the dissimilarity used for retrieval. Hashing-based ANN methods construct an index through a hash family H
+
+that maps points to discrete keys (“buckets”) and supports sublinear candidate generation. In the locality-sensitive hashing (LSH) framework, a hash family is designed so that nearby points collide with higher probability than far points. One common formulation is: 
+
+Definition 1 ( (r1, r 2, p 1, p 2)-sensitive hash family). A family H over X is 
+
+(r1, r 2, p 1, p 2)-sensitive for distance d if for any x, y ∈ X :
+
+d(x, y ) ≤ r1 ⇒ Pr 
+
+> h∼H
+
+[h(x) = h(y)] ≥ p1, (3) 
+
+d(x, y ) ≥ r2 ⇒ Pr 
+
+> h∼H
+
+[h(x) = h(y)] ≤ p2, (4) 
+
+with r1 < r 2 and p1 > p 2.
+
+To improve selectivity, one typically concatenates H independent hash bits into an H-bit code. 
+
+SimHash (random hyperplane hashing) SimHash is an LSH technique that relies on cosine similarity / angular distance, making it suitable for approximate nearest neighbor search over normalized embeddings. Let x ∈ Rm be a normal-ized embedding vector. Draw H random hyperplanes via vectors r1, . . . , r H ∈ Rm
+
+(e.g., i.i.d. standard normal or Rademacher entries). The i-th SimHash bit is 
+
+gi(x) = I[⟨ri, x ⟩ ≥ 0] ∈ { 0, 1}, (5) 6 Abdelrahman Abouelenein and Marwan Torki 
+
+and the full code is represented as 
+
+g(x) = ( g1(x), . . . , g H (x)) ∈ { 0, 1}H . (6) All vectors x in close proximity should have similar projections, thus ending up in the same bins. These properties make SimHash attractive for fast candidate generation in high dimensions using cheap bit operations. 
+
+2.3 Differential Privacy Mechanism 
+
+For our release, the relevant privacy ingredients are pure ε-differential privacy under the add/remove neighboring relation, the Laplace mechanism, and com-position across the released hash tables. 
+
+Definition 2 (Differential Privacy). A randomized mechanism M is (ε)-differentially private if for all neighboring datasets D, D′ and all measurable out-puts S.
+
+Pr[ M(D) ∈ S] ≤ eε Pr[ M(D′) ∈ S]. (7) We use the standard neighboring relation where datasets differ by one record in terms of addition or removal. In the definition above, S denotes any measur-able subset of the output space of M. Thus, M(D) ∈ S is the event that the randomized output of the mechanism falls in that subset. In our datastore release, f (D) is vector-valued: it denotes the concatenation of all released bucket-level class-count histograms across the hash tables. Ac-cordingly, η has the same dimension as f (D), with independent Laplace noise added to each entry. To ensure that a function f is ε-differentially private, we add noise drawn from a Laplace distribution. 
+
+M(D) = f (D) + η, η ∼ Laplace(0 , β ) (8) where β is the Laplace scale parameter. The scale parameter β is: 
+
+β = ∆f ε (9) The objective of the global sensitivity function ∆f is to measure the maximum influence of a single record or sample when added or removed.For the Laplace mechanism, it is defined as 
+
+∆f = max   
+
+> D,D ′differ in one record
+
+∥f (D) − f (D′)∥1 (10) 
+
+Composition of Differential Privacy In most practical pipelines, multiple randomized mechanisms are applied during training, preprocessing, or release. Composition theorems describe how privacy loss accumulates when combining such mechanisms [23]. In Section 3, this is used to account for the fact that one record contributes to one bucket in each of the T released hash tables. Title Suppressed Due to Excessive Length 7
+
+Sequential composition. Let M1, . . . , Mm be mechanisms that are respectively 
+
+(ε1), . . . , (εm)differentially private when applied to the same underlying dataset 
+
+D. Then the joint release 
+
+M(D) =  M1(D), . . . , Mm(D) (11) is (εtot )-differentially private with 
+
+εtot =
+
+> m
+
+X
+
+> j=1
+
+εj . (12) Intuitively, if a single record can influence the output of each mechanism, then privacy losses add up; εtot is the overall privacy budget of the combined release. 
+
+Parallel composition. Let the dataset be partitioned into disjoint subsets D =Umj=1 Dj . If each mechanism Mj is (εj )-differentially private when applied only to its own subset Dj , then the combined release 
+
+M(D) =  M1(D1), . . . , Mm(Dm) (13) is (εpar )-differentially private with 
+
+εpar = max  
+
+> j∈{ 1,...,m }
+
+εj . (14) This reflects the fact that any single record belongs to exactly one subset, and thus can affect at most one mechanism. Therefore εpar is the overall privacy bud-get of the combined release under parallel composition (it is not a sum because no record participates in multiple mechanisms). In practice, this overall budget is often reported simply as ε.
+
+# 3 DP Datastore Construction and Inference 
+
+In this section, we present a release-and-reuse pipeline that privatizes a k, v 
+
+datastore once and enables unlimited downstream queries without additional privacy cost. Given normalized embeddings and labels Dtrain = {(ai, y i)}Ni=1 , we construct and release the DP datastore in three steps. Our construction is agnostic to the origin of the embedding representation, including aggregate embedding descriptors [30], as long as each record maps to one datastore key and contributes one bounded vote per hash table: 1. Bucketization (SimHash). Hash each embedding into buckets using T
+
+independent SimHash tables with H random hyperplanes per table. 2. Vote aggregation. For each bucket, store a class-count histogram Vt[u] ∈
+
+RC (one per table t). 3. DP release. Add calibrated Laplace noise to each stored bucket histogram and release the resulting datastore (hyperplanes + noisy votes). 8 Abdelrahman Abouelenein and Marwan Torki 
+
+Algorithm 1 Differentially Private Datastore Creation 
+
+Require: Labeled embeddings Dtrain = {(ai, y i)}Ni=1 , where ai ∈ Rm and yi ∈{0, . . . , C − 1}
+
+Require: Random seed s, Privacy budget ε
+
+Require: Number of tables T , number of hyperplanes H
+
+Ensure: Released DP datastore DDP = ( R, V ) where R = {Rt}Tt=1 and V = {Vt}Tt=1 
+
+(with DP-noised votes) 1: Sample (using seed s) T independent sets of random hyperplanes: 2: for t ← 1 to T do 
+
+3: Draw H random hyperplane normals Rt = {rt, 1, . . . , r t,H } with rt,h ∈ Rm
+
+4: Normalize each rt,h to unit length 5: Initialize vote table Vt : {0, . . . , 2H − 1} → RC with default 0
+
+6: end for 
+
+7: for i ← 1 to N do ▷ insert a labeled embedding (ai, y i)
+
+8: for t ← 1 to T do ▷ Compute H bits via random projection 9: for h ← 1 to H do 
+
+10: bh ← I [⟨ai, r t,h ⟩ > 0] ▷ b h ∈ { 0, 1}
+
+11: end for 
+
+12: u(t) 
+
+> i
+
+← PHh=1 bh 2h−1 ▷ encode bits to bucket id, u(t) 
+
+> i
+
+∈ { 0, . . . , 2H − 1}
+
+13: Vt[u(t) 
+
+> i
+
+][ yi] ← Vt[u(t) 
+
+> i
+
+][ yi] + 1 ▷ update aggregated votes 14: end for 
+
+15: end for 
+
+16: for t ← 1 to T do 
+
+17: for all bucket ids u ∈ { 0, . . . , 2H − 1} do 
+
+18: Sample η ∼ Laplace(0 , β )C ▷ i.i.d. per class coordinate 19: Vt[u] ← Vt[u] + η ▷ DP-fies bucket vote counts (including empty buckets) 20: end for 
+
+21: end for 
+
+22: return DDP ← (R, V )
+
+Algorithm 1 details datastore construction and the one-shot ε-DP release via Laplace noise. For inference, Algorithm 2 hashes a query q into each of the T tables and retrieves the corresponding bucket histograms. The retrieved (DP-noised) vote vectors are summed across tables and the prediction is ˆy =arg max c vc.We choose SimHash (random hyperplane hashing) because our keys are nor-malized embedding vectors and retrieval is naturally governed by angular dis-tance (equivalently, cosine similarity). Nearby vectors tend to share similar sign patterns, so Hamming distance between hash codes correlates with angular dis-tance, enabling compact indexing. To ensure our pipeline generates differentially private histograms per bucket, we apply the Laplace mechanism independently to each bucket-level class-count vector, in a manner similar to private knn [10]. 
+
+Sensitivity and noise calibration. Consider neighboring datasets that differ by the addition or removal of a single record. For each table t, that record hashes to exactly one bucket u(t) and increments exactly one class coordinate by 1. There-Title Suppressed Due to Excessive Length 9
+
+Algorithm 2 Inference with DP Datastore                                                          
+
+> Require: Query vector q∈Rm
+> Require: Released datastore DDP = ( R, V )where R={Rt}Tt=1 ,V={Vt}Tt=1 , and each Rt={rt,h }Hh=1
+> Ensure: Predicted label ˆy
+> 1: Initialize aggregated votes v←0▷same dimension as stored vote vectors 2: for all tables (Rt, V t)in (R, V )do
+> 3: u←g(q;Rt)▷SimHash bucket id 4: v←v+Vt[u]▷ V tis DP-noised for all u∈ { 0, . . . , 2H−1}
+> 5: end for
+> 6: ˆy←arg max cvc
+> 7: return ˆy
+
+fore, across all T tables, a single record can change at most T histogram coor-dinates (one per table), each by magnitude 1. Under the standard add/remove neighboring relation, the overall ℓ1 sensitivity of the released histogram vector is 
+
+∆f = T. (15) Applying the Laplace mechanism to the full release then uses scale 
+
+β = ∆f /ε = T /ε, (16) which allows to release our aggregated vote under formal differential privacy. Finally, sampling and releasing the random hyperplanes {Rt} does not consume privacy budget because they are generated independently of the training data. 
+
+# 4 Experiments 
+
+We transform the KNN-Prompting k, v datastore into a differentially private datastore using our algorithm and evaluate it on multiple text classification datasets. We use MR [8], SUBJ [9], TREC [7], CR [6], AGNews, DBpedia [5], and MPQA [14], spanning 2 to 14 classes. We evaluate on a fixed 1k-example test set per dataset except TREC uses its standard 500-example test set, and build the datastore from the corresponding training split. Across datasets, the datastore construction set ranges from 1.8k to 8.7k training samples (Table 1) to stress-test privacy and utility in smaller-datastore regimes. We use Phi-4-Mini [28] as the backbone model. We fix the random seed to 42 for reproducibility. We stratify both the training samples used for datastore construction and the test split to enforce equal class proportions for all datasets except TREC, CR, and MPQA. For these datasets, we use the standard full training split, which introduces class imbalance in datastore creation. Table 2 reports classification accuracy as a function of the privacy budget 
+
+ε. As expected, utility improves as ε increases (less noise). Across datasets, our released DP datastore achieves a favorable privacy–utility trade-off; for example, at ε = 5 we observe only a 2.6% average accuracy drop relative to non-private KNN-Prompting. 10 Abdelrahman Abouelenein and Marwan Torki Dataset Train Test #Classes TREC 5452 500 6AGNews 8000 1000 4DBpedia 8000 1000 14 CR 1775 1000 2MR 8662 1000 2SUBJ 8000 1000 2MPQA 8603 1000 2
+
+Table 1: Dataset statistics. Test sets use 1k examples per dataset, except TREC.                                                                 
+
+> εTREC AGNews CR MR SUBJ DBpedia MPQA avg drop KNN-Prompting 94.4 88.2 89.2 89.7 93.3 98.8 85.4 -0.1 53.2 79.3 85.7 88.4 85.2 64.5 83.7 14.1 174.4 86.4 86.7 90.5 86.9 87.9 84.5 5.0 384.2 87.7 88 90.6 86.9 93.6 84.5 3.4 587.4 88.2 87.9 90.7 87.0 95.4 84.4 2.6 789.6 88.2 88 90.8 87.1 95.9 84.5 2.1 890.0 88.2 88 90.8 87.1 96.4 84.5 2.0
+
+Table 2: Classification accuracy vs. total privacy budget ε across datasets using 24 hyperplanes and 4 hash tables. Average drop is relative to non-private KNN-Prompting. 
+
+4.1 Ablation Study 
+
+We study the effect of the SimHash resolution (number of hyperplanes/bits) and the privacy budget on retrieval quality. Increasing the number of hyperplanes yields finer partitions (more buckets), which can improve nearest-neighbor selec-tivity but reduces the number of samples per bucket, making aggregated votes more sensitive to DP noise. As shown in Table 3, increasing the number of hyperplanes yields finer par-titions and can improve selectivity at higher ε, but it reduces the number of samples per bucket, making aggregated votes more sensitive to DP noise. Table 4 shows the same trend on DBpedia; at 48 hyperplanes, accuracy drops from 91.0 at ε = 8 to 78.9 at ε = 1 .In contrast, using only 4 hyperplanes maps many samples to the same bucket, improving robustness to injected noise but reducing nearest-neighbor selectivity, since less similar samples are more likely to be grouped together. Overall, Tables 3 and 4 lead to the same conclusion: there is a consis-tent trade-off between finer hashing (more hyperplanes) improving selectivity at higher ε, versus coarser hashing being more robust under stronger privacy noise. Title Suppressed Due to Excessive Length 11 
+
+We additionally study the impact of datastore size (number of training ex-amples included in the datastore). Increasing the datastore size improves results significantly on both TREC and DBpedia (Table 5).                          
+
+> ε416 24 36 48 1.0 61.6 77.6 74.4 66.6 66.8 3.0 65.8 80.0 84.2 76.4 73.4 5.0 64.4 80.6 87.4 80.2 76.8 8.0 64.4 80.6 90 83.2 80.2
+
+Table 3: TREC dataset accuracy for different numbers of hyperplanes and pri-vacy budgets ( ε).                               
+
+> ε4816 24 32 48 1.0 84.9 91.7 92.8 87.9 84.7 78.9 3.0 84.9 92.6 95.3 92.5 90.9 86.3 5.0 84.9 92.6 96.5 94.5 93.3 89.3 8.0 84.9 92.7 97.3 96.1 94.3 91.0
+
+Table 4: DBpedia dataset accuracy for different numbers of hyperplanes and privacy budgets ( ε).             
+
+> Datastore 100 400 800 full Ours 71.4 72.4 76.2 90.0 KNN-Prompting 79.2 89.2 91.2 94.4
+
+Table 5: Ablation on datastore size (number of training examples included in the datastore): accuracy (%). Table 5 shows that increasing the number of samples used to construct the datastore consistently improves accuracy, and it also reduces the gap between the DP datastore and the original (non-private) one. On TREC, scaling from a 100-example datastore to using the full training set increases our accuracy from 71.4% to 90.0%. Over the same range, the gap to KNN-Prompting shrinks from 7.8 points at 100 examples (79.2% vs. 71.4%) to 4.4 points with the full datastore (94.4% vs. 90.0%). This indicating that larger datastores help both utility and DP robustness while closing the gap with original datastore. 
+
+4.2 Membership Inference Attack 
+
+Inspired by [1], we evaluate resilience to membership inference attacks (MIA) on the released datastore. The attacker is given access to the released DP datastore (hyperplanes and noisy bucket histograms) and can issue unlimited queries to observe responses from our datastore. We build balanced evaluation sets with matching class distributions between members and non-members. 12 Abdelrahman Abouelenein and Marwan Torki 
+
+In our setting, the DP datastore is built from 8k DBpedia stratified training samples. The attacker has access to 50% of training samples use; we use 4k member queries and 4k non-member queries sampled from Test set. We use the following query-response features: (1) per-class votes, (2) maximum vote, (3) vote confidence (max/total), (4) vote entropy, and (5) bucket hit rate (fraction of tables with non-empty buckets). Without DP ( ε = ∞), the attacker achieves 70.22% accuracy even with hashing. As ε decreases, added noise reduces distinguishability and drives attack accuracy toward random guessing.Because our member and non-member eval-uation sets are balanced (4k/4k), random guessing yields 50% attack accuracy. We therefore also report the attack advantage, defined as Adv = Acc − 0.5, to highlight how far the attacker is above random chance. 
+
+Empty-bucket leakage and fairness. In non-private deployments, it is common to store only non-empty buckets. In that setting, if a query hashes to an ab-sent (empty) bucket, the attacker can trivially infer non-membership, creating an unfair structural leakage channel. Our DP release avoids this by adding cali-brated noise to all buckets in each hash table (including empty buckets), so every query returns a (possibly noise-only) vote vector and bucket existence is not an informative signal.             
+
+> εAttack accuracy Advantage
+> ∞70.22 +20.22 8.0 60.02 +10.02 7.0 58.80 +8.80 5.0 57.20 +7.20 3.0 53.60 +3.60
+
+Table 6: Membership inference attack on DBpedia. 
+
+# 5 Conclusion and Future Work 
+
+We introduced a release-and-reuse framework for retrieval-augmented inference that enables publishing a reusable key–value datastore with a fixed privacy bud-get under pure ε-differential privacy. The core idea is to avoid releasing sensitive embeddings directly and instead privatize bucket-level class-vote aggregates pro-duced by similarity-preserving SimHash bucketing. This produces a compact datastore (random hyperplanes + DP-noised vote tables) that can be shared and queried without additional privacy spending. Across seven text-classification datasets (2 to 14 classes), the released DP datastore preserves utility well: at 
+
+ε = 5 we observe only a 2.6% average accuracy drop relative to non-private KNN-Prompting. We also evaluate membership inference on the released data-store and find that DP noise substantially reduces attack success, pushing the attacker close to random guessing as ε decreases. Title Suppressed Due to Excessive Length 13 
+
+Several directions can further strengthen and broaden the approach. (1) Im-proved similarity under hashing: incorporating weighted random projections could better align bucketing with task-specific embedding geometry, improving retrieval selectivity at a fixed privacy level. (2) Beyond classification: extend-ing bucket-level aggregation from label histograms to token-level distributions would enable applying the same one-shot DP datastore release to kNN-LM and kNN-MT, where large vocabularies and interpolation with pLM introduce new efficiency and calibration challenges. (3) Reducing hyperparameter tuning: 
+
+our current pipeline requires tuning hashing and inference hyperparameters (e.g., 
+
+H, T and related retrieval settings) to balance selectivity and DP noise; we plan to simplify this via more robust defaults and data-driven parameter selection. 
+
+# References 
+
+1. Shokri, R., Stronati, M., Song, C., Shmatikov, V.: Membership Inference Attacks Against Machine Learning Models. In: IEEE Symposium on Security and Privacy (S&P) , pp. 3–18 (2017) 2. Tang, X., Shin, R., Inan, H.A., Manoel, A., Mireshghallah, F., Lin, Z., Gopi, S., et al.: Privacy-Preserving In-Context Learning with Differentially Private Few-Shot Generation. In: ICLR (2024) 3. Khandelwal, U., Levy, O., Jurafsky, D., Zettlemoyer, L., Lewis, M.: Generalization through Memorization: Nearest Neighbor Language Models. In: ICLR (2020) 4. Wu, T., Panda, A., Wang, J.T., Mittal, P.: Privacy-Preserving In-Context Learning for Large Language Models. In: ICLR (2024) 5. Zhang, X., Zhao, J., LeCun, Y.: Character-level Convolutional Networks for Text Classification. In: NeurIPS , vol. 28 (2015) 6. Hu, M., Liu, B.: Mining and Summarizing Customer Reviews. In: Proc. ACM SIGKDD , pp. 168–177 (2004) 7. Voorhees, E.M., Tice, D.M.: Building a Question Answering Test Collection. In: 
+
+Proc. ACM SIGIR , pp. 200–207 (2000) 8. Pang, B., Lee, L.: Seeing Stars: Exploiting Class Relationships for Sentiment Cat-egorization with Respect to Rating Scales. In: Proc. ACL , pp. 115–124 (2005) 9. Pang, B., Lee, L.: A Sentimental Education: Sentiment Analysis Using Subjectivity Summarization Based on Minimum Cuts. In: Proc. ACL , pp. 271–278 (2004) 10. Zhu, Y., Yu, X., Chandraker, M., Wang, Y.-X.: Private-kNN: Practical Differential Privacy for Computer Vision. In: CVPR , pp. 11851–11859 (2020) 11. Xu, B., Xie, Y., Gu, Z., Zhu, K., Peng, S.: kNN Prompting: Beyond-Context Learn-ing with Calibration-Free Nearest Neighbor Inference. In: ICLR (2023) 12. Dai, Y., Zhang, Z., Liu, Q., Cui, Q., Li, W., Du, Y., Xu, T.: Simple and Scalable Nearest Neighbor Machine Translation. arXiv preprint arXiv:2302.12188 (2023) 13. Khandelwal, U., Fan, A., Jurafsky, D., Zettlemoyer, L., Lewis, M.: Nearest Neigh-bor Machine Translation. In: ICLR (2021) 14. Wiebe, J., Wilson, T., Cardie, C.: Annotating Expressions of Opinions and Emo-tions in Language. Language Resources and Evaluation , 39(2–3), pp. 165–210 (2005) 15. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J.D., Dhariwal, P., Nee-lakantan, A., et al.: Language Models are Few-Shot Learners. In: NeurIPS , pp. 1877–1901 (2020) 14 Abdelrahman Abouelenein and Marwan Torki 16. Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., Sutskever, I.: Language Models are Unsupervised Multitask Learners. OpenAI Technical Report (2019) 17. Igamberdiev, T., Habernal, I.: DP-BART for Privatized Text Rewriting under Lo-cal Differential Privacy. In: Findings of the Association for Computational Linguis-tics , pp. 13914–13934 (2023) 18. Ponomareva, N., Kurakin, A., Chien, S., Thakurta, A., Matthews, P.: How to DP-fy ML: A Practical Guide to Machine Learning with Differential Privacy. arXiv preprint arXiv:2303.00654 (2023) 19. Cheng, M., Zhao, W.X., Zhang, J., Wen, J.-R.: A Survey on Knowledge-Oriented Retrieval-Augmented Generation. arXiv preprint arXiv:2503.10677 (2025) 20. Igamberdiev, T., Habernal, I.: DP-Rewrite: Towards Reproducibility and Trans-parency in Differentially Private Text Rewriting. In: COLING , pp. 2927–2933 (2022) 21. Abadi, M., Chu, A., Goodfellow, I., McMahan, H.B., Mironov, I., Talwar, K., Zhang, L.: Deep Learning with Differential Privacy. In: ACM CCS (2016) 22. Indyk, P., Motwani, R.: Approximate Nearest Neighbors: Toward Removing the Curse of Dimensionality. In: STOC , pp. 604–613 (1998) 23. Dwork, C., Roth, A.: The Algorithmic Foundations of Differential Privacy. Foun-dations and Trends in Theoretical Computer Science , 9(3–4), pp. 211–407 (2014) 24. Andoni, A., Dadush, D., Klein, N., Liu, K., Zhang, L.: Differentially Private Ap-proximate Near Neighbor Counting in High Dimensions. In: NeurIPS (2023) 25. Aumüller, M., Gollapudi, S., Pagh, R., Silvestri, F.: Differentially Private High-Dimensional Approximate Range Counting, Revisited. In: Symposium on Founda-tions of Responsible Computing (2025) 26. Kenthapadi, K., Korolova, A., Mironov, I., Mishra, N.: Differential Privacy with Locality-Sensitive Hashing. In: ACM SIGKDD (2012) 27. Chan, T.-H.H., Li, M., Shi, E., Xu, W.: Differentially Private Approximate Range Counting in High Dimensions. In: ICALP (2011) 28. Abouelenin, A., Ashfaq, A., Atkinson, A., Awadalla, H., Bach, N., et al.: Phi-4-Mini Technical Report: Compact yet Powerful Multimodal Language Models via Mixture-of-LoRAs. arXiv preprint arXiv:2503.01743 (2025) 29. Turati, F., Kubicek, K., Cotrini, C. and Basin, D.: Locality-Sensitive Hashing Does Not Guarantee Privacy! Attacks on Google’s FLoC and the MinHash Hierarchy System. In: Proceedings on Privacy Enhancing Technologies , 2023(4), pp. 117–131 (2023) 30. Torki, M.: A Document Descriptor using Covariance of Word Vectors. In: Proceed-ings of the 56th Annual Meeting of the Association for Computational Linguistics (Short Papers) , pp. 527–532 (2018)

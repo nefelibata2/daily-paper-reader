@@ -1,0 +1,640 @@
+Title: Privacy Vulnerabilities of Attention Layers in Tabular Foundation Models and Protection of High-Risk Queries
+
+URL Source: https://arxiv.org/pdf/2606.26021v1
+
+Published Time: Thu, 25 Jun 2026 01:21:16 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+# Privacy Vulnerabilities of Attention Layers in Tabular Foundation Models and Protection of High-Risk Queries 
+
+Tˆ ania Carvalho 
+
+SnT, University of Luxembourg Luxembourg 
+
+Maxime Cordy 
+
+SnT, University of Luxembourg Luxembourg 
+
+Abstract —Tabular foundation models are commonly assumed to present limited privacy concerns as they are often pre-trained on large collections of synthetic data. However, these models leverage in-context learning, where sensitive records may be provided directly at inference time as labelled context examples. In this paper, we demonstrate that predictions gen-erated via the attention mechanism leak sufficient information to enable effective Membership Inference Attacks (MIAs). To highlight this vulnerability, we propose AMIA (Attention-based Membership Inference Attack), a shadow-model-free attack that exploits the concentration of transformer attention patterns. Our results show that attention mechanisms reveal strong membership signals, which exceed classical confidence-based attacks, achieving an average gain of 7.7%, specially in low false-positive regimes. To mitigate this risk, we introduce an inference-time defence inspired by k-anonymity principles. This approach reduces the uniqueness of context-key repre-sentations without introducing random noise or retraining the model. By targeting only high-risk queries identified through AMIA scores, the defence substantially reduces membership leakage of this attack by an average of 50% and 25% against confidence-based attacks, while preserving predictive utility with only 3.9% performance degradation. Beyond showing that context examples are vulnerable, we further demonstrate that fine-tuning introduces an additional source of privacy risk. In particular, samples whose prediction confidence increases after fine-tuning become more susceptible to MIAs, indicating that fine-tuning can amplify memorisation and expose sensitive training information through confidence shifts. 
+
+# 1. Introduction 
+
+Tabular data is the predominant data format in many ma-chine learning applications, particularly in domains where records correspond directly to individuals, i.e. microdata. It plays a central role in privacy research, as sensitive and socially critical sectors such as healthcare, financial transactions, census, education, and human resources rely heavily on tabular datasets for analysis and prediction. Unlike text or images, tabular data contains highly structured attributes, including quasi-identifiers, categorical variables and rare subgroups. These characteristics present unique challenges to machine learning models, such as heterogeneous feature types, missing values and skewed distributions. Consequently, tabular data can be particularly susceptible to privacy risks, including re-identification [1], attribute inference, and membership disclosure [2]. Recently, researchers have developed tabular foundation models (FMs), a new generation of models specifically de-signed for structured data. Building on the success of FMs in natural language processing, tabular FMs aim to learn trans-ferable representations from diverse tabular datasets that can be applied to a variety of downstream tasks. Such models have demonstrated competitive performance on a wide range of classification benchmarks [3], mainly due to their strong generalisation capabilities, which are attributed to large-scale pre-training and attention inference time mechanisms. In contrast to many large language models (LLMs), tabular FMs are typically pre-trained on synthetic datasets rather than on real-world data. Besides contributing to high predictive performance, this design also favours privacy considerations. The generation of synthetic data aims to approximate real-world distributions while reducing the ex-posure of sensitive individual records. However, this assumption can be misleading, given that synthetic pre-training shapes the model’s weights but offers no protection for the real records provided as in-context examples. In the tabular in-context learning (ICL) setting, the model attends over context examples to produce predic-tions for a query instance. Hence, privacy leakage does not necessarily arise from the model memorisation of the pre-training data, but rather from its dependence on context rep-resentations at inference time. This shifts the attack surface of membership inference attacks (MIAs) from parameter memorisation to context information leakage. We have conducted experiments on six diverse datasets, four classical machine learning models and four tabular FMs, under three standard MIAs. Table 1 provides initial evidence of this phenomenon by demonstrating that tabular FMs are vulnerable to existing standard MIAs. Motivated by this observation, we move beyond conven-tional output-based MIAs and investigate whether attention patterns can reveal membership information more explicitly. In particular, we hypothesise that member queries induce disproportionately concentrated attention towards specific context records compared to non-members. Based on this intuition, we propose AMIA, an attention-based MIA that 
+
+> arXiv:2606.26021v1 [cs.CR] 24 Jun 2026
+
+leverages attention dynamics across layers and heads to infer whether a queried example belongs to the private context set. Our results show that AMIA consistently outperforms state-of-the-art MIAs while requiring less adversarial back-ground knowledge and lower computational resources. AMIA is also robust to different context sizes, showing a stable AUC across different settings, whereas other attacks tend to degrade as the context increases. To mitigate the identified leakage, we further propose a defence mechanism tailored to tabular ICL. Our approach applies label-aware microaggregation to k-anonymise con-text representations, but only when necessary. An adaptive high-risk guardrail uses AMIA scores to detect queries with concentrated attention and applies anonymisation exclu-sively to those with a score exceeding a threshold calibrated on context members, leaving low-risk queries unchanged. Our proposed target label k-anonymity defence effec-tively mitigates both AMIA and confidence-based attacks while having a negligible impact on predictive performance. The accuracy remains almost identical across models, indi-cating that the guardrail avoids the unnecessary anonymi-sation of innocuous queries. In the strongest settings, the defence reduces AMIA AUC close to zero with no accuracy loss, showing that high-risk context representations can be protected without degrading predictive performance. While we evaluate MIAs against tabular FMs in their standard ICL deployment, practitioners may fine-tune mod-els on sensitive data to improve task performance. Although the objective is to adapt to specific data distributions, we demonstrate that fine-tuning can also introduce additional privacy risks. In particular, MIAs remain feasible after fine-tuning, as certain training samples induce dispropor-tionately higher confidence scores and stronger predictive certainty. This behaviour increases the distinguishability be-tween members and non-members, thereby amplifying the risk of membership leakage and exposing sensitive informa-tion about the fine-tuning dataset. In summary, our contributions are as follows.  
+
+> •
+
+We provide the first systematic evaluation of MIAs against tabular FMs in the ICL setting, demonstrat-ing that existing state-of-the-art MIAs remain effective despite synthetic pre-training.  
+
+> •
+
+We propose AMIA, a new attention-based MIA that exploits attention dynamics across layers and heads to infer membership information from context set. Rather than relying on shadow models or auxiliary population data, the attack requires only access to the model.  
+
+> •
+
+We design a new inference-time defence mechanism that adapts the principles of k-anonymity through label-aware microaggregation on high-risk queries (see Fig-ure 1 for an overview of both AMIA and our defence). We evaluate our defence and show that it mitigates both confidence- based and attention-based attacks.  
+
+> •
+
+We analyse the privacy implications of fine-tuning tabular FMs and demonstrate that it can amplify mem-bership leakage by increasing confidence separation between specific member and non-member samples. To foster reproducibility and transparency, the source code and datasets required to replicate the experi-ments presented in this paper are publicly available at https://github.com/serval-uni-lu/MIAonTabFMs. 
+
+# 2. Preliminaries 
+
+2.1. In-context Learning 
+
+In-Context Learning (ICL) is an efficient paradigm for task-specific adaptation and is a distinctive capability of Large Language Models (LLMs) [4]. It enables models to perform new tasks using a small set of labelled ex-amples, known as few-shot examples. In practice, ICL is an adaptation mechanism that operates at inference time, whereby a pre-trained model solves a downstream task using only the information provided in the input context. Unlike conventional supervised learning approaches, ICL does not require parameter updates or gradient-based optimisation. Instead, the model implicitly “learns” the task through at-tention over the contextual examples. ICL has been studied in supervised learning settings, including regression [5, 6] and classification [7, 8] tasks. In the classification setting, the input consists of a sequence of labelled context examples Dctx =(x1, y 1), (x2, y 2), ..., (xL, y L) followed by a query point xq .Each xi ∈ X belongs to an input space (e.g. text, images or tabular rows) and each label yi ∈ Y = 1 , . . . , C corresponds to one of C possible classes. Given the context set Dctx and the query sample xq , the model predicts a probability distri-bution over the label space P (yq |xq , D ctx ). The predicted class is then obtained from the output logits over the C
+
+candidate classes. The central intuition behind ICL is that the context implicitly specifies both the task structure and the decision rule required to solve the query. Although LLMs can process tabular data within an ICL setting, several challenges make this process difficult in practice, including heterogeneous feature types, missing values and the lack of a natural sequential structure. To address these limitations, recent tabular foundation models (tabular FMs) have been specifically designed to perform ICL directly on structured tabular data. While tabular LLMs adapt language models to handle tables, tabular FMs are designed with tabular-specific transformers. Models such as TabPFN [9, 10] and TabICL [11] are transformer-based architectures pre-trained to perform clas-sification and regression through ICL on tabular tasks. In this setting, the training set acts as the context, while each test sample corresponds to a query instance. Formally, each training example is represented as a feature vector xi ∈ Rd,corresponding to the i-th record with d features. These features may include both numerical and categorical at-tributes. Numerical features are typically normalised, while categorical variables are ordinal-encoded or embedded into continuous representations. Associated labels yi are incor-porated through dedicated label embeddings. From a user perspective, tabular FMs expose interfaces similar to those of classical machine learning libraries, typi-AMIA score      
+
+> 1. Attention Membership Inference Attack 2. High-risk Queries Detection 3. Protection via K-anonymity
+> ...
+> Sends a query
+> Low risk
+> High risk
+> ...
+> Score
+> +
+> +
+> +
+> _______
+> ...
+> ...
+> ... ... ... ... ... ...
+> ...
+> ...
+> Context
+> keys
+> ...
+> Protected
+> keys
+> Adversary
+
+Figure 1: Overview of the proposed attention membership inference attack (AMIA) and defence for the high-risk queries. Phase 1 extracts the attention matrix over layers and heads, and then the maximum attention weight is averaged across all (layer, head) pairs. Phase 2 selects the high-risk queries determined based on a threshold. Phase 3 applies a label-aware microaggretion to k-anonymise context keys. cally through fit() and predict() functions. This capability is enabled by transformer-based attention mechanisms that op-erate jointly across rows and features. In particular, TabPFN uses a two-way attention mechanism whereby each cell attends both to the other features within the same row and to the corresponding feature across different rows [9]. The defining characteristic of tabular FMs is that they are meta-trained over a large collection of synthetic and real tabular tasks. As a result, the model learns a general inference procedure that can be applied to unseen datasets purely through in-context conditioning. Cross-row attention over the contextual training examples is therefore often sufficient for the model to infer an effective decision boundary. Tabular FMs have demonstrated strong predictive per-formance, particularly in small data scenarios, where their ICL capabilities often outperform classical machine learning approaches [3]. This success has led to the development of several related architectures, including TabDPT [12], TabSTAR [13], Mitra [14] and TabFlex [15], among others. 
+
+2.2. Membership Inference Attack 
+
+MIAs are widely regarded as a standard framework for assessing privacy risks in machine learning systems [2, 16]. Given a trained target model fθ , an adversary aims to determine whether a candidate record xi was part of the target model’s training dataset. Let mi ∈ { 0, 1} be the un-known ground-truth membership label of xi, where mi = 1 
+
+indicates that xi ∈ Dtrain , and mi = 0 otherwise. The attack objective is to construct a decision rule: 
+
+A(xi, f θ ) → { 0, 1}
+
+As the true membership label mi is unavailable to the adversary, the attack instead relies on observing the be-haviour of the target model on xi. Specifically, the adversary computes a membership score: 
+
+si = Λ( xi, f θ , K),
+
+where Λ is a scoring function used by a specific attack, and K denotes any auxiliary knowledge available to the adversary, such as reference models [17, 18], population samples [19], or shadow data [20]. The score si is evidence of membership. For instance, members may exhibit lower loss, higher confidence, or a larger likelihood ratio compared to non-members. The final attack prediction is then obtained by thresholding the score. Several studies have demonstrated the vulnerability of ICL to MIAs, particularly in text classification settings [21, 22, 23, 24]. In these attacks, the adversary aims to infer whether specific examples were included in the in-context demonstrations ( Dctx ) by querying the model with candidate text sequences. Recent work has also investigated worst-case information leakage through adversarial canaries [25]. In this setting, uniquely identifiable canary sequences are inserted into the context, and carefully designed adversarial queries are used to induce leakage of these sequences. The adversary can then infer the membership of the canary based on the model’s responses. Additionally, MIAs have been evaluated on LLMs fine-tuned on tabular data [26]. One of the main challenges is the representation of the structured tables in a text-based input format suitable for transformer architectures. Despite the rapid adoption of tabular ICL, its privacy implications remain largely unexplored. In particular, no privacy evaluations currently target membership inference in this learning paradigm. Moreover, the application of MIAs in tabular ICL differs fundamentally from the text-based set-ting. Existing attacks against language models are typically evaluated through generation behaviour, where membership signals are extracted from token-level probabilities or se-quence likelihoods [22]. Both tabular- and text-based ICL models operate by keeping the pre-trained model parameters θ fixed and pass examples as context at inference. The difference is not the learning paradigm but the structure of the context entries and what that structure enables for membership inference. In text-ICL, each demonstration consists of a variable-length token sequence, where a single example may span multiple key-value positions within the attention mechanism. On the other hand, tabular ICL operates on structured feature-label pairs (xj , y j ) ∈ Rd × Y where each context example corre-sponds to a fixed-dimensional row. Consequently, it occupies exactly one key position Kj and one value position Vj . This raises the possibility that contextual tabular examples may exert a stronger and more detectable influence on model predictions, thereby increasing susceptibility to MIAs. 
+
+2.3. Defences against MIA in ICL 
+
+When privacy-preserving mechanisms are proposed to mitigate MIAs in ICL systems, Differential Privacy (DP) is generally considered as the gold standard due to its formal privacy guarantees [27]. DP provides a worst-case privacy analysis by bounding how much the output of a mechanism can change when a single individual’s data is modified. In DP-based prediction settings, noise is introduced into the model’s output distribution to ensure that the generated outputs satisfy DP. This framework is parameterised by the privacy budget ϵ ∈ [0 , ∞), where smaller values of ϵ
+
+correspond to stronger privacy guarantees. Several DP-based approaches for ICL have been pro-posed. The first DP-ICL [28] partitions the sensitive dataset into a collection of exemplars and produces differentially private outputs by aggregating the responses generated by the LLM over those examples. Other approaches locally pro-tect labels through randomised response mechanisms [29]. More recent research has increasingly focused on generating privacy-preserving in-context demonstrations through syn-thetic data generation [30, 31, 32, 33]. In parallel, prompt distillation construct private demonstrations by labeling pub-licly available datasets under DP constraints and using the newly labeled examples as in-context exemplars [34]. Nonetheless, all these DP-ICL approaches have been devel-oped and evaluated in text-based settings. Furthermore, it has been shown that even when DP is incorporated into ICL systems, residual membership signals may still leak through model outputs and context interactions [25, 32]. Beyond DP, recent work has also explored text-based ICL approaches to reduce leakage by constructing ensem-bles of independently prompted models using disjoint con-text subsets and shared prompt templates. The final predic-tion is then obtained by aggregating the probability vectors produced by each prompted model [21]. In the tabular domain, DP has been explored primarily in the context of private synthetic data generation [35]. This approach typically injects noise into individual records or aggregate statistics. However, such a method was designed for tabular LLMs rather than tabular FMs operating under the ICL paradigm, in which both differ mainly in data representations and inference mechanism. In addition to its negative impact on predictive perfor-mance, DP can also compromise the veracity of the data. We are therefore interested in methods that preserve the truthfulness and fidelity of the original data. 
+
+# 3. Related Work 
+
+The growing interest in tabular FMs has prompted re-searchers to investigate their potential privacy vulnerabili-ties. However, existing studies have primarily focused on the generative capabilities of these models. In particular, Ward et al. [36] and Byun et al. [37] leverage TabPFN to generate synthetic tabular data through sequential in-context prediction of features conditioned on previously generated ones. Both works demonstrate that this generator is vulner-able to MIAs. Despite the importance of these studies, our focus lies on classification tasks rather than data generation. Regarding the exploitation of attention mechanisms for privacy attacks, this direction has been explored so far in the context of LLMs. Zaree et al. [38] propose an attention-based MIA that leverages layer- and head-level correlation statistics together with barycentric drift metrics to quantify the consistency and variation of attention patterns across transformer layers and heads. These features are combined with perturbation-based divergence metrics and used to train a dedicated attack classifier. Their results show that attention-based signals can generalise across datasets and architectures, while also identifying the layers and heads where membership leakage is most pronounced. Despite the relevance of this work, several important dif-ferences distinguish it from our setting. First, their approach is designed specifically for LLMs and relies on an auxiliary attack classifier, whereas our objective is to develop a sim-pler and more direct method tailored to tabular transformers. Second, their feature extraction process depends on pertur-bations of the textual context, including token dropping, token replacement, and prefix insertion. Such perturbations are not naturally applicable to tabular contexts composed of structured rows rather than text sequences. In contrast, our work focuses on exploiting attention signals directly within tabular FMs for classification tasks, without requiring context perturbations or additional attack models. 
+
+# 4. Tabular FMs Under Standard MIAs 
+
+The potential leakage in tabular FMs originates from the model’s dependence on the inference-time Dctx . The resulting ICL predictor is defined as: 
+
+fθ,D ctx (xq ) = Pθ (yq | xq , D ctx ).Given black-box query access to fθ,D ctx and a candidate pool P, the adversary aims to infer whether xi ∈ Dctx , from the behaviour of the ICL predictor on xi, computing: 
+
+si = Λ  xi, f θ,D ctx , K.
+
+The adversary has no access to Dctx or the model parameters. They possess an auxiliary dataset Dref drawn from the same distribution as Dctx , used to simulate the target model’s behaviour. The final membership prediction is obtained by thresholding the score si:
+
+ˆmi = 1[si > τ ].
+
+where τ is a decision threshold and ˆmi ∈ { 0, 1} indicates the predicted membership status of xi with respect to Dctx. The adversary can be then expressed as: 
+
+A(xi, f θ ) = 1
+
+h
+
+Λ( xi, f θ,D ctx , K) > τ 
+
+i
+
+∈ { 0, 1}.
+
+A tabular FM fθ is vulnerable to MIAs if an adversary can distinguish members from non-members with perfor-mance significantly better than random guessing. One mea-sure of this distinguishability is the adversarial advantage: 
+
+Adv( A) = |Pr[ ˆ mi = 1 | mi = 1] − Pr[ ˆ mi = 1 | mi = 0] | ,
+
+which corresponds to the gap between the true positive rate (TPR) and false positive rate (FPR) at a given decision threshold. Intuitively, if a candidate record xi appears in 
+
+Dctx , the model may assign systematically different pre-dictive statistics to xi relative to non-members. Such dif-ferences may emerge through confidence scores, predictive uncertainty, or attention-based conditioning effects induced by similar context rows. In this work, we investigate whether the ICL mechanism of tabular FMs induces a detectable separation between members and non-members of Dctx .
+
+4.1. Experimental Setup 
+
+Datasets. We evaluate our methods on six tabular clas-sification datasets spanning a diverse range of dataset sizes, feature dimensionalities, and class cardinalities (Table 3, Appendix A). They cover several data domains as well. 
+
+Models. We evaluate eight classifiers across two fam-ilies. We use four classical models: Multilayer Perceptron (MLP), Random Forest (RF), LightGBM, and TabNet [39]. The four tabular FMs are: TabPFN [9], Real-TabPFN, TabICL [11], and TabDPT [12]. Classical models are tuned with Optuna (30 trials, 3-fold CV). In contrast, FMs use fixed pre-trained weights and perform inference/adaptation through their built-in mechanism. More details on model architecture in present in Appendix B. 
+
+Attacks . We evaluate three state-of-the-art MIAs:  
+
+> •
+
+LiRA [17]: is a likelihood-ratio MIA that compares the target model’s confidence on a sample (x, y ) against the confidence expected for non-member samples. In its online form, LiRA estimates both IN and OUT confidence distributions using reference models trained with and without the target sample. In the offline vari-ant, reference models are trained independently before observing the target query and are not trained on the target sample. The attack then estimates only the OUT distribution, typically using a Gaussian approximation of confidence scores, and assigns higher membership scores to samples for which the target model’s confi-dence is unusually large under this OUT distribution.  
+
+> •
+
+RMIA [18]: is a relative likelihood-ratio MIA designed to reduce the cost of shadow-model attacks. Rather than scoring a sample only by its absolute confidence under the target model, RMIA compares the target sample against auxiliary population samples and uses reference models to calibrate this comparison. In the offline setting, the reference models are trained independently of the target query and can be used as OUT models. This makes the attack less dependent on training query-specific IN reference models while still retaining a likelihood-ratio interpretation.  
+
+> •
+
+Attack-P (population attack) [19]: is a population-based MIA that does not train reference models. It uses auxiliary samples drawn from the same population as the target training data to estimate how the target model behaves on non-members. A target sample is predicted as a member when the target model assigns it an unusually high confidence, or low loss, relative to this population baseline. We use a single reference model for RMIA and LiRA, since it has been shown that one model is sufficient to estimate the membership signal reliably, while avoiding the additional computational cost of training multiple references [18, 40]. Also, we report the results concerning their offline versions, focusing on a black-box scenario. 
+
+Data split. For each dataset, we use a stratified 75/25 split. The 75% portion is used as the candidate pool from which target training sets and audit samples are drawn, while the remaining 25% is reserved as an auxiliary population set for attacks that require population data. 
+
+Reproducibility. All experiments are repeated across five independent random seeds. Each seed induces a new random permutation of the candidate pool, resulting in different training contexts and audit splits. Reported results correspond to the mean and standard deviation across seeds. 
+
+Metrics. We report the attack effectiveness using the area under the ROC curve (AUC), which provides a threshold-independent measure of separability between members and non-members (aggregate discrimination). Ad-ditionally, we report TPR at low FPR corresponding to practical attack scenarios in which the adversary acts only on highly confident membership predictions. 
+
+4.2. Experimental Results 
+
+Table 1 reports the AUC results for the MIAs evalu-ated in classical machine learning models and tabular FMs. Overall, the results demonstrate that both model families are vulnerable to MIAs. A first important observation is that tabular FMs exhibit privacy leakage levels comparable to those of classical models. In multiple settings, FMs such as TabICL and TabDPT achieve attack AUC values that are similar to, or even higher than, those observed for RF and LightGBM. For instance, on the Locations dataset, TabDPT reaches an RMIA AUC of 0.902, while for TabICL the attack success is 0.899. In Dropout Success, TabDPT achieves an RMIA AUC of 0.975, which is among the highest values observed across all evaluated models. These results show that in-context prediction with fixed pre-trained tabular transformers is still vulnerable to MIAs. Models exhibiting larger generalisation gaps between training and test accuracy (Table 4, Appendix D) tend to be more vulnerable to membership inference. Although sev-eral FMs also exhibit high training accuracy, conventional overfitting alone cannot explain their privacy leakage. In particular, TabICL and TabDPT display some of the highest attack AUCs despite achieving competitive generalisation performance. For instance, TabICL obtains the highest test accuracy on Locations (0.871) while simultaneously exhibit-ing strong membership leakage across attacks. Similarly, TabPFN and Real-TabPFN achieve relatively modest gen-eralisation gaps compared to classical baselines, yet still remain substantially vulnerable to MIAs. This distinction is particularly evident for TabDPT. De-spite its strong predictive performance and relatively stable test accuracy, TabDPT remains highly vulnerable to RMIA. Even Attack-P, which lacks the model-specific calibration provided by reference models, detects a strong membership signal. This suggests that the leakage is not explained by predictive accuracy alone, but by how the model uses in-context examples and by information retained in the context representation, which can preserve sample-specific effects from the in-context training examples. Figure 6 (Appendix E) further compares the attacks in six datasets, demonstrating that RMIA is consistently the strongest attack across the two models family. Overall, the comparison between predictive performance and attack success suggests that traditional generalisation metrics alone are insufficient to characterise privacy risk in tabular FMs. While overfitting contributes to leakage in both classical and FMs, the results indicate that tabular ICL introduces additional privacy risks that are specific to context-based inference mechanisms. 
+
+Key Insight :: Tabular FMs are consistently more vul-nerable to standard MIAs than classical models. 
+
+# 5. Attention-based MIA 
+
+The previous results motivate us to further investigate the role of the attention mechanism in tabular FMs and its poten-tial implications for MIAs. In transformer architectures, the attention mechanism maps a query and a set of key-value pairs to an output representation, where the query, keys, values, and output are all vector representations. The output is computed as a weighted combination of the values, with each weight determined by a compatibility function between                                                                                                                                                     
+
+> Dataset Model RMIA LiRA Attack-P
+> Locations RF 0.968 ±0.025 0.739 ±0.016 0.782 ±0.067
+> LightGBM 0.854 ±0.042 0.713 ±0.023 0.841 ±0.039
+> TabNet 0.694 ±0.027 0.593 ±0.021 0.683 ±0.026
+> MLP 0.820 ±0.012 0.698 ±0.011 0.878 ±0.023
+> TabPFN 0.836 ±0.023 0.703 ±0.017 0.712 ±0.009
+> Real-TabPFN 0.818 ±0.021 0.697 ±0.017 0.700 ±0.008
+> TabICL 0.899 ±0.008 0.742 ±0.015 0.814 ±0.016
+> TabDPT 0.902 ±0.010 0.731 ±0.016 0.964 ±0.022
+> Dropout Success RF 0.855 ±0.066 0.685 ±0.024 0.618 ±0.048
+> LightGBM 0.746 ±0.034 0.627 ±0.015 0.583 ±0.017
+> TabNet 0.636 ±0.059 0.577 ±0.035 0.594 ±0.047
+> MLP 0.588 ±0.037 0.545 ±0.016 0.560 ±0.021
+> TabPFN 0.716 ±0.013 0.633 ±0.007 0.555 ±0.013
+> Real-TabPFN 0.710 ±0.015 0.630 ±0.008 0.554 ±0.014
+> TabICL 0.867 ±0.019 0.719 ±0.012 0.653 ±0.027
+> TabDPT 0.975 ±0.005 0.753 ±0.016 0.911 ±0.029
+
+TABLE 1: Attack AUC results of RMIA, LiRA and Attack-P across classical machine learning models and tabular foun-dation models on Locations and Dropout Success datasets. the query and the corresponding key [41]. Consequently, the attention mechanism enables the model to selectively focus on context rows that are considered more relevant to the queried sample during inference. In practice, the attention function is computed simultaneously over a set of queries, which are packed into a query matrix (Q). Similarly, the corresponding keys and values are packed into matrices (K) and (V), respectively. For a specific layer l and head h, the attention weights are computed as [41]: 
+
+A(l,h ) = softmax Q(l,h )K(l,h )⊤
+
+√dk
+
+!
+
+∈ R|Q|×| K|
+
+The values V (l,h ) are then used to produce the output: 
+
+O(l,h ) = A(l,h )V (l,h ).
+
+5.1. Threat Model and Attack Overview 
+
+We consider an adversary who aims to infer whether a candidate example xj ∈ P was used as part of the context dataset Dctx of a fitted target model fθ , given a candidate pool P = {xi}mi=1 and query access to fθ .We assume a grey-box setting: the adversary knows the architecture of fθ but does not modify the model parameters. Notably, the adversary can patch attention modules during inference to extract attention matrices from a selected set of layer-head pairs M = {(l, h )}.For each candidate xj , the adversary performs a single forward pass fθ (xj | Dctx ) and extracts {A(l,h )}(l,h )∈M .Since Dctx may contain auxiliary rows (e.g. learned thinking rows in TabPFN), attention is restricted to the n true context positions Ictx and renormalised. Let W (l,h ) denote the resulting submatrix of A(l,h ) containing attention from xj
+
+to those n real context examples. The attack then computes 
+
+a(l,h ) 
+
+> j
+
+= max  
+
+> i=1 ,...,n
+
+W (l,h ) 
+
+> j,i
+
+,
+
+which measures the strongest attention assigned by candi-date xj to any context example in Dctx .The final membership risk score is obtained by averaging over the selected layers and heads: 
+
+sj = 1
+
+|M| 
+
+X
+
+> (l,h )∈M
+
+a(l,h ) 
+
+> j
+
+.
+
+A candidate with a higher score is considered more likely to be a member. Evaluation is performed across all thresholds via the ROC curve. Algorithm 1 summarises the computation of sj for all candidate examples in the attack pool. 
+
+Algorithm 1 Attention-based Membership Inference Attack (AMIA) 
+
+Require: Fitted target model fθ with context dataset Dctx 
+
+of size n, attack pool P = {xj }mj=1 , batch size B
+
+Ensure: Membership risk scores s1, . . . , s m 
+
+> 1:
+
+for all batches B ⊆ P do  
+
+> 2:
+
+Run fθ on B; collect {A(ℓ,h )}(ℓ,h )∈M  
+
+> 3:
+
+for all (ℓ, h ) ∈ M do  
+
+> 4:
+
+W (ℓ,h ) ← A(ℓ,h )[−|B| :, Ictx ] ▷ restrict to query rows and real context keys  
+
+> 5:
+
+Renormalise each row of W (ℓ,h ) 
+
+> 6:
+
+end for  
+
+> 7:
+
+for all xj ∈ B do  
+
+> 8:
+
+sj ← 1
+
+|M| 
+
+X
+
+> (ℓ,h )∈M
+
+max  
+
+> i=1 ,...,n
+
+W (ℓ,h ) 
+
+> j,i
+> 9:
+
+end for  
+
+> 10:
+
+end for  
+
+> 11:
+
+return s1, . . . , s m
+
+Standard attacks operate in a black-box setting, ob-serving only output probabilities and requiring an auxiliary dataset Dref from the same distribution as Dctx to calibrate membership scores. In contrast, AMIA operates in a grey-box setting, leveraging access to internal attention matrices during the forward pass while requiring no auxiliary data beyond the candidate pool P.
+
+5.2. Experimental Results 
+
+The following results focus on the evaluation of the four tabular FMs, since AMIA is not applicable to classical machine learning models. Based on previous best results, we also focus on RMIA comparisons only. The setup of all experiments remains the same as described in Section 4.1. Figure 2 depicts the TPR at low FPR for both attacks. We observe that AMIA consistently outperforms RMIA across all models and both datasets. In particular, the attention-based signal yields substantially stronger MIA performance than the output-based signal used by RMIA, indicating that attention weights expose membership infor-mation that is not captured by prediction probabilities alone. For TabPFN and Real-TabPFN, AMIA improves the AUC by approximately 10 percentage points over RMIA on Locations. For TabICL and TabDPT, the difference is considerably more pronounced. RMIA achieves an AUC 
+
+Figure 2: ROC curves (FPR ≤ 0.10) for AMIA and RMIA on four tabular foundation models across two datasets. Solid lines denote Locations and dashed lines Dropout Success. of 0.899 and 0.902 for these models respectively, whereas AMIA achieves near-perfect discrimination with an AUC of 0.998 and 1.000. This suggests that such architectures learn sharp and discriminative attention patterns toward memorised context examples. Among all evaluated models, TabDPT appears to be the most vulnerable. AMIA achieves an AUC of approximately 100% on both datasets, implying that membership can be inferred almost perfectly from attention information alone. Correspondingly, the ROC curve is almost vertical at very low FPR, showing that the adversary can identify the vast majority of members before any false alarms occur. Finally, Real-TabPFN exhibits behaviour that is almost identical to that of TabPFN. Including real-world data has little effect on attack performance, suggesting that the ob-served vulnerability is primarily architectural rather than a consequence of the pre-training data. Additionally, when considering F P R = 0 , we observe that RMIA collapses to near zero across all models demon-strating that cannot reliably identify any member without also flagging non-members. On the other hand, AMIA re-tains meaningful signal. For example, on Locations, TabPFN AMIA identifies 19% of members with zero false alarms and TabICL AMIA notably identifies 63%. A key difference between both TabPFN versions and TabICL and TabDPT is the presence of thinking rows. Removing thinking rows from TabPFN and Real-TabPFN it prevents non-context data from being counted as training context attention. However, thinking rows still participate in the forward pass and can influence hidden representations through propagation across layers. As a result, they may dilute the membership signal. Key Insight :: The attention concentration signal is a stronger and more consistent membership indicator than output-based signals with AMIA approaching near-perfect discrimination while requiring no population data or reference model training. 
+
+# 6. Inference-Time Hardening Against MIAs 
+
+The AMIA results show that membership leakage in tabular FMs is not limited to output probabilities. In many settings, the most notable signal originates from the model’s internal attention patterns where members frequently gen-erate highly focused attention on the training context. This suggests that attention can be an additional source of privacy vulnerability. Methods such as HAMP [42] or restricting the prediction vector to the top-c classes [43], which are effective against classical confidence-based attacks, do not modify the attention patterns exploited by AMIA. Similarly, differentially private synthetic data generation [35] could replace the private context with a more protected version, but this approach requires training an additional generative model and completely discards the original context, thus undermining the ICL mechanism that makes FMs effective. Therefore, we propose a defence specifically designed for the tabular ICL setting. Rather than modifying the model through retraining, our approach operates directly at inference time by modifying the row-attention mechanism to reduce the discriminability of context-key representations. 
+
+6.1. High-risk Attention Control 
+
+When designing a defence mechanism, a key objective is to preserve predictive performance. This can be achieved more effectively by observing that not all queries exhibit the same level of privacy risk. In particular, member queries tend to produce high attention scores ( sj ), as the model has successfully memorised their corresponding context keys. In contrast, non-member queries typically induce more diffuse attention distributions, reflecting weaker and less specific associations within the context. Given the AMIA scores, we therefore flag only the subset of queries deemed high-risk: 
+
+Hτ = {xj ∈ B : sj ≥ τ },
+
+Queries in B \ H τ are served with the original, unmodified context keys, preserving accuracy on the majority of inputs. The threshold τ controls the privacy-utility trade-off and can be set in two ways. If the practitioner specifies τ directly (e.g. derived from domain knowledge or a desired fallback rate), it is used as-is. Otherwise, τ is calibrated from a reference set using TPR-based calibration. In the latter case, since the defender has full knowledge of Dctx , the threshold is calibrated by computing AMIA scores on the context examples themselves. Specifically, τ is set to the minimum score among context members: 
+
+τ = min  
+
+> xj∈Dctx
+
+sj ,
+
+ensuring that any query whose attention concentration is at least as sharp as the least-exposed context example is flagged as high-risk. This allows to apply the anonymisation exclusively to those queries. Our defence uses k-anonymity [44] and microaggrega-tion [45], a privacy-preserving data publishing approach. The goal of k-anonymity is to ensure that each released record is indistinguishable from at least k − 1 other records with respect to a chosen set of quasi-identifying attributes. In other words, a protected record should belong to a group, rather than appearing as a unique individual. Microaggre-gation is a well-known method for achieving k-anonymity, where similar records are clustered into small groups, and replaced by a representative aggregate, such as the group centroid. This reduces record-level uniqueness while pre-serving data structure. Therefore, instead of protecting released database records, our objective is to prevent individual context ex-amples from becoming uniquely identifiable attention keys. To achieve this, we employ label-aware microaggregation, where each record is grouped with at least k − 1 nearby examples from the same class, and the model is given an aggregated representative instead of the original individual record. This directly targets AMIA’s leakage mechanism by reducing sharp attention to isolated context examples, while the label constraint helps preserve predictive utility. Algorithm 2 specifies all the steps for this targeted, label-wise microaggregation approach. 
+
+Algorithm 2 Targeted Label k-Anonymity 
+
+Require: Fitted target model fθ with context dataset Dctx 
+
+of size n, context labels {yctx ,i }ni=1 , AMIA scores {sj }
+
+for query batch B = {xj }, anonymity parameter k,smoothing parameter α ∈ [0 , 1) , threshold τ
+
+Ensure: Predictions ˆp1, . . . , ˆp|B|  
+
+> 1:
+
+for all class c ∈ Y do  
+
+> 2:
+
+Gc ← { i : yctx ,i = c}; skip if |G c| < k  
+
+> 3:
+
+Partition Gc into non-overlapping groups of size k
+
+by key similarity  
+
+> 4:
+
+for all groups g do  
+
+> 5:
+
+μg ← 1
+
+|g|
+
+X
+
+> i∈g
+
+Ki 
+
+> 6:
+
+for all i ∈ g do  
+
+> 7:
+
+˜Ki ← α K i + (1 − α) μg 
+
+> 8:
+
+end for  
+
+> 9:
+
+end for  
+
+> 10:
+
+end for  
+
+> 11:
+
+for all xj ∈ B do  
+
+> 12:
+
+if sj ≥ τ then  
+
+> 13:
+
+ˆpj ← fθ (xj | Dctx , { ˜Ki}) ▷ forward pass with anonymised keys ˜K 
+
+> 14:
+
+else  
+
+> 15:
+
+ˆpj ← fθ (xj | Dctx ) ▷ normal forward pass  
+
+> 16:
+
+end if  
+
+> 17:
+
+end for  
+
+> 18:
+
+return ˆp1, . . . , ˆp|B| Before any query is processed, the context keys are anonymised class-conditionally. For each class c ∈ Y,the set of context indices with label c is collected as 
+
+Gc = {i : yctx ,i = c}. Classes with fewer than k examples are skipped, as a group of size k cannot be formed. Within Gc, context examples are sorted by key similar-ity and partitioned into non-overlapping groups g of size 
+
+k. Grouping is performed within the same class to avoid mixing examples of different labels, which would corrupt the attention-weighted predictions. For each group g, the centroid of the key vectors is computed as 
+
+μg = 1
+
+k
+
+X
+
+> i∈g
+
+Ki,
+
+and each key is replaced by a convex interpolation between its original value and the group centroid: 
+
+˜Ki = α K i + (1 − α) μg , α ∈ [0 , 1) .
+
+While the original microaggregation replaces keys entirely with a centroid, soft label microaggregation allows for small perturbations in predictions. For α = 0, all keys in a group share the same centroid representation, yielding k-anonymous groups in key space. For α > 0, the mechanism interpolates between the original and anonymised keys, trading privacy for utility. The parameter α thus directly controls the anonymisation strength: a lower value makes it harder for an adversary to distinguish which specific context example a query is attending to, at the cost of reduced attention precision and potential accuracy loss. At inference time, each query xj ∈ B is routed based on its AMIA score. If sj ≥ τ , the forward pass uses the anonymised keys ˜Ki, replacing the original context-key representations in all context-attention layers (ℓ, h ) ∈ M . If 
+
+sj < τ , the original forward pass fθ (xj | Dctx ) is returned unchanged. This selective strategy ensures accuracy for low-risk queries while preventing AMIA from identifying the most relevant ones. 
+
+6.2. Experimental Results 
+
+In this section, we investigate the effectiveness of the target label k-anonymity defence. We first study the influ-ence of the threshold determined by the minimum known members score, followed by an analysis of the attention transformation applied to the selected queries. All experi-mental settings remain unchanged from the previous section. 
+
+High-risk selection. The first results concern Phase 2, where we evaluate the threshold selection for high-risk query identification. Figure 3 illustrates the discriminative capacity of AMIA scores in identifying true members across tabular FMs. The dashed vertical line denotes the learned threshold 
+
+τ , above which queries are flagged as high-risk and assigned to the target label k-anonymity defence. The results suggests that AMIA is much more mem-bership discriminative for TabDPT and TabICL in which member rows receive substantially higher maximum atten-tion scores than non-members, creating a clear distributional separation. For TabDPT, the member and non-member score distributions are nearly disjoint in which the threshold falls cleanly between them, flagging exclusively members with a selection rate of 50%. TabICL shows similarly good separation with a selection rate of 53% and 57%, meaning a small but non-negligible fraction of non-members are caught by the threshold. In both cases the defence will behave as intended by intervening on a targeted high-risk subset while leaving the remaining queries unaffected. On the other hand, both TabPFN and Real-TabPFN ex-hibit poor separation. The member and non-member AMIA score distributions overlap heavily and concentrating near zero. In these cases, the threshold provides little discrim-inative power. Despite an AMIA AUC of 93%, the selec-tion rate reaches 75% on Locations and 87% on Dropout Success, with member shares of only 67% and 69%. The high AMIA AUC observed in Figure 2 reflects membership leakage, but the diffuse attention concentration signal in TabPFN is spread across many context rows rather than sharply concentrated on a few. As evidence, Figure 7 (Appendix F) reports the per-layer AMIA AUC. TabPFN has zero layers that achieve near-perfect separation. The per-layer AUC reaches at most 0.98 on Locations and 0.90 on Dropout Success, with the signal oscillating across all 24 layers and never concentrat-ing cleanly in any subset. Therefore, while the aggregate AMIA score produces a high ROC AUC, the underlying score distributions remain overlapping. In particular, the non-member right tail and the member left tail occupy similar score ranges. As a result, any threshold set to capture a meaningful proportion of members will inevitably fall within the non-member distribution, explaining the high non-member selection rate observed. For TabDPT, 7 out of 16 layers on Locations achieve a per-layer AUC above 0.99. When the final AMIA score ag-gregates these layer signals, the resulting distribution keeps this sharp separation, which is why the same high recall threshold selects almost exclusively members. Such results may be attributed to architectural design. TabPFN runs many fragmented attention calls per layer, each covering only a subset of features, which may cause diffuse signals. In contrast, TabDPT uses a single call per layer over a complete row representation, with key vectors encoding all features simultaneously. Thus, its attention signal can concentrate more directly on the member rows. 
+
+Target label k-anonymity. Next, we evaluate the ef-fectiveness of the proposed defence in mitigating member-ship leakage on the previously identified high-risk queries. We consider following parameters inn our defence: α ∈{0, 0.3, 0.5} and k ∈ { 3, 5, 10 }.Figure 4 shows the change in the attack AUC versus the change in accuracy for each defence configuration. The ideal point is at upper-right, which corresponds to privacy gain and minimum accuracy degradation. Each curve connects configurations of the same α across k values. We observe a large accuracy cost and considerable privacy gain for TabPFN and Real-TabPFN. The defence reduces AMIA AUC from 0.40 and up to 0.61 and RMIA Figure 3: AMIA-based high-risk selection. The density plots show the full distribution of AMIA row-attention scores for all member and non-member samples, with the dashed line indicating the selection threshold. The stacked bar plots summarise the samples above this threshold, showing the member/non-member composition of the selected high-risk subset. 
+
+Figure 4: Privacy-utility trade-off of targeted label k-anonymisation defence averaged over Locations and Dropout Success datasets. by 0.10 to 0.38, but at higher accuracy cost. Base target label 
+
+> k
+
+-anonymity ( α=0%) decreases accuracy by up to 14%. This is a direct consequence of high-risk selection, as many non-members are being transformed too. Softening to α = 50% 
+
+reduces accuracy cost substantially but also weakens the privacy gain specially for RMIA. This clearly highlights a trade-off. However, the highest softened α allows for a re-duction of AMIA around the random guess with practically no costs for predictive utility. On the other hand, this is not possible for RMIA, which requires stronger parameters to increase privacy gain. This means that the defence targets the attention signal more directly than the output confidences. In the case of TabICL, base target label k-anonymity reduces AMIA AUC by up to 95% with an accuracy drop of only 1.5%. Even with α = 50% can yield 0.19 and 0.60 AMIA reduction with negligible accuracy impact. The small accuracy cost reflects the precise selection of high-risk queries; the defence is applied mostly to true members, so non-member predictions are largely unaffected. This is the regime in which adaptive defence works as intended. For TabDPT, a nearly perfect reduction in AMIA can be achieved at a negligible accuracy cost for α = 0 . However, protection collapses sharply as α increases; at α = 50% , the AMIA reduction is nearly zero. This is because TabDPT’s attention is sharply concentrated on the member’s own key, so even moving it 50% towards the centroid still leaves it as the dominant key. This means that the member’s key is far enough from all other keys that partial smoothing is insufficient to break the concentration. Full key replacement (α = 0 ) is required to destroy the unique signature. A non-monotonic pattern is also observed for the k
+
+parameter in TabICL and TabDPT. While larger k is ex-pected to increase the accuracy cost, the ordering reverses at α = 50% , where k = 10 incurs less accuracy cost than  
+
+> k= 3
+
+. This occurs because centroid stability becomes the dominant factor at soft α. With k = 3 , the centroid is estimated from few rows and can have high variance, so blending with it may move the key in an irregular direction. With k = 10 , the centroid is more stable and closer to the class mean, producing a smoother and less disruptive displacement. Accuracy differences are nevertheless very small (order of 10 −3), as the defence is applied almost exclusively to members and the centroid prediction typically preserves the correct class regardless of k.
+
+Key Insight :: The AMIA risk score serves as an effec-tive signal for both attack and defence. By selectively ap-plying label k-anonymity to high-risk queries, attention-and confidence-based attacks are substantially mitigated while preserving predictive performance. 
+
+# 7. Fine-tuning Leakage 
+
+While the previous sections focused on privacy leak-age arising from inference-time context interactions, tabular FMs may also introduce additional risks when adapted to predictive tasks through fine-tuning. Fine-tuning is com-monly used to specialise a pre-trained model to the distribu-tion, feature space, and label semantics of a target dataset, often yielding stronger predictive performance. However, updating model parameters on private data may also cause the model to encode information about the fine-tuning samples. As a result, fine-tuned samples can become more distinguishable from unseen data, increasing their vulnerability to MIAs. Evaluating fine-tuning is there-fore important not only from a utility perspective, but also from a privacy perspective. For demonstration purposes, we focus on a single model. We aim to answer the question: 
+
+Does fine-tuning TabDPT on a dataset increase its MIA vulnerability for those fine-tuned training samples? 
+
+For this, we introduce an explicit fine-tuning stage. Let the fine-tuning data be Dft = {(xi, y i)}Ni=1 . Starting from the pre-trained parameters θ0, we update the model using gradient-based optimisation on Dft , obtaining 
+
+θft = arg min  
+
+> θ
+
+L(θ; Dft )
+
+The fine-tuned model then predicts Pθft (yq | xq , D ctx ).For this particular experiment, we consider disjoint sets 
+
+Dft ∩ Dctx = ∅. This ensures that any leakage observed in 
+
+Pθft is attributable to weight adaptation from Dft , not to xq
+
+appearing as a context example. For each audited sample (xq , y q ), we use the pre-trained TabDPT θ0 as a public reference model and compare it with the fine-tuned θft under the same fixed context: 
+
+Pθ0 (yq | xq , D ctx ) and Pθft (yq | xq , D ctx ).
+
+Then, the goal is to infer whether (xq , y q ) ∈ Dft .
+
+Fine-tuned data leakage. We measure the fine-tuning membership signal using the change in true label. Intuitively, fine-tuning causes the model to assign higher confidence to the true labels of samples on which it was trained, making this shift a natural membership indicator. We report in Figure 5 the results for RMIA, as AMIA was designed for ICL context membership. We explore the shifts in confidences tested in Purchases10 dataset. 
+
+Figure 5: Fine-tuning membership signal in TabDPT using Purchases10 dataset. RMIA score distributions for fine-tuning (left) and distribution of the true label confidence shift (right). Before fine-tuning, RMIA is essentially at chance with AUC of 0.49 as Dctx does not contain any query from the Df t . After fine-tuning, RMIA AUC rises to about 0.57 (Figure 12, Appendix K). This means fine-tuned training samples become more distinguishable from held-out non-members after the weight update. In the confidence shift (right image) we observe that members receive a larger increase in true label confidence than non-members. A right-ward shift for members indicates that fine-tuning increases confidence more on samples used for weight updates. 
+
+Fine-tuned context leakage. We also evaluate the attack in context after the fine-tuned model. The adversary never sees fine-tuned samples; the idea is to distinguish between context members and non-members, isolating the privacy risk of in-context exposure from the privacy risk of weight memorisation. In this scenario, we include AMIA. Table 2 reports the results for both attacks by comparing the leakage between the original and the fine-tuned models.       
+
+> Model RMIA AMIA
+> Original 0.867 1.000
+> Fine-tuned 0.540 0.997
+
+TABLE 2: Context MIA AUC on fine-tuned TabDPT. In the original model, the membership signal detected by RMIA comes from a gap in output probability. When 
+
+xq is a context member, the model can rely directly on the matching context row to predict yq , leading to a higher true label probability. After fine-tuning, this gap is largely reduced. As a result, output confidence is no longer strongly discriminative. In particular, RMIA reaches an AUC of 0.54, close to random guessing. Even with a strong reference model, there is little remaining probability gap to exploit. AMIA, on the other hand, reaches very high AUC for both the original and fine-tuned models. This is because AMIA does not measure output confidence. Instead, it mea-sures where the model focuses its attention, which still concentrates on xq when it is in the context, regardless of whether the model needed to focus there in order to make the prediction. Although fine-tuning updates the model’s weights it does not change the fact that context members are attended more sharply; this makes AMIA more efficient. In summary, we confirm that i) fine-tuning introduces a measurable, albeit modest, vulnerability on top of the in-context signal already present in TabDPT, and ii) the con-fidence shift score outperforms the raw fine-tuning model’s confidence as a membership discriminator, indicating that what matters is not the absolute confidence but how much it changed due to fine-tuning. 
+
+# 8. Discussion 
+
+8.1. MIAs on tabular FMs 
+
+Confidence-based attacks, such as RMIA, observe the model at its output boundary. Although the signal is legiti-mate, it can be misleading. A non-member lying far from the decision boundary in a dense, well-represented region of the feature space produces high output confidence for the same reason as a memorised training example. Therefore, output probability cannot distinguish between the two cases. By contrast, AMIA operates on a different layer of computation. In an ICL model, the query not only makes a confident prediction but also retrieves a specific set of context rows via the attention mechanism. When the con-centration score is high, the model has focused its attention on one or a few rows, effectively treating the query as almost identical to a specific context example and adopting its label. This makes memorisation structurally visible as the model is not only confident, but also points to a specific row. In general, AMIA adds attack power beyond RMIA. We also compared with the online version of RMIA (Figure 8, Appendix G). RMIA-online improves over offline version, but the gain is smaller than AMIA’s gain. The online boost is largest for TabPFN and Real-TabPFN, smaller for TabICL, and almost negligible for TabDPT. Additionally, Figure 9 (Appendix H) shows that AMIA is not only more effective, but also substantially more computationally efficient than existing attacks. In median, AMIA requires less than one minute to extract and compute attention-based membership signals. In contrast, RMIA in-curs higher computational overhead, as it requires repeated scoring of the target model, reference models, and popula-tion behaviour distributions. By directly leveraging internal attention representations obtained during inference, AMIA avoids these expensive auxiliary computations while still achieving stronger attack performance. AMIA also demonstrates to be persistent as Dctx 
+
+changes. Figure 10 (Appendix I) shows that membership leakage is robust to the choice of context size. AMIA remains strong from small context fractions to full Dctx .For RMIA, increasing the context size tends to dilute the membership signal captured by output probabilities. This indicates that RMIA is sensitive to the composition and size of Dctx , and may underestimate membership leakage when the signal is expressed internally through attention rather than externally through prediction confidence. Despite the generally high attack performance on all tabular FMs, their architecture influences their vulnerability. TabPFN and TabICL rely solely on synthetic data pre-training. Real-TabPFN builds on TabPFN and further trains on real datasets with the goal of aligning synthetic priors with real tabular distributions. TabDPT incorporates real-world data during pre-training. In this regard, we did not observe substantial differences between TabPFN and Real-TabPFN. Beyond pre-training, their attention mechanisms also differ. Both TabPFN variants attend directly to context rows and labels. TabICL compresses rows into learned em-beddings before performing ICL, which may yield cleaner row-level representations and thus sharper attention pat-terns. TabDPT pre-trains a transformer encoder that learns discriminative feature representations, without explicit re-trieving context. The strong attack performance on TabDPT suggests that attention-based leakage is not limited to ar-chitectures with explicit contextual retrieval, but can also emerge from highly discriminative representation learning. 
+
+8.2. Defence 
+
+As previously observed, the proposed target label k-anonymity defence is effective. Figure 11 (Appendix J) further illustrates this by evaluating the privacy-utility trade-off of such approach against two other strategies. First, we uniformly apply label k-anonymity to all queries regardless of their risk score. Second, we apply attention dropout which regularises the row-attention weights at inference time by randomly zeroing out attention entries. While they eliminate the need for a risk scorer, they apply the defence indiscrim-inately to every query, including non-members. Attention dropout is the least efficient strategy for AMIA. Further-more, we notice a higher advantage in selecting high-risk queries: simple label k-anonymity only reduces the attack effectiveness by a small amount. Future work may include applying the proposed high-risk query selection strategy to each approach individually, but also their combination to obtain improved results. Our defence is specifically for tabular ICL. Label k-anonymity exploits the structured, row-level and is therefore natural for tabular ICL because each sample is a structured feature-label pair, and same-label rows can be averaged or blended in feature space while preserving the class. In text-based ICL, samples are discrete natural language sequences; there is no simple label-conditioned centroid that remains a valid, semantically faithful text example. Therefore, this defence is specific to tabular FMs and does not directly apply to text ICL. On the other hand, attention dropout can in principle be applied to text-based ICL as it operates on attention weights, not on the data format. 
+
+8.3. Limitations and opportunities 
+
+In our current setup, we aggregate representations by averaging across all layers. While this provides a simple and stable baseline, alternative layer-aggregation strategies should be explored in future work, as different layers may encode task-specific information. Potential directions in-clude selecting individual layers or combining only subsets of layers most relevant to the downstream task. Concerning our defence, it can be applied either before deployment or adaptively at inference time (real-time). In the static setting, the groups and centroids are computed only from the fixed context keys and used for all queries. In the adaptive setting, the same transformation is applied only when the high-risk guardrail identifies a sensitive query. If the model is defended before deployment, then the adversary cannot bypass the transformation by avoiding the trigger; they interact only with the defended model. The attack needs to know at least three parameters ( τ , k, α) to bypass the defence. In that setting, target label k-anonymity is stronger. However, leakage may persist through residual output-confidence signals, group-level membership informa-tion such as minority groups, or imperfect anonymisation when the centroid still encodes sensitive local structure. In real time, an adversary can search for query versions that preserve membership information while falling below the high-risk threshold, thereby avoiding the defence. Since the defence is applied only after detection, false negatives are the main attack surface. This limitation is inherent to hard thresholding as small changes around the decision boundary can alter whether the defence is activated. A pos-sible mitigation is to perform detection on a local neighbour-hood of the query, rather than only on the submitted query. For example, the defender could evaluate the risk score over perturbations or nearest neighbours of xq , and activate the defence if any nearby point exceeds the threshold. A second limitation is the choice of threshold. Setting 
+
+τ as the minimum AMIA score among known members is conservative. A low threshold may effectively protect members, but this comes at the cost of causing many non-member queries to be processed by the stronger defence. A more robust alternative may be quantile-based mem-ber calibration. Instead of requiring all known members to be caught, we choose a threshold that catches a target fraction β of members: τβ = Quantile 1−β
+
+ {si : xi ∈ D 1}.
+
+For example, setting β = 0 .9 means that the defence is calibrated to catch approximately 90% of members, while tolerating the lowest-risk 10% . This avoids letting a single low-score member dominate the threshold. The limitation is that some members are intentionally left unflagged, so the defence no longer guarantees full member coverage. Future work includes such analysis and adjustment of the threshold. A final limitation concerns scalability. Both AMIA and target label k-anonymity introduce scalability challenges that constrain their practical applicability. For AMIA, the main computational bottleneck is storing attention weights. Depending on the implementation, the captured attention tensor scales with the number of query-context pairs, and can become quadratic when full row-attention over the context/query sequence is retained. Target label k-anonymity faces a different class of scal-ability constraints, namely when high-risk labels are rare. Achieving k-anonymity for under-represented classes re-quires aggressive generalisation which amplifies utility. In high-dimensional feature spaces, forming genuinely indistin-guishable groups of size k becomes increasingly difficult, as the probability that k records share sufficiently similar group values decreases with dimensionality. Finally, when the inference context is dynamic, the k-anonymous partition must be recomputed or updated at inference time, introduc-ing a computational overhead that undermines deployment feasibility. This limitation becomes especially important in deployment settings. Since the defender does not know future queries in advance, and the inference context may depend on each query, high-risk detection and k-anonymous grouping cannot always be fully precomputed and may require additional online computation. 
+
+# 9. Conclusion 
+
+In this paper, we demonstrate that tabular foundation models (FMs) despite being pre-trained on large collections of synthetic data are not free from privacy risks. First, we show that such models are sensitive to standard MIAs that are based on confidence scores. As tabular FMs op-erate through in-context learning, their predictions depend directly on the context examples provided at inference time, in which the transformers’ attention mechanism amplifies the membership signal. Second, we propose an attack that exploits such attention dynamics called AMIA. Results show a high efficiency of AMIA compared to confidence-based attacks. Third, we design a new defence strategy to tackle this problem based on k-anonymity principles by targeting high-risk queries. Our defence reduces the granularity of the context attention representations through label-aware microaggregation. Such approach reduces AMIA but also confidence-based attacks while preserving predictive utility. Furthermore, we demonstrate that fine-tuning can introduce additional privacy risk even when context-based attention signals remain weak. In short, our research contributes towards the trustworthy deployment of tabular FMs, by highlighting the importance of privacy risks in-context learning systems. Our findings demonstrate that synthetic pre-training alone is insufficient to guarantee privacy, and that both inference-time contextual interactions and task-specific parameter adaptation consti-tute critical sources of membership leakage. More broadly, we aim for this work to pave the way for new research into the privacy risks, as such models continue to be adopted across sensitive real-world domains. 
+
+# References 
+
+[1] T. Carvalho, N. Moniz, P. Faria, and L. Antunes, “Sur-vey on privacy-preserving techniques for microdata publication,” ACM Computing Surveys , vol. 55, no. 14s, pp. 1–42, 2023. [2] H. Hu, Z. Salcic, L. Sun, G. Dobbie, P. S. Yu, and X. Zhang, “Membership inference attacks on machine learning: A survey,” ACM Computing Surveys (CSUR) ,vol. 54, no. 11s, pp. 1–37, 2022. [3] N. Erickson, L. Purucker, A. Tschalzev, D. Holzm¨ uller, P. Desai, D. Salinas, and F. Hutter, “Tabarena: A liv-ing benchmark for machine learning on tabular data,” 
+
+Advances in Neural Information Processing Systems ,vol. 38, 2026. [4] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Ka-plan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sas-try, A. Askell et al. , “Language models are few-shot learners,” Advances in neural information processing systems , vol. 33, pp. 1877–1901, 2020. [5] S. Garg, D. Tsipras, P. S. Liang, and G. Valiant, “What can transformers learn in-context? a case study of sim-ple function classes,” Advances in neural information processing systems , vol. 35, pp. 30 583–30 598, 2022. [6] C. Han, Z. Wang, H. Zhao, and H. Ji, “Understanding emergent in-context learning from a kernel regression perspective,” Transactions on Machine Learning Re-search , 2025. [7] G. Reddy, “The mechanistic basis of data dependence and abrupt learning in an in-context classification task,” 
+
+arXiv preprint arXiv:2312.03002 , 2023. [8] K. D’Oosterlinck, O. Khattab, F. Remy, T. De-meester, C. Develder, and C. Potts, “In-context learning for extreme multi-label classification,” arXiv preprint arXiv:2401.12178 , 2024. [9] N. Hollmann, S. M¨ uller, K. Eggensperger, and F. Hut-ter, “TabPFN: A Transformer That Solves Small Tab-ular Classification Problems in a Second,” Sep. 2023, arXiv:2207.01848 [cs]. [10] N. Hollmann, S. M¨ uller, L. Purucker, A. Krishnaku-mar, M. K¨ orfer, S. B. Hoo, R. T. Schirrmeister, and F. Hutter, “TabPFN: Accurate predictions on small data with a tabular foundation model,” Nature , vol. 637, no. 8045, pp. 319–326, Jan. 2025. [11] J. Qu, D. Holzm¨ uller, G. Varoquaux, and M. L. Morvan, “TabICL: A Tabular Foundation Model for In-Context Learning on Large Data,” Feb. 2025, arXiv:2502.05564 [cs]. [12] J. Ma, V. Thomas, R. Hosseinzadeh, A. Labach, J. Cresswell, K. Golestan, G. Yu, A. L. Caterini, and M. Volkovs, “Tabdpt: Scaling tabular foundation mod-els on real data,” Advances in Neural Information Pro-cessing Systems , vol. 38, pp. 172 692–172 722, 2026. [13] A. Arazi, E. Shapira, and R. Reichart, “Tabstar: A tabular foundation model for tabular data with text fields,” Advances in Neural Information Processing Systems , vol. 38, pp. 172 108–172 161, 2026. [14] X. Zhang, D. Maddix Robinson, J. Yin, N. Erickson, A. F. Ansari, B. Han, S. Zhang, L. Akoglu, C. Falout-sos, M. Mahoney et al. , “Mitra: Mixed synthetic priors for enhancing tabular foundation models,” Advances in neural information processing systems , vol. 38, pp. 15 795–15 840, 2026. [15] Y. Zeng, T. Dinh, W. Kang, and A. C. Mueller, “Tabflex: Scaling tabular learning to millions with lin-ear attention,” arXiv preprint arXiv:2506.05584 , 2025. [16] L. Hu, A. Yan, H. Yan, J. Li, T. Huang, Y. Zhang, C. Dong, and C. Yang, “Defenses to membership in-ference attacks: A survey,” ACM Computing Surveys ,vol. 56, no. 4, pp. 1–34, 2023. [17] N. Carlini, S. Chien, M. Nasr, S. Song, A. Terzis, and F. Tramer, “Membership inference attacks from first principles,” in 2022 IEEE symposium on security and privacy (SP) . IEEE, 2022, pp. 1897–1914. [18] S. Zarifzadeh, P. Liu, and R. Shokri, “Low-cost high-power membership inference attacks,” arXiv preprint arXiv:2312.03262 , 2023. [19] J. Ye, A. Maddi, S. K. Murakonda, V. Bindschaedler, and R. Shokri, “Enhanced membership inference at-tacks against machine learning models,” in Proceed-ings of the 2022 ACM SIGSAC conference on computer and communications security , 2022, pp. 3093–3106. [20] R. Shokri, M. Stronati, C. Song, and V. Shmatikov, “Membership inference attacks against machine learn-ing models,” in 2017 IEEE symposium on security and privacy (SP) . IEEE, 2017, pp. 3–18. [21] H. Duan, A. Dziedzic, M. Yaghini, N. Papernot, and F. Boenisch, “On the privacy risk of in-context learn-ing,” arXiv preprint arXiv:2411.10512 , 2024. [22] R. Wen, Z. Li, M. Backes, and Y. Zhang, “Membership Inference Attacks Against In-Context Learning,” in 
+
+Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security . Salt Lake City UT USA: ACM, Dec. 2024, pp. 3481–3495. [23] H. Chang, A. S. Shamsabadi, K. Katevas, H. Haddadi, and R. Shokri, “Context-aware membership inference attacks against pre-trained large language models,” in 
+
+Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing , 2025, pp. 7299–7321. [24] D. Ran, X. He, T. Cong, A. Wang, Q. Li, and X. Wang, “Lora-leak: Membership inference at-tacks against lora fine-tuned language models,” arXiv preprint arXiv:2507.18302 , 2025. [25] J. Choi, S. Cao, X. Dong, A. Banayeeanzade, W. B. Zhu, R. Jia, and S. P. Karimireddy, “Contextleak: Au-diting leakage in private in-context learning methods,” 
+
+arXiv preprint arXiv:2512.16059 , 2025. [26] E. German, S. Antebi, D. Samira, A. Shabtai, and Y. Elovici, “Tab-mia: A benchmark dataset for mem-bership inference attacks on tabular data in llms,” 
+
+ArXiv , vol. abs/2507.17259, 2025. [27] C. Dwork, “Differential privacy,” in Encyclopedia of Cryptography, Security and Privacy . Springer, 2025, pp. 649–652. [28] T. Wu, A. Panda, J. T. Wang, and P. Mittal, “Privacy-preserving in-context learning for large language mod-els,” in International Conference on Learning Repre-sentations , vol. 2024, 2024, pp. 20 005–20 040. [29] C. Zheng, K. Sun, W. Zhao, H. Zhou, L. Jiang, S. Song, and C. Zhou, “Locally differentially pri-vate in-context learning,” in Proceedings of the 2024 Joint International Conference on Computational Lin-guistics, Language Resources and Evaluation (LREC-COLING 2024) , 2024, pp. 10 686–10 697. [30] K. Amin, A. Bie, W. Kong, A. Kurakin, N. Pono-mareva, U. Syed, A. Terzis, and S. Vassilvitskii, “Pri-vate prediction for large-scale synthetic text genera-tion,” in Findings of the Association for Computational Linguistics: EMNLP 2024 , 2024, pp. 7244–7262. [31] B. Bhusal, M. Acharya, R. Kaur, C. Samplawski, A. Roy, A. D. Cobb, R. Chadha, and S. Jha, “Privacy preserving in-context-learning framework for large lan-guage models,” in Proceedings of the AAAI Conference on Artificial Intelligence , vol. 40, no. 42, 2026, pp. 35 303–35 312. [32] X. Tang, R. Shin, H. Inan, A. Manoel, N. Mireshghal-lah, Z. Lin, S. Gopi, J. Kulkarni, and R. Sim, “Privacy-preserving in-context learning with differentially pri-vate few-shot generation,” in International confer-ence on learning representations , vol. 2024, 2024, pp. 33 058–33 077. [33] A. Koskela, T. D. Kulkarni, and L. Zumot, “Differen-tially private in-context learning with nearest neighbor search,” ArXiv , vol. abs/2511.04332, 2025. [34] H. Duan, A. Dziedzic, N. Papernot, and F. Boenisch, “Flocks of stochastic parrots: Differentially private prompt learning for large language models,” Advances in Neural Information Processing Systems , vol. 36, pp. 76 852–76 871, 2023. [35] A. N. Carey, K. Bhaila, K. Edemacu, and X. Wu, “Dp-tabicl: In-context learning with differentially private tabular data,” in 2024 IEEE International Conference on Big Data (BigData) . IEEE, 2024, pp. 1552–1557. [36] J. Ward, B. Gu, C.-H. Wang, and G. Cheng, “When tables leak: Attacking string memorization in llm-based tabular data generation,” arXiv preprint arXiv:2512.08875 , 2025. [37] J. Byun, X. Lin, J. Ward, and G. Cheng, “Risk in context: Benchmarking privacy leakage of foundation models in synthetic tabular data generation,” arXiv preprint arXiv:2507.17066 , 2025. [38] P. Zaree, M. A. A. Mamun, Y. Dong, I. Alouani, and N. Abu-Ghazaleh, “Attenmia: Llm membership infer-ence attack through attention signals,” arXiv preprint arXiv:2601.18110 , 2026. [39] S. ¨O. Arik and T. Pfister, “Tabnet: Attentive inter-pretable tabular learning,” in Proceedings of the AAAI conference on artificial intelligence , vol. 35, no. 8, 2021, pp. 6679–6687. [40] C. Pˆ era, T. Carvalho, M. Cordy, and L. Antunes, “Sok: Challenges in tabular membership inference attacks,” 
+
+arXiv preprint arXiv:2601.15874 , 2026. [41] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin, “Attention is all you need,” Advances in neural infor-mation processing systems , vol. 30, 2017. [42] Z. Chen and K. Pattabiraman, “Overconfidence is a dangerous thing: Mitigating membership inference at-tacks by enforcing less confident prediction,” arXiv preprint arXiv:2307.01610 , 2023. [43] S. Truex, L. Liu, M. E. Gursoy, L. Yu, and W. Wei, “Demystifying membership inference attacks in ma-chine learning as a service,” IEEE transactions on services computing , vol. 14, no. 6, pp. 2073–2089, 2019. [44] L. Sweeney, “k-anonymity: A model for protecting privacy,” Int. J. Uncertain. Fuzziness Knowl. Based Syst. , vol. 10, pp. 557–570, 2002. [45] J. Domingo-Ferrer and J. M. Mateo-Sanz, “Practical data-oriented microaggregation for statistical disclo-sure control,” IEEE Trans. Knowl. Data Eng. , vol. 14, pp. 189–201, 2002. [46] L. Purucker, “Mic,” OpenML, id=46943; Accessed May 2026. [47] D. YANG, “Foursquare global-scale check-in dataset with user social networks,” accessed Jan 2026. [48] T. Simonetto, S. Ghamizi, and M. Cordy, “Tabular-bench: Benchmarking adversarial robustness for tab-ular deep learning in real-world use-cases,” Advances in Neural Information Processing Systems , vol. 37, pp. 78 394–78 430, 2024. [49] V. Realinho, M. V. Martins, J. Machado, and L. Bap-tista, “Predict Students’ Dropout and Academic Suc-cess,” UCI Machine Learning Repository, 2021, ac-cessed Jan 2026. [50] Y. Li, “Financial indicators us stocks,” OpenML, id=46567; Accessed May 2026. [51] W. Cukierski, “Acquire valued shoppers challenge,” Kaggle, accessed Jan 2026. 
+
+# Appendix A. Datasets 
+
+The characteristics of all datasets used to evaluate the MIAs are presented in Table 3. We use datasets that span a range of sample sizes, features, and class labels. The domains include healthcare, finance, education, locations and purchases.                            
+
+> Dataset nsamples dfeatures cclasses
+> MIC [46] 1,699 111 8Locations [47] 1,711 446 10 Credit Rating [48] 2,029 30 10 Dropout Success [49] 4,424 36 3Financial Indicators US Stocks [50] 4,392 230 2URL [48] 11,430 82 2Purchases10 [51] 19,763 599 10
+
+TABLE 3: Summary characteristics of the datasets used. 
+
+# Appendix B. Model architectures 
+
+Tabular Foundation Models. We use default param-eters of such models. TabPFN v2.6 [9] is a transformer trained via prior data fitted networks to perform ICL over tabular data. Its en-coder consists of 24 layers and 3 heads. Input features are grouped into blocks before embedding. A distinctive feature of TabPFN v2.6 is the use of 64 thinking rows . These rows participate in attention and allow the transformer to perform intermediate reasoning over the provided context examples, but they do not correspond to real data records. The model supports a maximum context of 50.000 context samples. TabICL [11] uses a two-stage architecture: a column-interaction encoder (3 layers, 4 heads) that compresses each row into a fixed-dimensional embedding, followed by an ICL transformer (12 layers, 4 heads) that performs in-context learning over the resulting row embeddings. The model supports a maximum context of 100.000 samples. TabDPT v1.1 [12] is a transformer-based ICL with 16 layers and 8 attention heads. It natively handles up to 100 
+
+features; when a dataset exceeds this limit, Principal Com-ponent Analysis (PCA) is applied to compress the feature space to 100 dimensions before inference. 
+
+Classical machine learning models. All models are trained with Optuna hyperparameter search (30 trials, 3-fold CV). Random Forest starts from n estimators =200 trees with unconstrained depth, Optuna searches over n estimators ∈ {50 , 500 }, max depth ∈{3, 5, 8, 10 , 15 , 20 , N one }, min samples split ∈ { 2, 20 }
+
+and min samples leaf ∈ { 1, max(10 , ⌊n/ 200 ⌋)}.For LightGBM, Optuna searches over n estimators ∈{50 , 500 }, η ∈ {0.01 , 0.3}, max depth ∈ {3, 12 },
+
+num leaves ∈ { 15 , min(255 , max(31 , 3p)) } (where p is the number of features), subsample ∈ { 0.5, 1}, and ℓ1, ℓ 2
+
+regularisation ∈ { 10 −4, 10 }.TabNet starts with nd = na = 32 , n steps = 3 , γ =1.3, batch size 256 , virtual batch size 64 , up to 200 epochs with patience 15 . Optuna searches over nd ∈ { 8, 16 , 32 , 64 },
+
+n steps ∈ [3 , 8] , γ ∈ [1 , 2] , and η ∈ [10 −4, 10 −1].MLP is a three-layer network (256 , 256 , 128) , each fol-lowed by batch normalisation and ReLU activation. Optuna tunes the learning rate η ∈ { 10 −4, 10 −1}, weight decay 
+
+∈ [10 −6, 10 −2], batch size ∈ { 128 , 256 , 512 }, and optimiser 
+
+∈ {SGD , Adam , AdamW }. Training runs for up to 100 
+
+epochs with early stopping after 15 epochs. 
+
+# Appendix C. Hardware and computation resources 
+
+All experiments were conducted on Ubuntu 24.04 LTS. The machine is equipped with dual Intel Xeon Silver 4416+ CPU, with 30 physical cores and 503 GiB of system mem-ory. For accelerated computing, the system includes two NVIDIA L40S GPUs, each with approximately 46 GB of VRAM, giving roughly 90 GB of total GPU memory across the node. The experiments were run with CUDA 13.0. This setup was used for model inference and attack execution. 
+
+# Appendix D. Performance of the target models 
+
+Table 4 shows how well the models can make pre-dictions. The results indicate overfitting, particularly wrt Locations dataset. While most models achieve near-perfect training accuracy, test accuracy is lower, with gaps of up to 0.26. This suggests that models are more likely to memorise training patterns than to generalise. Tabnet and RF demonstrate the strongest overfitting on the Locations dataset, while TabICL exhibits the smallest gap and the best test performance, suggesting superior generalisation. Overfitting is generally weaker on Dropout Success, but it is still notable for TabDPT, which has almost perfect training accuracy yet much lower test accuracy. This suggests limited generalisation despite a strong fit to the training set.                                                                                                      
+
+> Locations Dropout Success Model Train acc. Test acc. Train acc. Test acc.
+> RF 0.989 ±0.009 0.760 ±0.018 0.924 ±0.044 0.766 ±0.010 LightGBM 1.000 ±0.000 0.812 ±0.015 0.922 ±0.027 0.768 ±0.007 MLP 1.000 ±0.000 0.818 ±0.007 0.787 ±0.050 0.685 ±0.051 Tabnet 0.951 ±0.067 0.694 ±0.042 0.882 ±0.073 0.727 ±0.011 TabPFN 0.996 ±0.003 0.829 ±0.018 0.862 ±0.012 0.782 ±0.005 Real-TabPFN 0.993 ±0.005 0.816 ±0.024 0.861 ±0.014 0.781 ±0.004 TabICL 0.999 ±0.001 0.871 ±0.013 0.943 ±0.014 0.780 ±0.006 TabDPT 1.000 ±0.000 0.801 ±0.011 0.996 ±0.002 0.773 ±0.008
+
+TABLE 4: Average of the target model train and test accu-racies (acc) for Location and Dropout Success datasets. 
+
+# Appendix E. Attack performance on six datasets 
+
+Figure 6 shows that RMIA is generally the strongest attack across six datasets. Furthermore, tabular FMs, es-pecially TabDPT and TabICL, exhibit higher membership leakage than most classical machine learning models. 
+
+Figure 6: Comparison of MIAs across classical machine learning and tabular foundation models. Bars show mean MIA AUC obtained from six datasets, with error bars indi-cating variation across datasets. 
+
+# Appendix F. Attack performance over layers 
+
+Figure 7 shows that the attention-based membership signal varies substantially across layers, with several layers reaching near-perfect separability. The final AMIA ROC AUC is high because the aggregate score is supported by many highly discriminative layers. Low AUC layers contribute noise or an inverted signal, but the majority of layers provide a strong positive membership signal, so the aggregate AMIA score remains highly discriminative. 
+
+Figure 7: Per-layer AMIA AUC for TabPFN, TabICL and TabDPT respectively. 
+
+# Appendix G. AMIA performance on six datasets 
+
+Figure 8 provides the comparison of AMIA with both versions of RMIA. While offline uses trained reference models on randomly sampled datasets, avoiding any training on test queries, online trains reference models separately for each target data (test query x), in which IN models are trained containing x in their training set. 
+
+Figure 8: Comparison of AMIA with offline and online RMIA in tabular foundation models across six datasets. AMIA achieves the highest average AUC for all mod-els, especially TabDPT, while RMIA-online improves over offline RMIA for TabPFN, Real-TabPFN, and TabICL. 
+
+# Appendix H. Computational costs 
+
+For a clear comparison between attack strength and attack cost, Figure 9 reports the execution time on the right panel. AMIA generally gives higher AUC, while also providing runtime advantage. 
+
+Figure 9: Attack effectiveness and runtime for AMIA and RMIA on tabular foundation models. The left panel reports mean MIA AUC across datasets; the right panel shows the distribution of per-dataset attack runtimes. AMIA is consistently more computationally efficient than RMIA across all evaluated models. For TabDPT, the median runtime of AMIA is approximately 12 seconds, whereas RMIA requires around 49 seconds. A similar be-haviour is observed for TabICL, where AMIA completes within seconds while RMIA requires several minutes. The difference becomes evident for TabPFN and Real-TabPFN, where RMIA incurs particularly high computa-tional costs. Importantly, the reported RMIA runtimes as-sume the use of two GPUs, whereas AMIA operates using only a single GPU. Therefore, the actual computational overhead of RMIA is substantially greater. 
+
+# Appendix I. Context size 
+
+Figure 10 illustrates the evolution of AMIA and RMIA at different context sizes. This means that Dctx is progres-sively subsampled, from a small fraction of the available context rows to the complete context set. The audit pool is kept fixed across context sizes. AMIA remains consistently strong over all context sizes, showing that leakage can persist even when the exposed context is reduced. However, RMIA is affected because the model’s prediction scores change with context size. This divergence suggests that increasing Dctx can dilute membership information in the output probabilities used by RMIA, while simultaneously amplifying attention-based memorisation signals. With more context rows available, the model can distribute predictive evidence throughout the context, reducing the marginal effect of any single member on the output score. In contrast, AMIA directly observes whether the query focuses attention on specific context rows, a phenomenon that becomes more pronounced the larger the set of candidates from which the model can select. 
+
+# Appendix J. Defences ablation study 
+
+To evaluate the privacy-utility tradeoff of the proposed target label k-anonymity defence, we compare it against two other proposed defences in Figure 11. Figure 10: Evolution of membership inference attack risk as the context size increases. Context sizes corresponds to subsets from 5% to 100% of the context set pool. Points show mean AUC across seeds and shades indicate standard deviation. The first strategy, label k-anonymity, replaces each con-text row’s key vector with the centroid of its k same-label rows in key space, varying k ∈ { 3, 5, 10 } and the soft inter-polation coefficient α ∈ { 0, 0.3, 0.5}. Instead of transform-ing the high-risk queries, it uniformly transforms all queries regardless of their risk score. The second, attention dropout, regularises the row-attention weights by randomly zeroing out attention entries with probability p ∈ { 0.1, 0.3, 0.5}.Besides, we automatically select the top layers which are de-fined as the layers with the highest baseline per-layer AMIA AUC. The defence first identifies which layers leak mem-bership most strongly, then applies attention dropout only to those layers rather than all layers. This avoids changing all the layers and induce in higher predictive performance lost. Larger p means stronger randomisation, usually more privacy protection but also more risk of reducing accuracy. For each family and configuration, we report the reduc-tion in AMIA and RMIA AUC relative to the undefended model alongside the corresponding accuracy drop, forming a privacy-utility trade-off curve across models and datasets. 
+
+Figure 11: Privacy-utility effect of defence variants. Each point is one defence configuration, averaged across models. Points in superior right quadrant provide stronger privacy gains with higher model utility preservation. In general, attention dropout is the least efficient among all defences. The member’s key uniqueness in score space is still present, but the mean signal across layers is sys-tematically reduced by the dropout probability. The AMIA score across queries is therefore a mixture of the full signal and noise. Thus, the attack can still rank members above non-members because the residual structure in the non-zeroed weights preserves the original ordering. Label k-anonymity, by contrast, consistently produce higher privacy gain because it directly targets the key uniqueness that drives concentration. However, this approach also results in high predictive performance costs. Target label k-anonymity dominates among the three defences for both AMIA and RMIA in terms of privacy and utility. 
+
+# Appendix K. Effect of fine-tuning 
+
+Figure 12 compares the original and fine-tuned TabDPT models across accuracy, true label confidence, and MIA AUC. Such results are obtained with Purchases10 dataset. Fine-tuning improves task performance and increases true label confidence, especially on fine-tuning members. This utility gain is accompanied by increased MIA vulnerability. 
+
+Figure 12: Fine-tuning utility and RMIA effectiveness.

@@ -1,0 +1,208 @@
+Title: Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases
+
+URL Source: https://arxiv.org/pdf/2606.19803v1
+
+Published Time: Fri, 19 Jun 2026 00:28:26 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+# Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases 
+
+# Lakshmi Sahithi Yalamarthi 
+
+yalam2@pdx.edu Portland State University Portland, Oregon, USA 
+
+# Primal Pappachan 
+
+primal@pdx.edu Portland State University Portland, Oregon, USA 
+
+## Abstract 
+
+Vector databases are increasingly used in security sensitive con-texts with Retrieval Augmented Generation and organizational AI pipelines; however, their security capabilities remain limited. Specif-ically, Fine-grained Access Control (FGAC) which is required to ensure that data access adheres to user-specific policies is not fully supported in modern vector databases. Unlike relational databases, vector databases combine structured and unstructured attributes to provide semantic, approximate query results, which complicates FGAC implementation. This creates an inherent tension between enforcing FGAC policies correctly, achieving high ANN search re-call and maintaining low query latency. In this paper, we present a vision for Policy-aware Vector Search by formalizing the FGAC pol-icy model in vector databases as well as the enforcement problem. We compare various enforcement strategies, present preliminary findings, and identify key open challenges for future research in policy-aware vector search. 
+
+## CCS Concepts 
+
+• Security and privacy → Information accountability and usage control .
+
+## Keywords 
+
+Vector Databases, Access Control, Retrieval Augmented Generation 
+
+ACM Reference Format: 
+
+Lakshmi Sahithi Yalamarthi and Primal Pappachan. 2026. Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases. In Workshop on Secure and Private Data Management (SeQureDB ’26), May 31-June 05, 2026, Bengaluru, India. ACM, New York, NY, USA, 5 pages. https://doi.org/10.1145/3807894.3810276 
+
+## 1 Introduction 
+
+Vector databases have become a foundational component of modern AI workloads, supporting applications such as semantic search, rec-ommendation systems, and retrieval-augmented generation (RAG). As these systems are increasingly used in security sensitive envi-ronments, enforcing fine-grained access control (FGAC) over vector data is critical. This concern is especially acute in RAG pipelines, where retrieved documents directly influence generated responses from a Large Language Models. Current vector databases provide  
+
+> This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License.
+> SeQureDB ’26, Bengaluru, India
+> ©2026 Copyright held by the owner/author(s). ACM ISBN 979-8-4007-2219-6/2026/05 https://doi.org/10.1145/3807894.3810276
+
+little to no support for the specification and enforcement of Fine-Grained Access Control (FGAC) policies. Unlike traditional relational databases, where data is structured as rows and columns, vector databases store and query over high-dimensional embeddings using similarity search. As a result, tra-ditional FGAC enforcement approaches developed for relational databases [ 8, 9] do not directly translate to vector databases. Re-trieving the relevant vectors from this space typically relies on approximate nearest neighbor (ANN) search across potentially mil-lions of vectors. In addition to the embeddings, vector databases allow storing metadata attributes associated with each vector. These attributes enable filtering during query processing, typically imple-mented using pre-filtering or post-filtering strategies. Consequently, FGAC policies can be specified over these metadata attributes or directly over the vectors themselves. While existing metadata fil-tering strategies could be leveraged for FGAC enforcement, they are not well suited for this purpose. In particular, post-filtering ap-proaches, which first execute the vector search and then remove vectors that do not satisfy FGAC policies, can be highly inefficient when policies are selective, as many retrieved vectors may ulti-mately be discarded. The final recall can also be severely impacted if retrieved vectors do not satisfy the FGAC policies. In contrast, pre-filtering is based on Access Control Lists (ACLs) before executing ANN search. So, it may under-utilize the effi-cient ANN indexes such as Hierarchical Navigable Small World [ 7 ], which are designed to operate over the entire vector space. Prior works have explored partitioning the vector space and building independent indexes but this require additional space overhead of multiple indexes and maintenance of these indexes [ 14 ]. The absence of accurate cost and recall models in vector databases fur-ther complicates the choice between pre-filtering and post-filtering strategies. Recently emerging area of Hybrid strategies for filter-aware vector search holds promise for FGAC enforcement. These approaches typically necessitate index modifications [ 3, 10 ], are limited to metadata-based policies, and exhibit poor efficiency when policies affect only a narrow subset of the dataset.[6] In this paper, we first discuss in detail a novel FGAC policy model for vector databases that supports specification of FGAC policies on metadata attributes. We then discuss in detail the main challenge of enforcing FGAC policies that contains metadata filters. We for-mally define the FGAC enforcement problem and identify the key considerations for supporting it in vector databases. We evaluate four different approaches for FGAC policy-aware vector search on Pgvector (PostgreSQL enabled with Vector Search) to illustrate the latency-recall tradeoffs on a large real dataset with synthetic poli-cies. We discuss the additional challenges of FGAC management in vector databases such as storage, maintenance, and enforcing FGAC policies that are specified as vectors. By discussing the trade-off  
+
+> arXiv:2606.19803v1 [cs.DB] 18 Jun 2026 SeQureDB ’26, May 31-June 05, 2026, Bengaluru, India Lakshmi Sahithi Yalamarthi and Primal Pappachan
+
+between policy enforcement and efficient ANN retrieval, our work move towards practical, secure vector search in multi-tenant AI systems, where both retrieval quality and strict access guarantees are required. 
+
+## 2 FGAC Policy Model for Vector DBs 
+
+In this section, we first describe the data, query, policy models and then we discuss the key considerations for implementing FGAC in vector databases.Throughout the paper, we illustrate our approach using a dataset of research papers, where vectors are generated from paper titles and abstracts [ 1], and access-control policies are generated from other columns. 
+
+Data model: Let D denote the database consisting of vector-metadata attribute pairs: 
+
+D = {( 𝑣 1, 𝑚 1), (𝑣 2, 𝑚 2), . . . , (𝑣 𝑖 , 𝑚 𝑖 ), . . . (𝑣 𝑛 , 𝑚 𝑛 )} 
+
+where each vector 𝑣 𝑖 ∈ R𝑑 denotes a vector embedding of 𝑑 di-mensions and 𝑚 𝑖 = {𝑚 1 
+
+> 𝑖
+
+, 𝑚 2 
+
+> 𝑖
+
+, . . . , 𝑚 𝑠 𝑖 } denote the metadata (scalar) attributes. Each 𝑚 𝑗 𝑖 is in the key value format {𝑚 𝑗 𝑖 : “ 𝑣𝑎𝑙𝑢𝑒 ”} denot-ing the “value" assigned to the metadata attribute 𝑚 𝑗 𝑖 . For example, the category attribute associated with a research paper is repre-sented as {𝑐𝑎𝑡𝑒𝑔𝑜𝑟𝑖𝑒𝑠 : “ 𝐶𝑆 ”}.
+
+Query model: We represent a vector query as Q = {𝑞 𝑣 , 𝑞 𝑚 , 𝑘 }, where 
+
+𝑞 𝑣 ∈ R is the vector query on the embeddings, 𝑞 𝑚 is the metadata query involving zero, one, or more of the scalar attributes, and 𝑘 is the number of vectors to be returned as the result. The execution of Q over D returns the top-𝑘 nearest vectors to 𝑞 𝑣 :
+
+𝑉 𝑘 = arg min    
+
+> 𝑆 ⊂D,|𝑆 |=𝑘
+
+∑︁ 𝑣 𝑖 ∈𝑆 
+
+𝑑𝑖𝑠𝑡 (𝑞 𝑣 , 𝑣 𝑖 ) (1) For Example, a vector query could be “Find papers that apply neural network architectures to solve optimization problems in resource-constrained environments”, while the metadata filters would be predicates such as publication_year ≥ 2020. 
+
+FGAC Policy model: In our work, FGAC policies are represented as a 3-tuple following the ABAC policy model [2]. 
+
+𝑃 𝑖 = [𝑜𝑐, 𝑠𝑐, 𝑎𝑐𝑡 ]• 𝑜𝑐 (Object Constraints) identify the vector on which FGAC policy is to be enforced. They are defined as a set of logi-cal predicates defined on metadata attributes 𝑚 𝑖 of a vector 𝑣 𝑖 
+
+and combined with a boolean operator: 𝑜𝑐 = ([ 𝑚 1 
+
+> 𝑖
+
+, op 1, val 1]∧ [𝑚 2 
+
+> 𝑖
+
+, op 2, val 2] ∧ [ 𝑚 3 
+
+> 𝑖
+
+, op 3, val 3]) ∧ . . . [𝑚 𝑠 𝑖 , op 𝑠 , val 𝑠 ]) 1 where 
+
+𝑜𝑝 ∈ { =, ≠, ≥, >, ≤, <} and 𝑣𝑎𝑙 ∈ 𝑑𝑜𝑚 (𝑚 𝑗 𝑖 ). From our run-ning example, a possible set of MOCs are: ( categories = “CS” 
+
+∧ license = “CC-BY” ∧ report_no = “HEP-PR-07-12” ). 
+
+• 𝑠𝑐 (Subject Constraints) identify the querier for which the FGAC policy applies. Similar to metadata-based object con-straints, they are defined as a set of logical predicates on subject attributes of the querying user. Examples of subject attributes include purpose of the query [ 13 ] or roles/group   
+
+> 1While object constraints can theoretically include disjunctions along conjunctions, the support for answering disjunctive metadata filters is limited in vector databases [ 4].
+
+memberships of the user. These subject attributes are in-cluded with the query as querier metadata and used to iden-tify the policies that apply to a given query. 
+
+• 𝑎𝑐𝑡 (Action) is the access decision ( act ∈ { allow , deny }) that is to be enforced on a vector 𝑣 𝑖 that satisfies the vector query and applicable FGAC policies. 
+
+## 3 Policy-aware Vector Search 
+
+In this section, we briefly discuss the the various enforcement strate-gies for Policy-aware Vector Search . We formalize the enforcement problem, present performance estimators, and discuss the pros and cons of different strategies. We also discuss the challenges with storage and maintenance of FGAC policies along with ideas for enforcing vector based object conditions. 
+
+Enforcement Problem. The FGAC enforcement problem is to ensure that query results returned to a user satisfy all applicable policy constraints associated with the user. Given a query Q posed by a user (subject) 𝑆 , the set of policies that apply to the user, 
+
+P𝑆 = {𝑃 𝑖 |𝑠𝑐 𝑖 (𝑆 ) = True }. The set of vectors, 𝑉 𝑃 , that satisfy the applicable policies P𝑆 for user 𝑆 is given by: 
+
+𝑉 𝑃 = {( 𝑣, 𝑚 ) ∈ D|∃ 𝑃 𝑗 ∈ 𝑃 𝑆 : 𝑃 𝑗 (𝑣, 𝑚 ) = True } (2) If the actions associated with the policies are allow , theoretically the result set 𝑄 should be equivalent to retrieving the k nearest neighbors that comply with the policy filters for the query vector 
+
+𝑞 𝑣 in 𝑉 𝑃 2.
+
+𝑉 𝑄 = arg min     
+
+> 𝑆 ⊂𝑉 𝑃 ,|𝑆 |=𝑘
+
+∑︁ 𝑣 𝑖 ∈𝑆 
+
+𝑑𝑖𝑠𝑡 (𝑞 𝑣 , 𝑣 𝑖 ) (3) Table 1 compares four policy enforcement strategies discussed in Section 3.1: pre-filtering, post-filtering, iterative filtering, and parallel filtering. The comparison considers key characteristics, including recall, correctness, policy selectivity, policy correlation, dynamic policy handling, implementation complexity and latency. Among these, recall, correctness, policy selectivity, and latency are derived from experimental results, against the ground-truth top-𝑘 
+
+results. Policy correlation, dynamic policy handling, and implemen-tation complexity are characterized based on the expected behavior of each enforcement strategy. Overall, this comparison highlights the inherent trade-offs between each of the strategy when enforc-ing fine-grained access control in vector databases [ 15 ]. In Table 1, 
+
+high , partial , and low represent relative performance levels. For recall and policy correctness, they correspond to >90%, 25–65%, and <20% of the ground truth, respectively. For latency, selectivity, and correlation, these labels indicate high, moderate, and low cost or the alignment relative to the highest observed values on ground truth. For dynamic policy support and implementation complex-ity, they reflect the degree of adaptability and system overhead, respectively. Among these enforcement strategies, the system must select the strategy that guarantees policy-compliant results while achieving minimal possible query latency and maximal recall over the per-mitted data objects. Let 𝑆 denote the set of candidate enforcement strategies and let Cost (𝑠, Q, 𝑃 ) denote the execution cost of strat-egy 𝑠 ∈ 𝑆 for a query Q and its associated FGAC policies 𝑃 . We formalize this as an optimization problem:         
+
+> 2Policies with action deny requires execution of 𝑄 over D−𝑉 𝑃 Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases SeQureDB ’26, May 31-June 05, 2026, Bengaluru, India
+
+Table 1: Comparison of different meta-data filtering strategies on HNSW index for policy enforcement. The superscript L denotes impact on latency and superscript R denotes impact on Recall.                                         
+
+> Property Pre-Filtering Post-Filtering (PF) Iterative PF Parallel PF Hybrid Filtering [10]
+> Policy Correctness High High High High High Recall High Low Partial Partial Partial Query Latency High Low Partial Low Partial Policy Selectivity High 𝐿 High 𝑅 Partial 𝑅 Partial 𝑅 High 𝐿
+> Policy Correlation None High 𝑅 High 𝐵𝑜𝑡ℎ High 𝑅 High 𝑅
+> Dynamic Policy Low Low Partial High Partial Implementation Complexity Low Low Low Partial High
+
+𝑠 ∗ = min   
+
+> 𝑠 ∈ S
+
+Cost (𝑠, Q, 𝑃 ) subj. 
+
+
+
+∀𝑣 ∈ 𝑅 𝑠 , ∃𝑃 𝑗 ∈ 𝑃 : 𝑃 𝑗 (𝑣 ) = 1,
+
+Recall (𝑅 𝑠 , Q, 𝑉 𝑃 ) ≥ 𝜏 . 
+
+Only strategies capable of achieving the user-specified recall threshold are considered feasible. This optimization framework allows the system to dynamically adapt its choice of metadata strat-egy based on both query characteristics and user requirements, ensuring an efficient balance between retrieval accuracy and ex-ecution performance 3. In this context, we emphasize that policy correctness is strictly enforced in all strategies, ensuring that only authorized results are returned. The user-specified recall threshold serves solely as a workload-level quality constraint for selecting among enforcement strategies; it does not affect correctness. Cor-rectness is enforced independently by ensuring that only authorized results are returned. Since vector search is inherently approximate, achieving full recall can be expensive. Therefore, recall is treated as a tunable parameter for balancing efficiency and result quality, and is used to identify feasible strategies. 
+
+## 3.1 Strategies for Policy-aware Vector Search 
+
+In this section, we explain additional strategies for Policy-aware Vector Search beyond pre-filtering and post-filtering. 
+
+Iterative Post Filtering (PF) addresses the recall limitations of standard post-filtering by expanding the search space. Instead of performing a single ANN search, this strategy performs iterative search: it repeatedly retrieves candidate vectors and applies scalar filters until enough authorized results are obtained. If the filtered results are insufficient to achieve top-𝐾 result set, additional candi-dates are explored in subsequent iterations. This iterative expansion continues until the top-𝐾 requirement is satisfied or a allocated memory limit is reached. In HNSW, this is controlled by increasing the candidate exploration parameter ℎ𝑛𝑠𝑤 .𝑖𝑡𝑒𝑟𝑎𝑡𝑖𝑣𝑒𝑠𝑐𝑎𝑛 , enabling a larger portion of the graph to be traversed [6]. 
+
+Parallel Post Filtering. We propose a parallel post-filtering ap-proach to improve recall under selective policy constraints. Instead of expanding a single ANN search iteratively, this strategy runs multiple ANN searches concurrently to retrieve diverse candidate  
+
+> 3To evaluate the correctness of any chosen strategy, the correctness criteria, proposed by Wang et al. [ 12 ] for relational access control systems, has to be extended for vector databases. The three criteria are soundness, security, and maximality. Due to the semantic nature of vector search, they require substantial re-interpretation when used with vectors.
+
+subsets. This improves the chance of finding policy-compliant vec-tors, especially in low-correlation scenarios, where vectors similar to the query are unlikely to satisfy the policy filter. In the sample dataset, we augmented each document with con-cept categories extracted from its title and abstract. These concepts provide an additional semantic layer for relating queries to policy constraints. We then generate concept-based query variants that re-main close to the original query while guiding the search toward dif-ferent regions of the vector space. This is useful in low-correlation scenarios, where vectors similar to the query are unlikely to satisfy the policy filter. Parallel post-filtering executes the original query and its concept-based variants concurrently over the HNSW index. Each candidate set is filtered using the policy predicates, and the valid results are aggregated and de-duplicated. This allows the search to explore multiple semantic regions and improve the likelihood of retrieving sufficient authorized top-𝐾 results. If the number of valid results meets the required top-𝐾 , the algorithm terminates. Otherwise, additional query variants are generated and the process is repeated. 
+
+## 4 Preliminary Experiments 
+
+We performed experiments on PostgreSQL with the pgvector exten-sion [ 5] installed from binaries. We used the arXiv dataset, which includes fields such as author , title , categories , license , abstract ,and others [ 1]. It has a total count of 2,771,104 records with 4.74Gb size. We used title and abstract as vector columns for embeddings, rest of columns as metadata columns and sentence-transformer model ’all-MiniLM-L6-v2’ [ 11 ] to generate embeddings We com-pared four methods: pre-filtering (PF), naïve post-filtering (NPF), iterative post-filtering (IPF), and parallel post-filtering (PPF). For PPF we issued three parallel and medium selective queries to the HNSW index, ensuring each query explored a different region of the graph. To perform these experiments, we designed three different policy templates, combining multiple metadata columns available in the dataset. The workload generator instantiates these templates into concrete policies and ensures that each policy produces a non-empty result set. Experimental results are evaluated by measuring recall and latency across different levels of policy selectivity. Policy selectivity represents the fraction of records that satisfy a given policy filter. In our experiments, we control selectivity by specify-ing the number of rows in the dataset that are allowed to pass the policy filter. 
+
+Experiment 1: Recall. We evaluated the default pgvector behavior for both PF and NPF across all policy templates. As shown in Fig. 1a, SeQureDB ’26, May 31-June 05, 2026, Bengaluru, India Lakshmi Sahithi Yalamarthi and Primal Pappachan       
+
+> (a) Default Recall: PF vs. NPF (b) Default Latency: PF vs. NPF
+> (c) Recall for all 4 strategies (d) Latency for all 4 strategies
+
+Figure 1: Recall and Latency versus Selectivity for different enforcement strategies. 
+
+pre-filtering consistently achieved highest recall regardless of selec-tivity, while post-filtering generally produced lower recall, except in cases where the policy predicate was highly correlated with the user query. In the next experiment, we evaluated recall-versus-selectivity for all 4 strategies as shown in Fig. 1c. PPF achieved competitive recall for medium-selective workloads, outperform-ing naïve post-filtering. Notably, this method achieved these recall improvements while reducing execution time compared to the iter-ative scan based post-filtering approach as shown next. 
+
+Experiment 2: Latency. This experiment compares the execution time of different enforcement strategies across different policy se-lectivity levels. The naïve post-filtering strategy exhibits the lowest execution time overall but it retrieves very few policy-compliant vectors, resulting in almost zero recall. Pre-filtering incurs higher execution time under low-selectivity policies because a large can-didate set is passed to the vector search, offering little reduction in the distance computations performed. Conversely, under high-selectivity policies, pre-filtering becomes more efficient as the re-duced candidate set meaningfully constrains the search space. The same experiment when iterative scan is enabled (Fig. 1d), post-filtering execution time rises sharply. Each additional scan round re-trieves another batch of candidates, increasing cost substantially for low and medium selective policies. In the final comparison (Fig. 1d), parallel post-filtering reduces the number of search rounds required by iterative post-filtering. Instead it explored different regions of the HNSW index. This strategy delivered lower latency than iter-ative scan, and better recall compared to naive post-filtering for medium selectivity ranges. 
+
+## 5 Discussion 
+
+In this section, we briefly outline the differences between FGAC & FANN and some of the possible future research directions to make 
+
+Policy-aware vector research a reality. 
+
+FGAC vs FANN. Fine-grained access control (FGAC) in vector databases fundamentally differs from traditional filtered approx-imate nearest neighbor (FANN) search. In FANN systems, filters are typically broad, low-selectivity metadata predicates attached directly to the query [ 6]. In contrast, FGAC enforces user-specific authorization policies that may contain highly selective and com-plex predicate combinations (e.g., CNF/DNF policies). Unlike FANN, where the primary goals are retrieval latency and high recall, cor-rectness of enforcement becomes the primary requirement in FGAC, since unauthorized vector retrieval can lead to sensitive data leak-age. While FGAC mechanisms can support traditional filtered ANN workloads, it is unclear whether solutions designed only for FANN are sufficient for access-controlled retrieval. 
+
+Cost Models for Enforcement Strategies. Our preliminary ex-periments on cost models to estimate query latency and recall and to guide the choice between pre-filtering and post-filtering strategies, show that highly selective predicates tend to favor pre-filtering, whereas low-selectivity scenarios benefit from post-filtering. How-ever, many real workloads fall between these extremes. Hybrid filtering strategies can help in the intermediate stage where predi-cate selectivity is neither extremely high nor extremely low [ 3, 10 ]. A unified cost model that dynamically differentiates among all pos-sible strategies can significantly improve plan selection, leading to more reliable latency and recall guarantees for fine-grained access control workloads. Developing such a unified cost and recall models for different strategies is an open research problem. 
+
+Enforcing Vector-based Object Conditions. In this paper, we only discussed enforcement of metadata-based object conditions. Enforcing vector-based object conditions requires a different ap-proach for supporting two independent vector queries. The correct yet costly approach could involve a dual-index strategy, employing an exact-search index (e.g., IVF-Flat) for policy vectors alongside an ANN index for query vectors, and returning the intersection of the resulting sets. An offline policy subgraph construction approach where policy-compliant vectors are pre-clustered into navigable subgraphs, similiar to ACORN [ 10 ], can structurally confine query-time search to the authorized region of the index without post-hoc filtering. A joint embedding approach that fuses policy and query embeddings into a unified representation prior to retrieval, collaps-ing enforcement and semantic search into a single vector operation. 
+
+## 6 Conclusions & Future Work 
+
+Our goal is to treat Fine Grained Access Control as a first-class con-cern in vector databases, jointly modeling metadata and vector-level policies and introducing a cost-based framework that dynamically selects efficient enforcement strategies while meeting latency and recall requirements. To achieve this vision, access control and ap-proximate nearest neighbor search must be co-designed from the ground up, rather than treating enforcement as a purely post-hoc layer to existing strategies and indexes. Evaluating the proposed approaches across multiple database systems and a diverse set of datasets remains as future work, to validate their robustness under varying data distributions and different system characteristics. 
+
+## 7 Acknowledgment 
+
+This work is partially supported by the NSF Award #2451803. Policy-aware Vector Search: A Vision for Fine Grained Access Control in Vector Databases SeQureDB ’26, May 31-June 05, 2026, Bengaluru, India 
+
+## References 
+
+[1] [n. d.]. arXiv Dataset . https://www.kaggle.com/datasets/Cornell-University/arxiv [2] Aserto. [n. d.]. ABAC-RBAC. https:// www.aserto.com/ blog/ rbac-vs-abac-authorization-models ([n. d.]). [3] Yuzheng Cai, Jiayang Shi, Yizhuo Chen, and Weiguo Zheng. 2024. Navigat-ing Labels and Vectors: A Unified Approach to Filtered Approximate Nearest Neighbor Search. Proc. ACM Manag. Data 2, 6, Article 246 (Dec. 2024), 27 pages. doi:10.1145/3698822 [4] Siddharth Gollapudi, Neel Karia, Varun Sivashankar, Ravishankar Krishnaswamy, Nikit Begwani, Swapnil Raz, Yiyong Lin, Yin Zhang, Neelam Mahapatro, Premku-mar Srinivasan, Amit Singh, and Harsha Vardhan Simhadri. 2023. Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters. 10.1145/3543507.3583552 (2023), 3406–3416. https://doi.org/10.1145/ 3543507.3583552 [5] Andrew Kane. 2024. pgvector: Open-source vector similarity search for Postgres. https://github.com/pgvector/pgvector. [6] Yanjun Lin, Kai Zhang, Zhenying He, Yinan Jing, and X. Sean Wang. 2025. Survey of Filtered Approximate Nearest Neighbor Search over the Vector-Scalar Hybrid Data. arXiv:2505.06501 [cs.DB] https://arxiv.org/abs/2505.06501 [7] Yu A Malkov and Dmitry A Yashunin. 2018. Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs. IEEE transactions on pattern analysis and machine intelligence 42, 4 (2018), 824–836. [8] Primal Pappachan, Roberto Yus, Sharad Mehrotra, and Johann-Christoph Freytag. 2020. Sieve: A Middleware Approach to Scalable Access Control for Database Management Systems. Proc. VLDB Endow. 13, 11 (2020), 2424–2437. http://www. vldb.org/pvldb/vol13/p2424-pappachan.pdf [9] Primal Pappachan, Shufan Zhang, Xi He, and Sharad Mehrotra. 2022. Don’t Be a Tattle-Tale: Preventing Leakages through Data Dependencies on Access Control Protected Data. Proc. VLDB Endow. 15, 11 (2022), 2437–2449. https: //www.vldb.org/pvldb/vol15/p2437-pappachan.pdf [10] Liana Patel, Peter Kraft, Carlos Guestrin, and Matei Zaharia. 2024. Acorn: Perfor-mant and predicate-agnostic search over vector embeddings and structured data. 
+
+Proceedings of the ACM on Management of Data 2, 3 (2024), 1–27. [11] Nils Reimers. 2021. Sentence-Transformers: all-MiniLM-L6-v2 . https://huggingface. co/sentence-transformers/all-MiniLM-L6-v2 [12] Qihua Wang, Ting Yu, Ninghui Li, Jorge Lobo, Elisa Bertino, Keith Irwin, and Ji-Won Byun. 2007. On the correctness criteria of fine-grained access control in relational databases (VLDB ’07) . VLDB Endowment, 555–566. [13] Naikuo Yang, Howard Barringer, and Ning Zhang. 2007. A Purpose-Based Access Control Model. In Third International Symposium on Information Assurance and Security . 143–148. doi:10.1109/IAS.2007.29 [14] Hongbin Zhong, Matthew Lentz, Nina Narodytska, Adriana Szekeres, and Kexin Rong. 2026. HONEYBEE: Efficient Role-based Access Control for Vector Databases via Dynamic Partitioning. 26 pages. doi:10.1145/3786625 [15] Jiaxu Zhu, Jiayu Yuan, Kaiwen Yang, Xiaobao Chen, Shihuan Yu, Hongchang Lv, Yan Li, and Bolong Zheng. 2025. An Experimental Evaluation of Hybrid Querying on Vectors. Proc. VLDB Endow. 19, 2 (Oct. 2025), 183–195. doi:10.14778/3773749. 3773757

@@ -1,0 +1,1203 @@
+Title: The Art of Mixology: Mixup-based Obfuscation for Privacy-Preserving Split Learning in Large Language Models
+
+URL Source: https://arxiv.org/pdf/2606.16801v1
+
+Published Time: Tue, 16 Jun 2026 02:22:34 GMT
+
+Number of Pages: 19
+
+Markdown Content:
+# The Art of Mixology: Mixup-based Obfuscation for Privacy-Preserving Split Learning in Large Language Models 
+
+Chen Chen 1, Xiang Gao 2 Xianshun Wang 2, Chengran Li 2, Shengyu Xia 2, Xueluan Gong 1∗,Linru Zhang 1, Qian Wang 2, and Kwok-Yan Lam 11College of Computing and Data Science, Nanyang Technological University, Singapore 
+
+> 2
+
+School of Cyber Science and Engineering, Wuhan University, China 
+
+> ∗
+
+Corresponding author {chen.chen, xueluan.gong, linru.zhang, kwokyan.lam}@ntu.edu.sg, {gaoxiang178, wangxianshun661, chengranli, shengyuxia, qianwang}@whu.edu.cn 
+
+Abstract —Split learning provides a practical paradigm for resource-constrained users to train Large Language Models (LLMs) by offloading computation-intensive layers to a server while keeping raw data local. However, existing privacy-preserving split learning methods still face a difficult trade-off among utility, privacy, efficiency, and stability. Specifically, these methods often suffer from substantial utility degradation, remain vulnerable to advanced data reconstruction attacks, incur prohibitive computational and communication overhead, or exhibit unstable performance across different tasks. In this paper, we propose MIX GUARD , a novel mixup-based privacy-preserving split learning framework for LLMs. MIX GUARD 
+
+introduces token-level obfuscation, representation-level obfus-cation, and adaptive gradient perturbation mechanisms, which operate jointly to preserve useful learning signals while prevent-ing privacy leakage to the server. Technically, MIX GUARD first constructs a lightweight calibration model on a public dataset to refine the approximated target representation, and then applies this model during privacy-preserving fine-tuning on private data. We conduct extensive experiments on four classification tasks and four text generation tasks across multiple LLM families, model sizes, architectures, and fine-tuning strategies. The results show that MIX GUARD preserves model utility comparable to non-split training baselines, consistently achieves stronger privacy protection than existing split learning defense methods against state-of-the-art data reconstruction attacks, and remains robust under adaptive attack settings. 
+
+## 1. Introduction 
+
+Large language models (LLMs) have advanced rapidly in recent years, demonstrating remarkable capabilities across a wide range of domains, including finance, healthcare, edu-cation, and scientific research [1], [2]. These improvements are driven by scaling laws, where increasing model size and training data generally improve performance, generalization, and emergent capabilities [3]. However, this scaling trend also substantially increases the cost of training, which is often beyond the capacity of resource-constrained edge clients, such as mobile devices, IoT devices, and smart sensors [4]. To mitigate these challenges, distributed training paradigms for collaborative model development have been extensively explored [5]. Among these approaches, Split Learning (SL) has emerged as a promising framework. Split learning (SL) partitions a model into multiple segments and distributes the corresponding computational workloads across different parties. A typical SL setting involves two parties: a client that owns the private data and a server that provides computational resources. This architecture aims to achieve two objectives: (1) preserving downstream fine-tuning utility and (2) protecting sensitive information exchanged during client-server communication. In vanilla linear SL, the client retains only the shallow layers, while the server hosts the remaining layers and loss computation [6]. However, this configuration requires label disclosure. To mitigate label leakage, U-shaped SL is introduced to keep the lightweight head and tail layers on the client, while offloading the computation-intensive intermediate layers to the server [7], [8]. Despite these architectural advances, existing privacy-preserving SL methods remain limited in several practical dimensions, as summarized in Table 1. First , their utility has been evaluated primarily on classification tasks, leaving their applicability to more complex generation tasks under-explored. Some methods, particularly DP-based methods [11], [12] also incur noticeable utility degradation relative to non-private baselines. Second, existing methods provide incomplete privacy coverage. Many of them protect only a single type of sensitive data, such as inputs or labels, or are designed for a specific phase, such as training or inference. More importantly, lightweight defenses, such as DP-SGD [10] and SnD [12], often provide partial robustness against advanced data reconstruction attacks. Third, stronger protec-tion typically comes at the cost of efficiency. In particular, cryptographic methods introduce substantial computation and communication overhead [15], [16], [17], [18], while                                                                                                            
+
+> Mixology, a term from cocktail making, refers to blending drinks from multiple ingredients to reduce their individual harshness and bitterness.
+> arXiv:2606.16801v1 [cs.CL] 15 Jun 2026 TABLE 1. A C OMPREHENSIVE COMPARISON OF SPLIT LEARNING METHODS .Method Utility †Privacy §Efficiency ⋆Stability ‡
+> Domain Performance Protected Data Stage Mechanism Robustness Computation Communication Across Tasks DP-Forward [9] Classification Input Training DP DP-SGD [10] Classification Labels Training DP SAP [11] Classification Input Training DP -SnD [12] Classification Input Inference DP TPSL [13] Classification Labels Training DP -KD-UFSL [14] Classification Both Training DP -SplitHE [15] Classification Input Inference HE -PolyTransformer [16] Classification Input Inference HE -HESplitNet [17] Classification Both Training HE -Split Ways [18] Classification Both Training HE -CURE [19] Classification Both Training HE -NoPeek [20] Classification Input Training RST -DualGuard [21] Generation Both Training RST -MIX GUARD Both Both Training Mixup
+> †Utility. Domain : the original evaluated domains. Performance : utility preservation compared to the non-private baselines. ( = low; = comparable).
+> §Privacy. Data : the target data protected (e.g., input data, labels). Stage : the protection aims to privatize training data or inference-time data. Mechanism :underlying privacy-preserving techniques (e.g., DP, HE, or RST). Robustness : ability to resist against data reconstruction attacks ( = partial; = strong).
+> ⋆Efficiency. Computation : additional computational overhead compared to U-shape baseline ( = intensive cryptographic operations; = lightweight model training; = negligible extra overhead). Communication : additional client-server communication cost ( = high; = moderate; = no extra).
+> ‡Stability. Across Tasks : the stability to preserve utility and privacy across tasks ( = stable on most tasks; = stable across all tasks; - = not evaluated).
+
+other defenses may still require auxiliary-model operations [20], [21]. Finally , the effectiveness of existing methods is not consistently maintained across tasks [9], [10], [12]. Their utility–privacy trade-offs can vary considerably across datasets, and their stability on challenging generative tasks remains insufficiently studied. To address these challenges, we explore a new direction and propose M IX GUARD , a novel mixup-based privacy-preserving Split Learning framework for LLMs. M IX GUARD 
+
+is inspired by mixup, a data-augmentation technique that combines inputs or hidden representations from multiple samples to improve training stability and generalization. We extend this principle to privacy protection through two complementary obfuscation mechanisms. First, M IX GUARD 
+
+performs token-level obfuscation by sampling and inserting secret tokens into the input sequence. Second, the client applies representation-level obfuscation by jointly encoding the target sample with multiple auxiliary samples, linearly combining their hidden representations using secret vectors and matrices, and transmitting only the resulting mixed acti-vations to the server. After trunk-side computation, the client decodes the returned messages to recover an approximation of the target representation. A lightweight calibration model further refines this approximation before it is passed to the tail model for loss computation. These two obfuscation mech-anisms operate jointly to reduce the private forward signals exposed to the server. During backpropagation, M IX GUARD 
+
+adaptively perturbs the gradients according to the calibration residual, which mitigates the backward leakage. Through this pipeline, M IX GUARD protects both inputs and labels in the U-shaped SL setting while preserving the utility of hidden representations and incurring limited computation and communication overhead. We evaluate M IX GUARD on 4 classification tasks and 4 text generation tasks across two widely used LLM families. The results show that M IX GUARD preserves downstream fine-tuning utility compared with Non-split training baselines. We further assess its privacy protection against 4 state-of-the-art data reconstruction attacks, demonstrating that MIX GUARD consistently outperforms existing SL defense methods. Moreover, our experiments show that M IX GUARD 
+
+remains effective across LLMs with diverse model sizes, architectures, and fine-tuning strategies. M IX GUARD also provides strong protection against adaptive attacks, which highlights its robustness in stronger adversarial settings. Our work makes the following contributions:  
+
+> •
+
+We propose M IX GUARD , a novel mixup-based obfusca-tion mechanism for a privacy-preserving split learning framework with LLMs. To the best of our knowledge, MIX GUARD is the first mixup-based method designed for LLM split learning.  
+
+> •
+
+We introduce token-level obfuscation, representation-level obfuscation, and adaptive gradient perturbation modules, which operate jointly to preserve useful learning signals while preventing privacy leakage to the server.  
+
+> •
+
+We evaluate MIX GUARD across diverse tasks, LLM families, and data reconstruction attacks. The results demonstrate that M IX GUARD preserves downstream fine-tuning utility, consistently outperforms existing defense baselines, and remains robust against adaptive attacks. 
+
+## 2. Background 
+
+2.1. Large Language Model 
+
+A Large Language Model (LLM) is a Transformer-based neural network that models a token sequence autoregressively [22]. Given an input sequence x = ( x1, . . . , x T ), the model estimates the next-token distribution 
+
+pθ (xt | x<t ) = softmax( Wh t−1)xt , (1) where H(L) = [ h1, . . . , hT ]⊤ ∈ RT ×d denotes the final-layer hidden-state matrix, and ht−1 ∈ Rd is the hidden representation at position t − 1. W is the output projection. The hidden-state matrices are produced by stacking L
+
+Transformer blocks: 
+
+H(ℓ) = Block (ℓ) 
+
+H(ℓ−1) 
+
+
+
+, ℓ = 1 , . . . , L. (2) starting from token embeddings with positional encoding 
+
+H(0) = Embed( x)+PosEnc( x). Each block mainly consists of self-attention and a position-wise feed-forward network. For self-attention, queries/keys/values are computed by linear projections of H:
+
+Q = HW Q, K = HW K , V = HW V , (3) and the attention output is 
+
+Attn( H) = softmax 
+
+ QK ⊤
+
+√dk
+
++ M
+
+
+
+V, (4) where M is a mask (e.g., causal mask) to prevent attending to future tokens. LLMs are commonly pretrained by minimizing the negative log-likelihood over large corpora: 
+
+LLM (θ) = −
+
+> T
+
+X
+
+> t=1
+
+log pθ (xt | x<t ), (5) and later adapted via supervised fine-tuning on task-specific instruction-response data. The layered and modular design of Transformers also makes LLMs convenient to partition across devices in split learning, where intermediate activations can be transmitted at a chosen cut layer. 
+
+2.2. Split Learning 
+
+Split learning (SL) is a collaborative training paradigm in which a model is partitioned between a client (data owner) and a server (compute provider) [23]. Depending on the partition strategy, SL can be broadly categorized into label-sharing SL (L-Shape) and label-private SL (U-Shape). In L-Shape SL, the client processes private inputs through the shallow layers of the model and transmits the resulting intermediate activations (smashed data) to the server. The server completes the forward pass, computes the loss using the ground-truth labels, and propagates the gradients back to the client to update the client-side parameters. In the U-Shape SL, both the initial layers (head model) and the final layers (tail model) are retained on the client, while the intermediate layers (trunk model) are hosted on the server. The client first performs the head model forward pass, sends smashed data to the server for trunk model computation, and then receives the server-side output to complete the tail model forward pass and loss computation. During backpropagation, the gradients follow the reverse path to propagate. By keeping the labels on the client, this architecture mitigates label leakage [24]. Therefore, SL methods for LLMs commonly adopt the U-shaped architecture to provide stronger privacy protection. 
+
+Data Reconstruction Attacks (DRA). In SL, a key privacy requirement is that the sensitive training data should not be recovered from the information transmitted between the client and the server. However, this requirement is difficult to guarantee in practice. Recently, an increasing body of work has focused on DRAs, which demonstrate that smashed data in the forward pass and gradients in the backward pass may expose substantial information about private samples, which can be used to reconstruct inputs or infer labels [25], [26], [27]. Specifically, SIP is a forward smashed-data inversion attack that reconstructs input texts from the transmitted intermediate activations by training an inversion model with auxiliary data and pre-trained client-side priors [25]. TAG and LAMP are backward gradient-matching attacks that exploit gradients returned during backpropagation to recover target sequences or label information [26], [27]. BiSR further combines forward inversion and backward gradient matching into a bidirectional reconstruction strategy, producing stronger recovery than either direction alone [25]. 
+
+Defense Mechanisms. To mitigate the risk of sensitive data leakage in SL, a variety of privacy-preserving defense methods have been proposed. Existing approaches can be broadly categorized into three families according to their underlying strategy, i.e., differential privacy (DP) [9], [10], [12], fully homomorphic encryption (FHE) [15], [18], and representation space transformations (RST) [20], [21]. 
+
+DP-based approaches. They protect SL by introducing noise into the information exchanged between the client and the server. In particular, DP-Forward perturbs the smashed data transmitted in the forward pass to reduce the private signals from intermediate representations [9]. By contrast, DP-SGD operates on the backward pass by clipping per-sample gradients and adding noise during gradient updates [10]. A key advantage of these methods is that they offer formal or semi-formal privacy guarantees. However, this protection typically comes at a substantial utility cost. Prior empirical studies have shown that the injected noise can severely distort training signals, leading to degraded conver-gence and reduced downstream performance [28]. 
+
+FHE-based approaches. These methods aim to encrypt transmitted values while allowing specific computations to be performed on ciphertexts [29]. In principle, this provides strong confidentiality guarantees, since the server has no access to the plaintext content. However, applying FHE to modern deep learning pipelines remains highly challenging because Transformer-based architectures rely heavily on non-linear operations, which are difficult and computationally expensive to approximate under current FHE schemes. Al-though recent studies have improved the feasibility of FHE-based inference and training [30], [31], [32], they still incur substantial cryptographic computation and communication overhead. Consequently, their application to SL with LLMs is still impractical at scale. 
+
+RST-based approaches. RST-based methods aim to reduce the invertibility or exploitable structure of smashed data by driving their distribution away from the input token representation. For example, NoPeek explicitly minimizes the statistical dependence between raw inputs and intermediate representations [20]. DualGuard further reshapes the client-side representation space prior to fine-tuning to weaken reconstruction attacks against both inputs and labels [21]. Compared with FHE-based methods, RST-based defenses are often more lightweight and easier to integrate into practical SL pipelines. However, their privacy protection is typically heuristic rather than formally guaranteed, and they may also incur significant utility degradation. 
+
+2.3. Mixup Techniques 
+
+The mixup technique was originally introduced as a data augmentation strategy to improve model generalization by synthesizing training examples from pairs of samples [33]. In language models, existing mixup methods can be categorized into token-level mixup and representation-level mixup. 
+
+Token-level Mixup. Token-level mixup constructs mixed textual inputs on the discrete tokens before they are mapped into continuous embeddings. Given two tokenized sequences 
+
+xi and xj , a token-level mixing operator can be written as 
+
+˜x = Φ( xi, x j ), (6) where each token t ∈ ˜x is selected from either xi or xj
+
+according to a predefined or stochastic mixing rule. The mixed sequence ˜x is then passed to the embedding layer and used for model training. This technique has primarily been explored as a way to improve the generalization ability of language models. More recent work has extended token-level manipulation toward privacy protection [34]. For example, token obfuscation methods replace original tokens with semantically distinct but embedding-proximate shadow tokens. The intuition is that language models have some tokens that are close in embedding space while differing substantially in semantic meaning. Such substitutions can preserve representation-level similarity while weakening the semantic correspondence between the observed token sequence and the original input, thereby reducing the effectiveness of DRAs. 
+
+Representation-level Mixup. This operation conducts linear interpolation between pairs of samples on their nu-merical inputs or hidden representations [33]. Given two training samples (xi, y i) and (xj , y j ), the mixup constructs a synthesized sample by 
+
+˜x = λx i + (1 − λ)xj , (7) where λ ∈ [0 , 1] is a mixing coefficient typically sampled from a Beta distribution. The training objective for model 
+
+f is defined as the corresponding interpolation of the two supervision signals: 
+
+Lmix = λ L(f (˜ x), y i) + (1 − λ) L(f (˜ x), y j ), (8) While this strategy was first developed for continuous input domains such as image, extending it to natural lan-guage tasks is more challenging, where the discrete tokens cannot be interpolated as naturally as continuous pixel values. Therefore, existing methods perform mixup in hidden representation spaces [35], [36] typically by interpolating the sample-level representations produced by the encoder f1
+
+before passing them to the classification head f2. Formally, the mixed representation and loss are defined as 
+
+˜h = λf 1(xi) + (1 − λ)f1(xj ), (9) 
+
+Lmix = λ L
+
+
+
+f2(˜h), y i
+
+
+
++ (1 − λ) L
+
+
+
+f2(˜h), y j
+
+
+
+. (10) Despite this progress, text-domain mixup is largely limited to classification tasks. Extending it to autoregressive generation is more challenging because contextual hidden states evolve across decoding steps, with each prediction conditioned on the preceding context. This sequential depen-dency makes direct representation interpolation problematic, which introduces substantial mutual semantic contamination between the mixed components. The resulting representation may distort the contextual signals required for accurate next-token prediction. Consequently, mixup remains less explored for text generation, particularly in LLM fine-tuning. 
+
+## 3. Threat Model 
+
+Defender. The defender corresponds to the client in the SL architecture. It owns a private training dataset, as well as public or synthetic datasets that can be used to train client-side auxiliary models. In addition, the defender has access to a support set, which may consist of arbitrary datasets or token sequences. The defender can generate private randomness, including random vectors, matrices, and tokens, that is not disclosed to the server. The defender does not assume prior knowledge of the server-side model architecture, nor of the specific data reconstruction strategies that the server may employ. During training, client-server communication is conducted through a secure channel, over which the client and server exchange smashed data in the forward pass and gradients in the backward pass. The defender’s objective is to prevent recon-struction of its private training data from the smashed data and gradients, while maintaining model convergence and training accuracy comparable to non-private or centralized training. 
+
+Attacker. We consider an honest-but-curious attacker on the server side in the SL architecture [26], [27]. During train-ing, the attacker can fully observe the exchanged smashed data and gradients. In addition, the attacker has access to the server-side model segment, architecture, and optimization procedure. However, the attacker has no direct access to the client’s raw inputs and labels, or any client-side randomness (e.g., local random seed). The attacker may perform advanced reconstruction attacks based on the received smashed data and gradients. Additionally, the attacker may possess knowledge of the defender’s mechanism and leverage adaptive data reconstruction attacks accordingly. The attacker’s objective is to reconstruct sensitive information about the client’s private training data. 4. Methodology 
+
+4.1. Overview of MIX GUARD 
+
+Intuition. We formulate privacy preservation in SL as a controlled obfuscation problem. The objective is to obscure the sensitive client data from the server while keeping the training signal exploitable for the client. Existing approaches fail to fulfill both requirements. For example, DP-based methods introduce input-agnostic noise into smashed data. However, making discrete tokens indistinguishable requires large noise, which can push the smashed data away from the original representation space. This distribution shift often leads to systematic utility degradation. To bridge this gap, we draw inspiration from Vicinal Risk Minimization theory [37] and mixup techniques [33]. We actively obfuscate private training samples by mixing multiple inputs and hidden representations to construct synthesized training instances. This technique was originally proposed for data augmentation, while we reinterpreted it in the context of privacy-preserving SL. A key advantage is that this approach often preserves useful training behavior even when the underlying model is highly nonlinear [35], [36]. Based on this intuition, M IX GUARD introduces mixup-based obfuscation mechanisms to construct secret-augmented smashed data. Compared to DP noise, this strategy performs interpolation between existing representations and avoids significant distribution drift. At the same time, the mixture remains transparent to the client: the client retains full knowledge of the mixture composition and can disentangle it during subsequent local computation. 
+
+Workflow. MIX GUARD consists of two stages, i.e., calibration model construction and privacy-preserving fine-tuning (Figure 1). Stage I constructs a lightweight calibration model using a public dataset. During this stage, only the calibration model is updated, while all global model seg-ments (e.g., the head, trunk, and tail model) remain frozen. Specifically, the client performs the representation-level mixup by sampling secret coefficient vectors and matrices, and using them to encode multiple batches into mixed smashed data. The smashed data are transmitted to the server, processed by the frozen trunk, and returned to the client. The client then decodes the returned representations to obtain an approximated representation for the target batch, which serves as the input to the calibration model. In parallel, the client processes the corresponding target batch without mixup to obtain the ground-truth representation. The calibration model is trained to minimize the mean squared error (MSE) between the calibrated approximation and the ground truth. Stage II performs the actual privacy-preserving SL fine-tuning on the private dataset. The client first applies token-level obfuscation by sampling secret tokens and inserting them into the original input. It then follows the same mixup-based procedure as in Stage I to obtain the target batch approximation. This approximated representation is fed into the calibration model to produce a refined activation, which is subsequently passed to the tail model for loss computation. To maintain the accuracy over the course of fine-tuning, the client periodically updates the calibration model using public data. During backpropagation, the client further introduces adaptive perturbation based on the calibration residual. 
+
+4.2. Mixup-based SL Protocol 
+
+The two stages of M IX GUARD pursue different learning objectives, while they rely on the same underlying SL protocol. We therefore first formalize this common process, which provides the backbone for the procedures introduced in Sections 4.3 and 4.4. We consider an L-layer global model M under the U-shape SL paradigms, where the model is partitioned into three contiguous segments: 
+
+M = ( Mhead , Mtrunk , Mtail ), (11) with cut layers l1 and l2 (0 ≤ l1 < l 2 ≤ L). The client hosts 
+
+(Mhead , Mtail ), while the server hosts Mtrunk . Notably, Mtail 
+
+comprises not only the final several layers of M, but also the model head responsible for token classification. To simplify notation, we denote the corresponding forward mappings of Mhead , Mtrunk , and Mtail by g1, g2, and g3, respectively. Accordingly, the overall forward mapping of M is given by: 
+
+g = g3 ◦ g2 ◦ g1 (12) The client further has access to an auxiliary non-private public (or synthesized) dataset Dpub = ( Xpub , Ypub ) and a private dataset Dpriv = ( Xpriv , Ypriv ), where X and Y
+
+represent the input and output set, respectively. In addition, the client maintains a secret support set Dsupp = Xsupp , which may consist of arbitrary text samples or token sequences unavailable to the attacker. 
+
+Head Model Encoding. For each training step, the client samples a target input text x∗ ∈ X 
+
+. The client additionally samples k − 1 support data 
+
+{u1, . . . , u k−1} ⊆ X supp . These samples form a size-k input set 
+
+X = {x∗, u 1, . . . , u k−1}, |X| = k. (13) For each xi ∈ X, the client tokenizes the text and maps the resulting token sequences into an embedding matrix 
+
+ei ∈ Rni×d, where ni denotes the sequence length and d
+
+is the embedding dimension. To enable embedding-wise mixing across samples, the client pads the embedding matrix to a common length n = max( {ni}ki=1 ), yielding padded embedding ˜ei ∈ Rn×d. The padded embedding is then encoded by the Mhead , producing hidden repre-sentations hi = g1(˜ ei) ∈ Rn×d. The client processes all 
+
+xi ∈ X, and stacks the resulting k hidden representa-tions along a new leading dimension to construct a tensor 
+
+Hc = stack ({hi}ki=1 ) ∈ Rk×n×d, where stack (·) denotes the stacking operation. Since the target representation h∗
+
+corresponding to the input text x∗ appears at a random but client-tracked position within Hc, we denote its index as i∗.Stage  I
+
+> Global Model
+> Raw Data
+> Support Data
+> Support Data
+
+ℒ!"# 
+
+> Stage  II  Raw Data
+> Support Data
+> Support Data
+
+ℒ$$!     
+
+> Frozen Model
+> Trainable Model
+> Smashed Data Transmission
+> Local Computation Client Side
+> Server Side
+> Public Dataset
+> Private Dataset
+> Stage I
+> Decoding
+
+%&
+
+%'
+
+%(
+
+> Rep -level
+> Obfuscation
+
+%'
+
+%(
+
+)*+,-
+
+%&  
+
+> Label
+> %&
+> ./0
+> Decoding
+> %1
+> BA
+> %'
+> %(
+> AB
+> =
+> Rep -level Obfuscation
+> Random Matrix
+
+*+,-
+
+> ∗
+
+*+,-
+
+)*+456 
+
+*+456 
+
+7+,-
+
+> ∗
+
+,0
+
+,8
+
+7+456 
+
+> ∗
+
+,0
+
+,8        
+
+> Head
+> Model
+> Trunk
+> Model
+> Trunk
+> Model
+> Head
+> Model Cal.
+> Model
+> Tail
+> Model
+> Cal.
+> Model
+> Token -level
+> Obfuscation
+> Rep -level
+> Obfuscation
+> Token -level Obfuscation
+> 7
+> Secret Tokens &
+> 7†
+> Tail Model
+> Trunk Model
+> Head Model Support Dataset Gradient Transmission
+> Sampling from Dataset
+
+9∗    
+
+> Decoding
+> Gradient
+> *
+> Adaptive Perturbation
+> Residual :×<=
+> Adaptive
+> Perturbation
+
+Figure 1. Overview of M IX GUARD . M IX GUARD employs a shared mixup-based split-learning protocol across two stages, as highlighted by the dotted boxes . Stage I trains a lightweight calibration model using public data. Stage II performs privacy-preserving fine-tuning on private data. Rep and Cal. denote Representation and Calibration, respectively. 
+
+Representation-level Obfuscation. The stacked client-side representations in Hc contain substantial plaintext informa-tion that requires protection. To address this issue, we intro-duce a representation-level obfuscation mechanism. Specifi-cally, M IX GUARD conceals h∗ among k − 1 representations from a secret support set through a secret Sign Vector v ∈ Rm
+
+and two secret matrices, i.e., a Mixing Matrix A ∈ Rm×k
+
+and an invertible Blinding Matrix B ∈ Rm×m.
+
+Sign Vector. The sign vector v is a secret vector with entries 
+
+vi independently sampled from {− 1, +1 }.
+
+Mixing Matrix. 
+
+The client randomly samples a positive-value mixing matrix A = [ ai,j ] ∈ Rm×k (ai,j > 0), which linearly combine the h hidden representations in Hc into m mixed messages. To ensure that the client can later recover the signal corresponding to x∗, the matrix A is required to satisfy the following constraint:  
+
+> •
+
+Column-wise Sum Constraint. This constraint requires that summing the m mixed output messages cancels all non-target representations while preserving unit weight on the target representation. Formally, 
+
+> m
+
+X
+
+> i=1
+
+viai,j =
+
+(
+
+1, j = i∗,
+
+0, ∀j ∈ { 1, 2, . . . , k }\{ i∗}. (14)  
+
+> •
+
+Row-wise Support Constraint. This constraint captures the minimal requirements of the mixup-based privacy preservation, where each transmitted message must involve at least two source representations. This can be written as 
+
+∥Ai, :∥0 ≥ 2, ∀i ∈ { 1, . . . , m }, (15) where Ai, : denotes the i-th row of A and ∥ · ∥ 0 counts the number of non-zero entries. 
+
+Blinding Matrix. Mixing Matrix A alone is insufficient to fully obfuscate the private signals. For example, aserver-side attacker may aggregate the received messages Pkj=1 
+
+  P mi=1 ai,j hj
+
+ = Pmi=1 
+
+  P kj=1 ai,j hj
+
+ = hi∗ =
+
+h∗, which may directly reveal the target representation 
+
+h∗. To further obfuscate the private signals, the client applies an additional invertible Blinding Matrix B, which further obfuscates the m mixed messages before transmission. Accordingly, the resulting smashed data from the client is 
+
+Hm = Hc ×1 A ×1 B, (16) 
+
+= Hc ×1 (BA ), (17) where ×1 denotes the mode-1 tensor-matrix product 1. Conse-quently, the obfuscated tensor Hm ∈ Rm×n×d is the smashed data actually transmitted to the server. We denote each repre-sentation in this tensor by qi, i.e., qi = Hmi, :,:, i ∈ { 1, . . . , m }.Notably, both A and B are sampled independently for each training batch. 
+
+Trunk Model Encoding. Upon receiving the smashed tensor Hm, the server applies the forward mapping g2(·)
+
+of the computation-intensive trunk model Mtrunk to each slice along the first mode, and produce the server-side tensor Hs ∈ Rm×n×d. Specifically, for i ∈ { 1, 2, . . . , m },
+
+Hsi, :,: = g2(Hmi, :,:). This server-side smashed tensor Hs is then returned to the client, according to the U-shape SL paradigm. 
+
+Tail Model Decoding. The server-side tensor Hs contains the encoded outputs from the mixed input batches under the mixing and blinding matrices A and B. To estimate 
+
+1. Mode-1 product 
+
+(H ×1 A)i, :,: = Pkj=1 Ai,j Hj, :,:, i = 1 , .., m, the target-related signal, the client first reverses the blinding effect by applying B−1:
+
+Hd = Hs ×1 B−1. (18) The client then constructs an approximation of the target rep-resentation of x∗ at layer ls by summing the representations of Hs along the first mode. Specifically, 
+
+z =
+
+> m
+
+X
+
+> i=1
+
+viHdi, :,: ∈ Rn×d. (19) This operation follows the column-wise sum constraint defined in Eq.14 on Hd.Within this mixup-based SL protocol, the raw input data x∗ never leaves the client. The server observes only obfuscated hidden representations without access to (i) the support samples involved in the obfuscation process or (ii) the secret mixing and blinding coefficients (A, B).The protocol defines a transformation from a raw input 
+
+x∗ to its approximated representation z, which we denote by F : X → Rn×d. This procedure is shared by both stages of M IX GUARD , i.e., calibration model construction and privacy-preserving fine-tuning. The mixup-based SL protocol is summarized in Algorithm 1. 
+
+4.3. Stage I: Calibration Model Construction 
+
+MIX GUARD framework relies on the approximated rep-resentation z in Eq.19 for SL with strong utility retention. However, despite preserving useful training signals, z gen-erally deviates from the true ls-layer representation z∗, the ground-truth trunk output of h∗. This discrepancy is primarily caused by the non-linear transformations within LLMs and may degrade downstream optimization. To mitigate this issue, we introduce a lightweight calibration model Mcal 
+
+that learns to correct the approximation error, and transforms the approximated representation z into a refined represen-tation ˆz better aligned with z∗. The corresponding forward mapping is denoted as gcal : Rn×d → Rn×d. This model is implemented as a residual network with multiple calibration blocks sequentially stacked. Given an input representation 
+
+z ∈ Rn×d, each calibration block learns a low-rank residual transformation ∆( z) through a bottleneck architecture with GELU function [38] and dropout [39]. 
+
+Block( z) = z + ∆( z) (20) 
+
+= z + (Dropout(GELU( z Wdown ))) Wup , (21) where Wdown ∈ Rd×r projects the hidden representation into a low-dimensional bottleneck space, Wup ∈ Rr×d maps it back to the original hidden space, and r denotes the bottleneck dimension. We use r = 64 by default. 
+
+Calibration Model Training. We pre-train the calibration model Mcal using the public (or synthesized) dataset Xpub .For each target sample x∗ 
+
+> pub
+
+∈ X pub , the client and server first construct its approximated ls-layer representation zpub ∈
+
+Rn×d by following the mixup-based SL protocol, i.e., zpub =
+
+F (x∗
+
+> pub
+
+). The corresponding target representation z∗ 
+
+> pub
+
+∈
+
+Algorithm 1: Mixup-based SL Protocol                                                                           
+
+> Input: Target sample x∗, support set Xsupp , client head g1, server trunk
+> g2, source size k, mixture size m
+> Output: Approximated target representation ˆz
+> 1Function MixupSL( x∗,Xsupp , g 1, g 2, k, m ):
+> 2Sample k−1support samples from Xsupp and form
+> X={x∗, s 1, . . . , s k−1};
+> 3foreach xi∈Xdo
+> 4hi←g1(xi);// client representations
+> 5end
+> 6Hc←stack( {hi}ki=1 );
+> 7Sample a secret sign vector v∈ {− 1,+1 }m, a mixing matrix A
+> and an invertible blinding matrix B;
+> 8Hm←Hc×1(BA );// obfuscation
+> 9Transmit Hmto the server;
+> 10 Hsi, :,:←g2(Hmi, :,:);// trunk representations
+> 11 Transmit Hsback to the client;
+> 12 Hd←Hs×1B−1;// remove the blinding effect
+> 13 ˆz←Pmi=1 viHdi, :,:;// aggregate representations
+> 14 return ˆz;
+
+Algorithm 2: Calibration Model Construction                                                        
+
+> Input: Public dataset Dpub = ( Xpub ,Ypub ), support set Xsupp , head model g1, trunk model g2, calibration model gcal , source size k,mixture size m
+> Output: Trained calibration model gcal
+> 1Function CALIBRATION TRAINING (Dpub ,Xsupp , g 1, g 2, g cal , k, m ):
+> 2Freeze g1and g2;
+> 3foreach x∗
+> pub ∈ X pub do
+> 4ˆzpub ←MixupSL( x∗
+> pub ,Xsupp ,g1,g2,k,m)
+> 5h∗
+> pub ←g1(x∗
+> pub );
+> 6z∗
+> pub ←g2(h∗
+> pub );// true representation
+> 7zpub ←gcal (ˆ zpub );
+> 8LMSE ←1
+> nd ∥zpub −z∗
+> pub ∥22;
+> 9Update gcal by minimizing LMSE ;
+> 10 end
+> 11 return gcal ;
+
+Rn×d is then obtained through a standard forward pass without mixup, i.e., transmitting the plain smashed data h∗,which is further encoded by the trunk model. This process can be expressed as 
+
+z∗ 
+
+> pub
+
+= ( g2 ◦ g1)( x∗
+
+> pub
+
+). (22) Since x∗ 
+
+> pub
+
+is sampled from Xpub , this communication does not expose any private data. Given paired supervision 
+
+(zpub , z∗
+
+> pub
+
+), we train Mcal using the Mean Squared Error (MSE) objective: 
+
+LMSE (zpub , z∗
+
+> pub
+
+) = 1
+
+nd gcal (zpub ) − z∗ 
+
+> pub
+> 2
+
+, (23) where zpub , z∗ 
+
+> pub
+
+∈ Rn×d, and ∥·∥ denotes ℓ2 norm. During this stage, only the parameters of Mcal are updated, while 
+
+Mhead and Mtrunk remain frozen. Algorithm 2 formalizes the calibration model construction procedure. 
+
+4.4. Stage II: Privacy-Preserving Fine-tuning 
+
+This stage performs the actual fine-tuning on the private dataset Dpriv , while protecting it from leakage. The calibration model Mcal trained in Stage I is employed to obtain a more accurate representation for optimizing the global model parameters, i.e., M = ( Mhead , Mtrunk , Mtail ).Token-level Obfuscation. We first sample secret random tokens s from the vocabulary and insert them into the raw private inputs. Formally, for each sample x ∈ X priv ∪X supp , the client applies this obfuscation to produce a token sequence: 
+
+x† = Φ( x, s ) (24) This process yields the obfuscated private and support datasets X † 
+
+> priv
+
+and X †
+
+> supp
+
+.
+
+Representation-level Obfuscation. Following the mixup-based SL protocol, the approximation zpriv = F (x∗
+
+> priv
+
+) is constructed from the private input x∗ 
+
+> priv
+
+∈ X † 
+
+> priv
+
+and X †
+
+> supp
+
+.Using the calibration model Mcal , the client produces a refined representation: 
+
+ˆzpriv = gcal (zpriv ), (25) This refined representation ˆzpriv is processed by the tail model Mtail to compute the model’s final layer representation and the autoregressive likelihood over the target text y∗ =[y∗ 
+
+> 1
+
+, y ∗ 
+
+> 2
+
+, . . . , y ∗ 
+
+> T
+
+] ∈ Y priv . This representation is then used to compute the loss function 
+
+p(· | y∗
+
+> <t
+
+, zpriv ) = softmax 
+
+
+
+g3(zpriv , y ∗
+
+> <t
+
+)
+
+
+
+, (26) 
+
+LLLM = −
+
+> T
+
+X
+
+> t=1
+
+log p y∗ 
+
+> t
+
+| y∗
+
+> <t
+
+, z∗
+
+> priv
+
+ , (27) 
+
+Gradient-perturbed Optimization. During this fine-tuning stage, we freeze the parameters of the calibration model Mcal .To further reduce information leakage from the backward pass, we adaptively perturb the gradient calculated by the calibration module before it is sent to the server-side trunk model. Specifically, the client transmits a perturbed gradient 
+
+˜∇ˆzpriv L = ∇ˆzpriv L + ϵ, ϵ ∼ N (0 , σ 2I), (28) where the perturbation scale is determined by the calibration residual: 
+
+σ = γ gcal (ˆ zpriv ) − z∗ 
+
+> priv
+> 22
+
+. (29) Here, γ is a scaling coefficient that controls the strength of the gradient perturbation. Since Mcal is trained only on the general public or synthesized data, a larger calibration residual indicates a greater deviation from the public cali-bration distribution and, consequently, a higher likelihood of retaining sample-specific private information. Based on this intuition, M IX GUARD applies stronger gradient perturbation to samples with larger residuals. With the perturbed gradient, the server updates the trunk model Mtrunk parameters, and the resulting gradients are further propagated to the client-side head model Mhead following the standard SL backpropagation procedure. 
+
+Calibration Model Refinement. The calibration model 
+
+Mcal is trained to calibrate the representation produced by the initial state of the global model. However, as (Mhead , Mtrunk , Mtail ) evolves during fine-tuning, the dis-tribution of the representations from both client and server may drift, which can reduce calibration accuracy. To main-tain alignment, we periodically perform a refinement step. 
+
+Algorithm 3: Privacy-Preserving Fine-tuning                                                                                                                          
+
+> Input: Private dataset Dpriv , public dataset Dpub , support set Xsupp , head model g1, trunk model g2, tail model g3, calibration model gcal ,source size k, mixture size m, refinement interval Tref ,perturbation coefficient γ
+> Output: Fine-tuned model (g1, g 2, g 3)and calibration model gcal
+> 1Sample secret token pattern s;
+> 2X†
+> priv ← { Φ( x;s)|x∈ X priv },X†
+> supp ← { Φ( x;s)|x∈ X supp }
+> 3foreach training step twith batch (x∗
+> priv , y ∗
+> priv )do
+> 4Freeze gcal ;
+> 5ˆzpriv ←MixupSL( x∗
+> priv ,Xsupp ,g1,g2,k,m)
+> 6zpriv ←gcal (ˆ zpriv );// calibrated representation
+> 7ˆy←g3(zpriv );// tail prediction
+> 8LLLM ←ℓ(ˆ y, y ∗
+> priv );
+> 9Compute the backward gradient ∇ˆzpriv LLLM through gcal ;
+> 10 rt← ∥ ˆzpriv −zpriv ∥22;// calibration residual
+> 11 σt←γr t;
+> 12 Sample perturbation ϵt∼ N (0 , σ 2
+> tI);
+> 13 e∇ˆzpriv LLLM ← ∇ ˆzpriv LLLM +ϵt;
+> 14 Update g2using e∇ˆzpriv LLLM , and propagate the resulting gradients to update g1;
+> 15 if tmod Tr= 0 then
+> 16 Freeze g1,g2, and g3;
+> 17 gcal ←CalibrationTraining( Dpub ,Xsupp ,g1,g2,gcal ,
+> k,m);// calibration refinement
+> 18 Unfreeze g1,g2, and g3; Freeze gcal ;
+> 19 end
+> 20 end
+> 21 return (g1, g 2, g 3), g cal ;
+
+Specifically, for every Tr steps, we freeze the global model parameters to update Mcal using the same public-data supervision procedure described in Section 4.3. This alter-nating optimization strategy aims to stabilize the refinement quality throughout private fine-tuning. We present the detailed procedure of privacy-preserving fine-tuning in Algorithm 3. 
+
+4.5. Inference and Deployment 
+
+After training, M IX GUARD can be deployed in a fully local or a split inference mode. For fully local inference, the client obtains all model segments and performs end-to-end prediction locally, which removes communication overhead during inference. For split inference, the client retains the head and tail models, while the server continues to host the trunk model as in the training stage. This setting preserves the computational advantage of SL for resource-limited clients. In both settings, the calibration model can be optionally inserted between the trunk and the tail model. Enabling calibration refines the intermediate representation, whereas disabling it reduces inference-time overhead. As a result, MIX GUARD supports flexible deployment choices that can be selected according to practical requirements on utility, latency, and communication. In the experiments, we evaluate both inference variants under settings with and without calibration. 
+
+## 5. Evaluation 
+
+5.1. Experimental Setup 
+
+Dataset . We evaluate our method on both classification and generation tasks. For classification, we use four repre-sentative datasets from the GLUE benchmark [40]: CoLA, TABLE 2. P ERFORMANCE OF UTILITY AND AGAINST DATA RECONSTRUCTION ATTACK ON CLASSIFICATION TASKS .                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+> Dataset Baseline Qwen3-1.7B Llama 3.2-1B Utility SIP TAG LAMP BiSR Utility SIP TAG LAMP BiSR ACC ↑RF ↓ME ↓RF ↓ME ↓RF ↓ME ↓RF ↓ME ↓ACC ↑RF ↓ME ↓RF ↓ME ↓RF ↓ME ↓RF ↓ME ↓
+> CoLA Non-split 0.838 0.622 0.585 0.452 0.426 0.484 0.436 0.116 0.155 0.845 0.548 0.534 0.430 0.328 0.433 0.327 0.193 0.183 DP-SGD 0.845 0.573 0.575 0.476 0.429 0.480 0.433 0.118 0.154 0.850 0.530 0.503 0.418 0.321 0.418 0.323 0.196 0.173 DP-forward 0.786 0.392 0.359 0.387 0.380 0.375 0.365 0.150 0.137 0.838 0.530 0.504 0.461 0.410 0.465 0.415 0.282 0.204 SnD 0.309 0.604 0.563 0.269 0.233 0.266 0.229 0.112 0.081 0.691 0.239 0.167 0.481 0.463 0.483 0.463 0.242 0.243 Naive Mix 0.498 0.456 0.415 0.390 0.345 0.388 0.344 0.076 0.073 0.742 0.339 0.382 0.409 0.332 0.414 0.342 0.212 0.194 Ours 0.846 0.135 0.128 0.240 0.193 0.251 0.196 0.092 0.081 0.839 0.019 0.016 0.183 0.113 0.170 0.109 0.127 0.078
+> SST-2 Non-split 0.956 0.672 0.690 0.417 0.308 0.416 0.298 0.176 0.169 0.963 0.657 0.659 0.409 0.268 0.411 0.265 0.178 0.151 DP-SGD 0.958 0.680 0.707 0.411 0.304 0.412 0.303 0.177 0.149 0.960 0.580 0.580 0.403 0.258 0.402 0.258 0.198 0.206 DP-forward 0.971 0.485 0.481 0.391 0.280 0.382 0.258 0.173 0.141 0.953 0.491 0.489 0.378 0.271 0.378 0.272 0.215 0.215 SnD 0.491 0.679 0.685 0.203 0.161 0.200 0.158 0.116 0.092 0.509 0.654 0.627 0.426 0.374 0.425 0.370 0.181 0.180 Naive Mix 0.796 0.444 0.484 0.413 0.343 0.445 0.357 0.154 0.145 0.964 0.473 0.443 0.387 0.276 0.409 0.280 0.169 0.138 Ours 0.952 0.127 0.102 0.195 0.118 0.185 0.111 0.098 0.060 0.953 0.107 0.071 0.145 0.071 0.133 0.068 0.139 0.100
+> MRPC Non-split 0.863 0.772 0.789 0.583 0.496 0.595 0.493 0.277 0.243 0.860 0.759 0.778 0.600 0.509 0.603 0.511 0.342 0.276 DP-SGD 0.831 0.761 0.781 0.587 0.492 0.598 0.493 0.279 0.238 0.860 0.787 0.798 0.605 0.522 0.603 0.519 0.333 0.252 DP-forward 0.794 0.595 0.612 0.528 0.436 0.543 0.419 0.304 0.232 0.853 0.627 0.646 0.519 0.383 0.516 0.374 0.308 0.235 SnD 0.684 0.783 0.797 0.453 0.424 0.467 0.430 0.299 0.250 0.684 0.732 0.742 0.613 0.545 0.612 0.542 0.328 0.274 Naive Mix 0.748 0.507 0.487 0.549 0.470 0.481 0.399 0.255 0.203 0.831 0.345 0.326 0.358 0.289 0.504 0.416 0.202 0.156 Ours 0.880 0.069 0.038 0.224 0.135 0.232 0.147 0.098 0.051 0.836 0.069 0.036 0.147 0.076 0.113 0.052 0.102 0.058
+> RTE Non-split 0.870 0.758 0.748 0.509 0.455 0.504 0.443 0.226 0.205 0.783 0.709 0.707 0.491 0.430 0.496 0.433 0.283 0.244 DP-SGD 0.610 0.750 0.753 0.505 0.447 0.502 0.439 0.233 0.210 0.779 0.715 0.711 0.495 0.435 0.523 0.434 0.279 0.239 DP-forward 0.585 0.542 0.544 0.380 0.323 0.357 0.296 0.215 0.188 0.740 0.601 0.604 0.445 0.339 0.446 0.349 0.291 0.254 SnD 0.529 0.755 0.762 0.389 0.362 0.385 0.360 0.278 0.242 0.471 0.694 0.719 0.496 0.446 0.496 0.446 0.249 0.210 Naive Mix 0.715 0.457 0.464 0.527 0.474 0.392 0.358 0.206 0.178 0.726 0.428 0.428 0.457 0.401 0.390 0.344 0.229 0.189 Ours 0.866 0.059 0.035 0.185 0.121 0.190 0.127 0.105 0.064 0.783 0.061 0.044 0.150 0.089 0.112 0.064 0.111 0.059
+
+SST-2, QQP, and RTE: CoLA assesses linguistic acceptability (grammaticality judgments) [41], SST-2 is a binary sentiment classification task [42], QQP measures semantic equivalence between question pairs, and RTE evaluates textual entailment in a low-resource natural language inference setting. We further evaluate on four generative benchmarks. GSM8K is used to evaluate multi-step math word problem solving [43]. CodeAlpaca-20K is adopted for code generation under instruction-following prompts [44]. SAMSum is a dialogue summarization benchmark, evaluating the model’s ability to generate concise summaries from multi-turn conversational contexts [45]. WebNLG is included as a data-to-text genera-tion benchmark, where structured RDF-style input triples are converted into natural language descriptions [46]. In addition, we construct the public and support datasets from Wikitext [47], Yelp [48], and Multi-Source [12]. 
+
+Target LLMs. Our main experiments are conducted on Qwen3-1.7B [49] and Llama 3.2-1B [50], which represent two widely adopted open-sourced LLM families. To study the effect of model scale, we further evaluate M IX GUARD on Qwen3-4B, Qwen3-8B, and Qwen3-14B. We also extend our evaluation to different model architectures, including Qwen3-30B-A3B, a Mixture-of-Experts (MoE) LLM. In addition to full-parameter fine-tuning, we assess the effectiveness of MIX GUARD under parameter-efficient fine-tuning (PEFT) settings using Low-Rank Adaptation (LoRA) [51]. 
+
+Baselines. We compare M IX GUARD against represen-tative privacy defenses for SL. In addition to the standard non-split baseline, we include DP-Forward [9], DP-SGD [10], and Split-and-Denoise (SnD) [12], which protect pri-vate information by introducing noise into the intermediate exchanged signals. We additionally include Naive Mix [35], a naive representation-mixing baseline that is more closely related to our setting. 
+
+Attacks. MIX GUARD is evaluated against four DRAs in the SL setting, i.e., SIP, TAG, LAMP, and BiSR. SIP is a forward smashed-data inversion attack, where the adversary trains an inversion model on auxiliary data and then uses the observed smashed representations to reconstruct the original input text [25]. TAG and LAMP are backward gradient inversion attacks that exploit the gradients propagated through the split model to recover private supervision signals [26], [27]. Finally, BiSR is a stronger bidirectional reconstruc-tion attack that combines forward inversion and backward gradient matching, and reconstructs private data from both communication directions [25]. 
+
+Evaluation Metrics. We report the default evaluation metrics for each dataset. For the GLUE classification tasks, including CoLA, SST-2, QQP, and RTE, we report Accuracy (ACC). For the generative tasks, we evaluate GSM8K using answer accuracy under exact matching (EMA) [43], SAM-Sum using ROUGE-L F1 (RF) [52], WebNLG using BLEU [53], and CodeAlpaca-20K using CodeBLEU [54]. To assess the effectiveness of DRAs, we report ROUGE-L F1 (RF) [52] and METEOR (ME) [55], which measure the longest common subsequence (LCS) and lexical-semantic similarity between the reference and reconstructed text, respectively. We provide additional details on the evaluation metrics and implementation settings in Appendix A. 
+
+5.2. Main Results 
+
+Classification Tasks. We first evaluate M IX GUARD on four GLUE classification benchmarks. Table 2 reports the downstream utility and reconstruction results. Overall, M IX GUARD preserves downstream utility across both models. On Llama 3.2-1B, M IX GUARD achieves an accuracy of 0.839 on CoLA and 0.953 on SST-2, compared with 0.845 and 0.963 under non-split training, respectively. The corresponding utility gaps are limited to less than 1%. A similar trend is observed on Qwen3-1.7B. M IX GUARD 
+
+reaches 0.846 accuracy on CoLA, slightly exceeding the non-split baseline of 0.838, while maintaining comparable performance on SST-2 (0.952 vs. 0.956). On MRPC and RTE, M IX GUARD achieves accuracies of 0.880 and 0.866 on Qwen3-1.7B, respectively, which are also close to the corresponding non-split baselines of 0.863 and 0.870. These results indicate that the proposed obfuscation procedure effectively retains task-relevant signals for the classification and avoids model utility degradation. MIX GUARD also substantially suppresses reconstruction across DRAs that exploit forward representations, backward gradients, or both. For example, on CoLA with Llama 3.2-1B, M IX GUARD reduces the SIP reconstruction scores from 0.548/0.534 under non-split training to 0.019/0.016 in terms of RF/ME. Under TAG and LAMP, M IX GUARD limits the reconstruction scores to 0.183/0.113 and 0.170/0.109, respec-tively, compared with 0.461/0.410 and 0.465/0.415 under DP-Forward. M IX GUARD is also effective against BiSR, which combines forward inversion and gradient matching. The BiSR scores on CoLA are 0.127/0.078, substantially lower than the 0.282/0.204 obtained by DP-Forward and 0.242/0.243 by SnD. The same pattern is observed on Qwen3-1.7B. For instance, on RTE, M IX GUARD reduces the SIP score from 0.758/0.748 under non-split training to 0.059/0.035 and limits the TAG score to 0.185/0.121, whereas the other defenses provide little or no reduction. 
+
+Generation Tasks. We further evaluate M IX GUARD on four generation tasks. The results are reported in Table 3. MIX GUARD maintains competitive generation quality across most evaluated settings. On Llama 3.2-1B, M IX -GUARD achieves 0.236 EMA on GSM8K, 41.66 BLEU on WebNLG, 0.517 RF on SAMSum, and 0.502 CodeBLEU on CodeAlpaca. These results are close to the correspond-ing non-split training results of 0.254, 42.84, 0.524, and 0.514, respectively. The performance is extended to Qwen3-1.7B. For example, M IX GUARD achieves 0.455 EMA on GSM8K, 0.532 RF on SAMSum, and 0.543 CodeBLEU on CodeAlpaca, closely matching or slightly exceeding the corresponding non-split results of 0.469, 0.534, and 0.536. WebNLG represents a more challenging setting for Qwen3-1.7B, where the BLEU score decreases from 43.22 to 39.65. This performance gap suggests that structured data-to-text generation may be more sensitive to secret-token obfuscation or representation approximation errors. Generation tasks typically involve longer output se-quences, thereby exposing a broader attack surface to DRAs. Despite this challenge, M IX GUARD consistently suppresses the effectiveness of DRAs. On GSM8K with Qwen3-1.7B, MIX GUARD reduces the SIP reconstruction scores from 0.760/0.782 under non-split training to 0.042/0.024, corre-sponding to around 95% relative decrease. It also lowers TAG from 0.743/0.840 to 0.303/0.349 and BiSR from 0.424/0.347 to 0.106/0.066. Similarly, on CodeAlpaca, M IX GUARD limits SIP to 0.059/0.031 and BiSR to 0.143/0.077, compared with 0.630/0.615 and 0.379/0.308 under non-split training. These results demonstrate that the proposed mixup-based obfuscation mechanisms are also effective against DRAs on more challenging generation tasks. 
+
+Cross-task Stability. Notably, the baseline comparison 0.80      
+
+> 0.85
+> 0.90
+> Utility (ACC)
+> 0.8552
+> 0.8782 0.8725 0.8830 0.8832
+> (a) Full Fine-Tuning
+> 0.8274
+> 0.8581
+> 0.8696 0.8734 0.8791
+> (b) LoRA Fine-Tuning
+> Qwen3-1.7B
+> Qwen3-4B
+> Qwen3-8B
+> Qwen3-14B
+> Qwen3-30B-A3B
+> 0.00
+> 0.10
+> 0.20
+> 0.30
+> 0.40
+> Reconstruction Score (RF)
+> 0.137
+> 0.133
+> 0.152
+> 0.165
+> 0.141
+> 0.271
+> 0.245
+> 0.238
+> 0.239
+> 0.263
+> 0.262
+> 0.220
+> 0.225
+> 0.206
+> 0.272
+> 0.094
+> 0.092
+> 0.078
+> 0.113
+> 0.156
+> SIP
+> TAG
+> LAMP
+> BiSR
+> Qwen3-1.7B
+> (LoRA)
+> Qwen3-4B
+> (LoRA)
+> Qwen3-8B
+> (LoRA)
+> Qwen3-14B
+> (LoRA)
+> Qwen3-30B-A3B
+> (LoRA)
+> 0.143
+> 0.155
+> 0.157
+> 0.152
+> 0.129
+> 0.261
+> 0.230
+> 0.176
+> 0.179
+> 0.247
+> 0.254
+> 0.213
+> 0.176
+> 0.179
+> 0.246
+> 0.088
+> 0.116
+> 0.076
+> 0.103
+> 0.127
+> SIP
+> TAG
+> LAMP
+> BiSR
+
+Figure 2. Performance of M IX GUARD across model scales, architectures, and fine-tuning strategies. 
+
+further highlights the stability of M IX GUARD across diverse tasks. Existing defenses often incur unstable downstream utility and, in some settings, lead to model collapse. For example, on CoLA with Qwen3-1.7B, SnD and NaiveMix achieve accuracies of only 0.309 and 0.498, respectively, whereas M IX GUARD reaches 0.846. Similarly, on WebNLG with Llama 3.2-1B, DP-SGD collapses to a BLEU score of 0, while M IX GUARD maintains this value at 41.66. Across datasets, LLM families, and DRA variants, M IX GUARD con-sistently preserves stable training outcome while achieving a strong privacy–utility trade-off. We provide a more detailed reproducibility analysis of M IX GUARD in Appendix B.2. 
+
+Generalization Across Model Scales, Architectures, and Fine-Tuning Strategies. 
+
+We further evaluate M IX GUARD across diverse LLM and fine-tuning configurations. Figure 2 reports the results on CoLA using Qwen3 models with 1.7B, 4B, 8B, and 14B parameters, and the Qwen3-30B-A3B MoE model. As shown in Figure 2(a), full fine-tuning with M IX -GUARD on larger models generally improves the downstream utility, which is consistent with the trend in the non-split setting. However, the reconstruction results exhibit different patterns across DRAs. Specifically, SIP maintains low recon-struction scores, but shows a modest upward trend as the model size increases. This is likely because larger models produce richer hidden representations, which may preserve slightly more recoverable semantic information. In contrast, gradient-based DRAs become less effective as the model size increases. For example, the RF score decreases from 0.271 to 0.239 for TAG and from 0.262 to 0.206 for LAMP. This may be because larger models distribute sample-specific information across a higher-dimensional parameter space, which makes the optimization-based gradient inversion more challenging. BiSR remains broadly stable across model sizes, with RF score ranging only from 0.078 to 0.113. Figure 2(b) demonstrates the results under parameter-efficient fine-tuning (PEFT) with LoRA. Compared with full fine-tuning, LoRA fine-tuning generally yields lower downstream utility for M IX GUARD , particularly on smaller TABLE 3. P ERFORMANCE OF UTILITY AND AGAINST DATA RECONSTRUCTION ATTACK ON GENERATION TASKS .
+
+Dataset Baseline Qwen3-1.7B Llama 3.2-1B Utility SIP TAG LAMP BiSR Utility SIP TAG LAMP BiSR EMA ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ EMA ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓
+
+GSM8K Non-split 0.469 0.760 0.782 0.743 0.840 0.744 0.839 0.424 0.347 0.254 0.698 0.700 0.746 0.821 0.757 0.825 0.344 0.294 DP-SGD 0.461 0.738 0.776 0.742 0.839 0.743 0.837 0.418 0.344 0.187 0.585 0.567 0.485 0.593 0.450 0.583 0.212 0.210 DP-forward 0.467 0.570 0.565 0.740 0.830 0.736 0.835 0.398 0.359 0.232 0.585 0.566 0.748 0.822 0.756 0.826 0.357 0.290 Naive Mix 0.461 0.461 0.426 0.481 0.409 0.551 0.483 0.299 0.244 0.225 0.387 0.358 0.578 0.564 0.521 0.450 0.277 0.211 Ours 0.455 0.042 0.024 0.303 0.349 0.272 0.305 0.106 0.066 0.236 0.037 0.026 0.303 0.346 0.273 0.305 0.174 0.140 
+
+BLEU ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ BLEU ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓
+
+WebNLG Non-split 43.22 0.663 0.630 0.700 0.644 0.703 0.644 0.304 0.249 42.84 0.568 0.542 0.715 0.621 0.716 0.620 0.313 0.294 DP-SGD 41.17 0.658 0.618 0.378 0.358 0.378 0.359 0.337 0.287 0.000 0.574 0.527 0.414 0.354 0.410 0.355 0.105 0.080 
+
+DP-forward 43.11 0.439 0.424 0.687 0.612 0.691 0.627 0.310 0.261 41.49 0.464 0.424 0.682 0.599 0.696 0.599 0.315 0.268 Naive Mix 42.25 0.368 0.324 0.478 0.308 0.432 0.293 0.223 0.155 40.76 0.300 0.254 0.483 0.379 0.402 0.301 0.231 0.188 Ours 39.65 0.082 0.030 0.292 0.278 0.292 0.261 0.112 0.067 41.66 0.052 0.019 0.186 0.169 0.148 0.132 0.116 0.091 RF ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓
+
+SAMSum Non-split 0.534 0.745 0.678 0.549 0.516 0.550 0.517 0.272 0.217 0.524 0.696 0.630 0.518 0.488 0.519 0.486 0.255 0.214 DP-SGD 0.528 0.751 0.680 0.296 0.206 0.339 0.201 0.315 0.301 0.000 0.706 0.647 0.209 0.197 0.207 0.194 0.111 0.112 
+
+DP-forward 0.536 0.758 0.678 0.523 0.519 0.528 0.525 0.313 0.240 0.524 0.565 0.494 0.520 0.486 0.518 0.486 0.294 0.230 Naive Mix 0.539 0.392 0.335 0.421 0.407 0.500 0.477 0.212 0.166 0.519 0.089 0.049 0.384 0.266 0.401 0.280 0.315 0.222 Ours 0.532 0.156 0.098 0.135 0.141 0.142 0.135 0.099 0.064 0.517 0.078 0.044 0.153 0.168 0.149 0.157 0.151 0.133 
+
+> CodeBLEU
+
+↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ CodeBLEU ↑ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓ RF ↓ ME ↓
+
+CodeAlpaca Non-split 0.536 0.630 0.615 0.779 0.809 0.777 0.811 0.379 0.308 0.514 0.545 0.536 0.783 0.811 0.783 0.810 0.384 0.344 DP-SGD 0.536 0.633 0.610 0.761 0.806 0.770 0.808 0.356 0.307 0.401 0.539 0.544 0.481 0.546 0.479 0.546 0.341 0.315 DP-forward 0.530 0.427 0.409 0.801 0.807 0.790 0.797 0.374 0.294 0.514 0.487 0.486 0.777 0.799 0.779 0.805 0.389 0.335 Naive Mix 0.534 0.372 0.338 0.503 0.464 0.393 0.348 0.251 0.192 0.518 0.296 0.252 0.524 0.463 0.524 0.483 0.247 0.183 Ours 0.543 0.059 0.031 0.309 0.296 0.271 0.245 0.143 0.077 0.502 0.073 0.030 0.308 0.281 0.303 0.308 0.245 0.184 
+
+models. However, the performance gap generally narrows as the model size increases. This finding is consistent with the performance gap commonly observed between LoRA and full fine-tuning in standard non-split settings. Importantly, the privacy trends under LoRA closely follow those observed under full fine-tuning. Specifically, SIP and BiSR remain relatively stable, whereas TAG and LAMP become less effective as the model size increases. Finally, the shaded results in Figure 2(a) and 2(b) demonstrate that the MoE model Qwen3-30B-A3B performs comparably to the evaluated dense models. It achieves the highest utility under both full fine-tuning and LoRA, while its reconstruction scores fall between those of Qwen3-1.7B and Qwen3-4B. These findings suggest that M IX GUARD can be effectively applied to MoE-based LLMs. Overall, M IX -GUARD generalizes well across model scales, architecture, and fine-tuning strategies. 
+
+5.3. Ablation Study 
+
+We conduct an ablation study to examine the contribution of each module in M IX GUARD , with the results reported in Table 4, Table 8, Figure 3, and Figure 4. 
+
+Impact of Secret Tokens. We first examine the contribution of secret tokens (STs) in Table 4 (Line 1). As explained in Appendix A.2, we do not apply STs to CoLA and report the corresponding setting as N/A. On GSM8K, removing STs slightly increases utility from 0.455 to 0.464, but substantially weakens privacy protection. In particular, the SIP reconstruction score increases from 0.042 to 0.267, while the TAG, LAMP, and BiSR scores increase from 0.303, 0.272, and 0.106 to 0.388, 0.381, and 0.211, respectively. This degradation under SIP indicates that STs effectively disrupt the token-level correspondence between the original input and the transmitted representations, making forward 
+
+TABLE 4. A BLATION STUDY ON COLA AND GSM8K. N/A: ST S ARE NOT APPLIED TO COLA. 
+
+No. Setting CoLA GSM8K Utility SIP TAG LAMP BiSR Utility SIP TAG LAMP BiSR 1 MIX GUARD 0.846 0.135 0.240 0.251 0.092 0.455 0.042 0.303 0.272 0.106 
+
+Secret Tokens (STs) 
+
+2 w/o STs N/A 0.464 0.267 0.388 0.381 0.211 
+
+Calibration Model (Cal. Model) 
+
+3 w/o Cal. Model 0.833 0.594 0.488 0.475 0.181 0.350 0.098 0.565 0.566 0.358 4 w/o Pre-train 0.829 0.137 0.269 0.272 0.097 0.291 0.021 0.380 0.367 0.121 
+
+Adaptive Gradient Perturbation (GP) 
+
+5 w/o GP 0.853 0.140 0.268 0.257 0.109 0.309 0.043 0.390 0.401 0.175 6 w/ non-adaptive 0.852 0.141 0.280 0.278 0.103 0.306 0.042 0.370 0.376 0.157 7 w/o STs and GP N/A 0.479 0.266 0.475 0.468 0.255 
+
+inversion substantially more difficult. Their effect on gradient-based and bidirectional attacks further suggests that token-level obfuscation complements representation-level mixing by reducing the sample-specific information retained throughout both forward and backward propagation. 
+
+Impact of Calibration Model. We next evaluate the calibra-tion model, which refines the approximated representations. Removing this module causes a minor utility decrease on CoLA, but substantially increases the reconstruction scores of SIP, TAG, LAMP, and BiSR from 0.135, 0.240, 0.251, and 0.092 to 0.594, 0.488, 0.475, and 0.181, respectively (Line 3). The effect is more pronounced on GSM8K: utility decreases from 0.455 to 0.350, while the BiSR score increases from 0.106 to 0.358. These results show that the Calibration Model not only mitigates the approximation error, but also allows the approximated representations to be less aligned with the target representations, thereby indirectly reducing privacy leakage. We additionally remove the Stage-I pre-training procedure while retaining it during Stage-II fine-tuning (Line 4). This variant remains relatively stable on CoLA, but reduces the GSM8K utility from 0.455 to 3 4 5 6 7 8 9 10               
+
+> Number of Mixes ( k)
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> Attack Success (RF)
+> (a) Privacy Leakage
+> SIP
+> TAG
+> LAMP
+> BiSR
+> CoLA
+> GSM8K
+> 345678910
+> Number of Mixes ( k)
+> 0.80
+> 0.85
+> 0.90
+> CoLA (ACC)
+> (b) Model Utility
+> CoLA (Left)
+> GSM8K (Right)
+> 345678910
+> Number of Mixes ( k)
+> 2000
+> 3000
+> 4000
+> 5000
+> Time (Seconds)
+> (c) Training Overhead
+> Time: CoLA (Left)
+> Time: GSM8K (Left)
+> Comm: CoLA (Right)
+> Comm: GSM8K (Right)
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> GSM8K (EMA)
+> 600
+> 800
+> 1000
+> 1200
+> 1400
+> Communication (GB)
+
+Figure 3. Impact of Source Mixing Size k on CoLA and GSM8K. 
+
+0.291. The larger degradation on GSM8K indicates that autoregressive generation is more sensitive to inaccurate intermediate representations and that an adequately initialized calibration model is important for private fine-tuning. 
+
+Impact of Adaptive Gradient Perturbation. We evaluate adaptive gradient perturbation (GP), which introduces noise based on the calibration residual. On CoLA, removing GP slightly improves utility from 0.846 to 0.853, but consistently weakens privacy protection, particularly against gradient-based attacks. On GSM8K, a similar outcome is observed, where the reconstruction scores of TAG, LAMP, and BiSR increase from 0.303, 0.272, and 0.106 to 0.390, 0.401, and 0.175, respectively (Line 5). Replacing adaptive GP with non-adaptive perturbation also results in lower utility and weaker privacy preservation, although the degradation is relatively modest (Line 6). These results indicate the effectiveness of the residual-aware perturbation strategy. Interestingly, removing GP alone does not improve utility on GSM8K; instead, it reduces performance. To further investigate this observation, we remove both GP and STs. Under this setting, the utility recovers, but the effectiveness of DRAs increases substantially (Line 7). This result indicates that STs and GP form a complementary mechanism. Specifically, STs intro-duce additional gradient variation, which improves privacy protection but may also increase calibration residual and destabilize optimization. Residual-aware GP adjusts residual-sensitive gradient updates and alleviates this instability. 
+
+Impact of Source Mixing Size k. We investigate the effect of the source mixing size k, which determines the number of representations mixed into each obfuscated message. We vary k from 3 to 10 while fixing the message size to m = 3 ,and report the results in Figure 3 and Table 8. As shown in Figure 3(a), increasing k generally improves privacy protection. On CoLA, the RF scores of TAG and LAMP decrease from 0.255 and 0.252 at ( k = 3 ) to 0.210 and 0.209 at ( k = 10 ), respectively, while the BiSR RF score drops from 0.103 to 0.055. M IX GUARD performs similarly on GSM8K. The underlying reason is that mixing a larger number of representations further dilutes the target-Utility    
+
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> ACCURACY
+> =0.016
+> =0.053
+> SIP TAG LAMP BiSR
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> ROUGE-L F1 (RF)
+> =0.001
+> =0.001
+> =0.045
+> =0.083
+> =0.033
+> =0.081
+> =0.024 =0.010
+> CoLA
+> GSM8K
+
+Figure 4. Impact of public and support dataset selection. ∆ denotes the performance range, i.e., max − min .
+
+specific signals among the support representations, which makes reconstruction more difficult. Figure 3(b) reveals a task-dependent utility trade-off. On CoLA, the ACC remains stable within a narrow range from 0.836 to 0.852, indicating classification tasks are relatively robust to stronger mixing. In contrast, the EMA on GSM8K decreases from 0.443 to 0.407 as k increases from 3 to 10. This result suggests that multi-step generation is more sensitive to representation approximation errors. As shown in Figure 3(c), increasing 
+
+k does not introduce additional communication overhead, which remains constant at 1001 GB on CoLA and 875 GB on GSM8K over the entire training process. However, a larger k increases computation because the client is required to encode and mix more support samples. As k increases from 3 to 10, the training time rises by 41.1% on CoLA (2889s vs. 4076s) and 46.3% on GSM8K (2479s vs. 3628s). As a result, a moderate k offers a balance among privacy protection, model utility, and computation efficiency. Larger values can be adopted when stronger obfuscation is required. 
+
+Impact of Dataset Selection. We evaluate M IX GUARD under different combinations of public and support datasets to exam-ine their sensitivity to auxiliary-data selection. We use Yelp, a classification dataset [48]; WikiText, a general-purpose text corpus [47]; and Multi-Source, a corpus comprising samples from multiple tasks [12]. Figure 4 and Table 8 summarize the utility and reconstruction results across all combinations. In general, M IX GUARD exhibits limited sensitivity to the choice of auxiliary data. On CoLA, the clean accuracy varies by only 0.0163 across all settings. Similarly, the SIP reconstruction RF scores remain remarkably consistent on both CoLA and GSM8K. Auxiliary-data selection has a slightly larger effect on gradient-based attacks TAG and LAMP, whose RF scores vary by 0.083 and 0.081 on GSM8K, respectively. Nevertheless, the BiSR scores remain consistently low across all configurations. Accordingly, M IX GUARD derives its utility preservation and resistance to DRAs primarily from its obfuscation mechanisms rather than from any particular auxiliary corpus. Moreover, M IX GUARD does not require the public or support datasets to closely match the private downstream data to maintain strong utility. For instance, on the GSM8K generation task, pre-training the calibration model on Yelp and using Multi-Source as the support dataset yields the highest utility among the evaluated configurations. As a result, MIX GUARD is effective across diverse choices of auxiliary TABLE 5. R ESULTS UNDER DIFFERENT ADAPTIVE ATTACK VARIANTS AND MESSAGE -PROCESSING STRATEGIES . ST S DENOTE SECRET TOKENS .                               
+
+> Variant Strategy CoLA GSM8K RF ME RF ME Online Joint 0.0938 0.0782 0.1467 0.0849 Cancel 0.0833 0.0515 0.1060 0.0565 Offline (w/ STs) Joint 0.0229 0.0142 0.0320 0.0172 Cancel 0.0277 0.0315 0.0247 0.0176 Offline (w/o STs) Joint 0.1725 0.1706 0.2711 0.2475 Cancel 0.2608 0.2940 0.2923 0.2850
+
+data, which provides flexibility for practical deployment. 
+
+## 6. Discussion 
+
+6.1. Adaptive Attacks 
+
+We further evaluate M IX GUARD against the adaptive attack, where the attacker is assumed to know the high-level defense mechanism and deliberately constructs an inverse model to reconstruct the protected target representation. Specifically, the server-side attacker collects obfuscated messages Hm and the corresponding target representations 
+
+h∗ transmitted from the client to construct training samples for the inverse model ginv . The inverse model is trained by minimizing: 
+
+Linv = ∥ginv (Hm) − h∗∥22 . (30) We consider Online and Offline adaptive attack variants based on how the training samples for ginv are obtained. For each variant, we further examine two message-processing strategies: Joint and Cancel. Under the Joint strategy, all transmitted messages are concatenated and jointly processed as the input to ginv . This strategy assesses whether the inverse model can learn correlations across the observable messages. Under the Cancel strategy, the attacker exploits the column-wise sum constraint introduced in Section 4.2 and aggregates the messages before inversion. This represents a stronger attack that exploits the client-side cancellation operation. 
+
+Online Adaptive Attack. In this variant, the attacker trains the inverse model online during Stage I alongside calibration-model pre-training, and subsequently uses the trained inverse model to reconstruct private data during privacy-preserving fine-tuning in Stage II. This variant gives the attacker access to the true mixed messages and the corresponding target representations, which serve as the inputs and supervision signals for inverse-model training, respectively. As shown in Table 5, the attack remains ineffective on both CoLA and GSM8K, with all RF and ME scores below 0.2. The Joint strategy generally outperforms the Cancel strategy, while its strongest performance is still modest, reaching only 0.1467 RF and 0.0849 ME on GSM8K. One possible reason is that inverse-model training is restricted to the dataset used for calibration-model pre-training, which may be insufficient for learning an accurate reconstruction function.              
+
+> TABLE 6. C OMPARISON OF COMPUTATION AND COMMUNICATION COST PER SAMPLE ON COLA. ∗DENOTES ESTIMATED VALUES .
+> Method Computation (s) Communication (MB)
+> No Defense 0.037 8DP-Forward 0.038 8EFA 4454.9 ∗1920 ∗
+> MIX GUARD 0.113 40
+
+To explore whether these constraints weaken the attack, we further examine the Offline variant. 
+
+Offline Adaptive Attack. To evaluate a stronger adaptive adversary, we allow the attacker to train the inverse model offline using another auxiliary corpus, WikiText, and a larger number (2 ×) of training epochs. Since the attacker does not have access to the random matrices used for representation-level obfuscation, these matrices are independently simulated during inverse-model training. We additionally evaluate two token-level obfuscation settings. In the With Tokens 
+
+setting, the attacker randomly samples secret tokens and inserts them into the auxiliary inputs during training. In the 
+
+Without Tokens setting, no secret tokens are inserted. Table 5 summarizes the results under both settings. When randomly sampled secret tokens are used, all reconstruction scores remain below 0.05. This is because the attacker-generated secret tokens differ substantially from those used during private fine-tuning, which introduces a mismatch and reduces the effectiveness of the inverse model. Removing the secret tokens increases the reconstruction scores across datasets, message-processing strategies, and inference settings. Never-theless, all RF and ME scores remain below 0.30. This limited DRA performance is because the independently simulated obfuscation and approximation fail to reproduce the sample-specific transformations applied during private fine-tuning. As a result, M IX GUARD remains effective even when additional data and computational resources are allocated. 
+
+6.2. Computational and Communication Overhead 
+
+We analyze the computational and communication over-head of different SL methods on CoLA and Qwen3-1.7B, as reported in Table 6. The No Defense setting serves as the standard SL baseline, which requires 0.037 seconds of computation and 8 MB of client–server communication per sample. DP-Forward retains the baseline communication cost of 8 MB, but introduces additional perturbation oper-ations, increasing the computation time to 0.038 seconds per sample. The FHE-based method, Encryption-friendly Architecture (EFA) 2, incurs substantially higher costs due to its expensive encrypted operations and ciphertext expansion, with an estimated computation time of 4454.9 seconds and communication cost of 1920 MB per sample. M IX GUARD 
+
+requires 0.113 seconds of computation and 40 MB of communication per sample. This increase relative to the baseline arises from local mixing, blinding, decoding, and calibration, as well as the transmission of multiple obfuscated  
+
+> 2. We use EFA as the FHE-based baseline because its original paper reports detailed empirical measurements of encrypted training overhead.
+
+messages. Nevertheless, M IX GUARD remains substantially more efficient than EFA. Its computation and communication costs overhead is within the same order of magnitude as the standard SL baseline while providing substantially stronger privacy protection. 
+
+## 7. Conclusion 
+
+In this paper, we presented M IX GUARD , a mixup-based privacy-preserving split learning framework for LLMs that protects private training data while retaining the down-stream utility. M IX GUARD mitigates the risk of exposing private samples to the server through token-level obfusca-tion, representation-level obfuscation, and adaptive gradient perturbation mechanisms. Extensive experiments on classi-fication and generation tasks demonstrate that M IX GUARD 
+
+consistently achieves a strong privacy–utility trade-off against forward-pass, gradient-based, and bidirectional data recon-struction attacks, while remaining robust under adaptive attacks. Additional evaluations show that M IX GUARD main-tains stable performance across different auxiliary datasets, model scales, architectures, and fine-tuning strategies. These results establish mixup-based obfuscation as a practical and effective direction for privacy-preserving split learning with Large Language Models. 
+
+## Ethics Considerations 
+
+This work studies privacy-preserving split learning for large language models. The primary goal of the proposed method is to reduce the risk that a server can reconstruct a client’s private training data from intermediate representa-tions or gradients. 
+
+Human subjects and datasets. This work does not in-volve recruiting human participants, conducting user studies, or collecting new data from individuals. Our experiments are conducted on publicly available benchmark datasets and public or synthetic auxiliary data. We use these datasets only for aggregate model-utility and reconstruction-risk evaluation, and we do not attempt to identify individuals or link examples to real persons. No real client data from sensitive deployment domains such as healthcare, finance, or education is used in our experiments. 
+
+Controlled offline evaluation. All experiments in this work are conducted in controlled offline environments. We simulate the split-learning setting using locally partitioned models and publicly available benchmark datasets. We also do not scan, probe, or attack any external system. The reconstruction attacks considered in this paper are used only as offline evaluation tools to measure privacy leakage under the threat model studied in this work. The work does not identify a specific vulnerability in a deployed system, and therefore does not require coordinated vulnerability disclosure. 
+
+Dual-use considerations. The paper evaluates several data reconstruction attacks in order to measure the privacy leakage of split-learning protocols. Such attacks could be misused by a malicious or honest-but-curious server to infer private inputs or labels from information exchanged during training. We mitigate this risk by using the attacks only as controlled evaluation tools, by reporting aggregate reconstruction metrics rather than sensitive examples. If artifacts are released, they should be accompanied by clear usage restrictions and documentation stating that the attack implementations are intended only for authorized research and auditing of privacy-preserving learning systems. 
+
+Limitations and responsible deployment. MIX GUARD 
+
+is designed to reduce reconstruction risk while preserving model utility, but it should not be interpreted as eliminating all privacy risks. Deployments involving sensitive personal data should combine M IX GUARD with secure communica-tion channels, access control, audit logging, data minimiza-tion, and task-specific legal and ethical review. Practitioners should also evaluate the defense under deployment-specific threat models before using it in high-stakes settings. 
+
+## LLM usage considerations 
+
+This paper studies large language models as the target model family for privacy-preserving split learning. LLMs were used for editorial purposes in this manuscript, and all outputs were inspected by the authors to ensure accuracy and originality. 
+
+## References                      
+
+> [1] W. X. Zhao, K. Zhou, J. Li, T. Tang, X. Wang, Y. Hou, Y. Min, B. Zhang, J. Zhang, Z. Dong et al. , “A survey of large language models,” arXiv preprint arXiv:2303.18223 , 2023. [2] R. Bommasani, D. A. Hudson, E. Adeli, R. Altman, S. Arora, S. von Arx, M. S. Bernstein, J. Bohg, A. Bosselut, E. Brunskill et al. , “On the opportunities and risks of foundation models,” arXiv preprint arXiv:2108.07258 , 2021. [3] J. Hoffmann, S. Borgeaud, A. Mensch, E. Buchatskaya, T. Cai, E. Rutherford, D. Casas, L. A. Hendricks, J. Welbl, A. Clark et al. ,“Training compute-optimal large language models,” arXiv preprint arXiv:2203.15556 , vol. 10, 2022. [4] Z. Lin, G. Qu, X. Chen, and K. Huang, “Split learning in 6g edge networks,” IEEE Wireless Communications , vol. 31, no. 4, pp. 170– 176, 2024. [5] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas, “Communication-efficient learning of deep networks from decentralized data,” in Artificial intelligence and statistics .Pmlr, 2017, pp. 1273– 1282. [6] C. Thapa, P. C. M. Arachchige, S. Camtepe, and L. Sun, “Splitfed: When federated learning meets split learning,” in Proceedings of the AAAI conference on artificial intelligence , vol. 36, no. 8, 2022, pp. 8485–8493. [7] S. Lyu, Z. Lin, G. Qu, X. Chen, X. Huang, and P. Li, “Optimal resource allocation for u-shaped parallel split learning,” in 2023 IEEE Globecom Workshops (GC Wkshps) .IEEE, 2023, pp. 197–202. [8] N. D. Pham and N. Chilamkurti, “Data leakage threats and protection in split learning: a survey,” in Proceedings of the 2023 International Conference on Intelligent Computing and Its Emerging Applications ,2023, pp. 141–147.
+
+[9] M. Du, X. Yue, S. S. Chow, T. Wang, C. Huang, and H. Sun, “Dp-forward: Fine-tuning and inference on language models with differential privacy in forward pass,” in Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security , 2023, pp. 2665–2679. [10] M. Abadi, A. Chu, I. Goodfellow, H. B. McMahan, I. Mironov, K. Talwar, and L. Zhang, “Deep learning with differential privacy,” in Proceedings of the 2016 ACM SIGSAC conference on computer and communications security , 2016, pp. 308–318. [11] X. Shen, Y. Liu, H. Liu, J. Hong, B. Duan, Z. Huang, Y. Mao, Y. Wu, and D. Wu, “A split-and-privatize framework for large language model fine-tuning,” arXiv preprint arXiv:2312.15603 , 2023. [12] P. Mai, R. Yan, Z. Huang, Y. Yang, and Y. Pang, “Split-and-denoise: Protect large language model inference with local differential privacy,” 
+
+arXiv preprint arXiv:2310.09130 , 2023. [13] X. Yang, J. Sun, Y. Yao, J. Xie, and C. Wang, “Differentially private label protection in split learning,” arXiv preprint arXiv:2203.02073 ,2022. [14] O. Zaland, S. Mistry, and M. Bhuyan, “Guarding the middle: Protecting intermediate representations in federated split learning,” in 2025 IEEE International Conference on Big Data (BigData) . IEEE, 2025, pp. 4425–4434. [15] G.-L. Pereteanu, A. Alansary, and J. Passerat-Palmbach, “Split he: Fast secure inference combining split learning and homomorphic encryption,” arXiv preprint arXiv:2202.13351 , 2022. [16] I. Zimerman, M. Baruch, N. Drucker, G. Ezov, O. Soceanu, and L. Wolf, “Converting transformers to polynomial form for secure inference over homomorphic encryption,” in Forty-first International Conference on Machine Learning , 2024. [17] K. Nguyen, T. Khan, and A. Michalas, “Split without a leak: Reducing privacy leakage in split learning,” in International Conference on Security and Privacy in Communication Systems . Springer, 2023, pp. 321–344. [18] T. Khan, K. Nguyen, and A. Michalas, “Split ways: Privacy-preserving training of encrypted data using split learning,” arXiv preprint arXiv:2301.08778 , 2023. [19] H. I. Kanpak, A. Shabbir, E. Genç, A. Küpçü, and S. Sav, “Cure: Privacy-preserving split learning done right,” arXiv preprint arXiv:2407.08977 , 2024. [20] P. Vepakomma, A. Singh, O. Gupta, and R. Raskar, “Nopeek: In-formation leakage reduction to share activations in distributed deep learning,” in 2020 International Conference on Data Mining Workshops (ICDMW) . IEEE, 2020, pp. 933–942. [21] Z. Liu, Y. Wang, R. Wang, and S. Wu, “Dualguard: A parameter space transformation approach for bidirectional defense in split-based llm fine-tuning,” in Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) ,2025, pp. 17 065–17 080. [22] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin, “Attention is all you need,” in Advances in Neural Information Processing Systems , 2017, pp. 5998–6008. [23] O. Gupta and R. Raskar, “Distributed learning of deep neural network over multiple agents,” Journal of Network and Computer Applications ,vol. 116, pp. 1–8, 2018. [24] S. Kariyappa and M. K. Qureshi, “Exploit: Extracting private labels in split learning,” in 2023 IEEE conference on secure and trustworthy machine learning (SaTML) . IEEE, 2023, pp. 165–175. [25] G. Chen, Z. Qin, M. Yang, Y. Zhou, T. Fan, T. Du, and Z. Xu, “Unveiling the vulnerability of private fine-tuning in split-based frameworks for large language models: A bidirectionally enhanced attack,” in Proceedings of the 2024 on ACM SIGSAC Conference on Computer and Communications Security , 2024, pp. 2904–2918. [26] J. Deng, Y. Wang, J. Li, C. Wang, C. Shang, H. Liu, S. Rajasekaran, and C. Ding, “Tag: Gradient attack on transformer-based language models,” in Findings of the association for computational linguistics: EMNLP 2021 , 2021, pp. 3600–3610. [27] M. Balunovic, D. Dimitrov, N. Jovanovi´ c, and M. Vechev, “Lamp: Extracting text from gradients with language model priors,” Advances in Neural Information Processing Systems , vol. 35, pp. 7641–7654, 2022. [28] N. D. Pham, K. T. Phan, and N. Chilamkurti, “Enhancing accuracy-privacy trade-off in differentially private split learning,” IEEE Trans-actions on Emerging Topics in Computational Intelligence , vol. 9, no. 1, pp. 988–1000, 2024. [29] D. Rho, T. Kim, M. Park, J. W. Kim, H. Chae, E. K. Ryu, and J. H. Cheon, “Encryption-friendly llm architecture,” arXiv preprint arXiv:2410.02486 , 2024. [30] J. Zhang, X. Yang, L. He, K. Chen, W.-j. Lu, Y. Wang, X. Hou, J. Liu, K. Ren, and X. Yang, “Secure transformer inference made non-interactive,” Cryptology ePrint Archive , 2024. [31] J. Moon, D. Yoo, X. Jiang, and M. Kim, “Thor: Secure transformer inference with homomorphic encryption,” in Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security ,2025, pp. 3765–3779. [32] L. Zhang, X. Wang, J. J. Sim, Z. Huang, J. Zhong, H. Wang, P. Duan, and K.-Y. Lam, “Moai: Module-optimizing architecture for non-interactive secure transformer inference,” in The Fourteenth International Conference on Learning Representations , 2025. [33] H. Zhang, M. Cisse, Y. N. Dauphin, and D. Lopez-Paz, “mixup: Beyond empirical risk minimization,” arXiv preprint arXiv:1710.09412 ,2017. [34] X. Feng, Z. Ma, Z. Wang, A. Abuadbba, and G. Bai, “Mitigating gradient inversion risks in language models via token obfuscation,” in Proceedings of the ACM Asia Conference on Computer and Communications Security , 2026, pp. 1832–1848. [35] L. Sun, C. Xia, W. Yin, T. Liang, P. S. Yu, and L. He, “Mixup-transformer: Dynamic data augmentation for nlp tasks,” in Proceedings of the 28th International Conference on Computational Linguistics ,2020, pp. 3436–3440. [36] J. Chen, Z. Yang, and D. Yang, “Mixtext: Linguistically-informed interpolation of hidden space for semi-supervised text classification,” in Proceedings of the 58th annual meeting of the association for computational linguistics , 2020, pp. 2147–2157. [37] O. Chapelle, J. Weston, L. Bottou, and V. Vapnik, “Vicinal risk minimization,” Advances in neural information processing systems ,vol. 13, 2000. [38] D. Hendrycks and K. Gimpel, “Gaussian error linear units (gelus),” 
+
+arXiv preprint arXiv:1606.08415 , 2016. [39] G. E. Hinton, N. Srivastava, A. Krizhevsky, I. Sutskever, and R. R. Salakhutdinov, “Improving neural networks by preventing co-adaptation of feature detectors,” arXiv preprint arXiv:1207.0580 , 2012. [40] A. Wang, A. Singh, J. Michael, F. Hill, O. Levy, and S. R. Bowman, “Glue: A multi-task benchmark and analysis platform for natural language understanding,” arXiv preprint arXiv:1804.07461 , 2018. [41] A. Warstadt, A. Singh, and S. R. Bowman, “Neural network accept-ability judgments,” Transactions of the Association for Computational Linguistics , vol. 7, pp. 625–641, 2019. [42] R. Socher, A. Perelygin, J. Wu, J. Chuang, C. D. Manning, A. Y. Ng, and C. Potts, “Recursive deep models for semantic compositionality over a sentiment treebank,” in Conference on Empirical Methods in Natural Language Processing , 2013, pp. 1631–1642. [43] K. Cobbe, V. Kosaraju, M. Bavarian, M. Chen, H. Jun, L. Kaiser, M. Plappert, J. Tworek, J. Hilton, R. Nakano et al. , “Training verifiers to solve math word problems, 2021,” URL https://arxiv. org/abs/2110.14168 , vol. 9, 2021. [44] S. Chaudhary, “Code alpaca: An instruction-following llama model for code generation,” 2023. [45] B. Gliwa, I. Mochol, M. Biesek, and A. Wawer, “Samsum corpus: A human-annotated dialogue dataset for abstractive summarization,” in                      
+
+> Proceedings of the 2nd Workshop on New Frontiers in Summarization ,2019, pp. 70–79. [46] C. Gardent, A. Shimorina, S. Narayan, and L. Perez-Beltrachini, “The webnlg challenge: Generating text from rdf data,” in Proceedings of the 10th international conference on natural language generation ,2017, pp. 124–133. [47] S. Merity, C. Xiong, J. Bradbury, and R. Socher, “Pointer sentinel mixture models,” arXiv preprint arXiv:1609.07843 , 2016. [48] X. Zhang, J. Zhao, and Y. LeCun, “Character-level convolutional networks for text classification,” Advances in neural information processing systems , vol. 28, 2015. [49] A. Yang, A. Li, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Gao, C. Huang, C. Lv et al. , “Qwen3 technical report,” arXiv preprint arXiv:2505.09388 , 2025. [50] A. Grattafiori, A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur, A. Schelten, A. Vaughan et al. , “The llama 3 herd of models,” arXiv preprint arXiv:2407.21783 , 2024. [51] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, W. Chen et al. , “Lora: Low-rank adaptation of large language models.”
+> Iclr , vol. 1, no. 2, p. 3, 2022. [52] C.-Y. Lin, “Rouge: A package for automatic evaluation of summaries,” in Text summarization branches out , 2004, pp. 74–81. [53] K. Papineni, S. Roukos, T. Ward, and W.-J. Zhu, “Bleu: a method for automatic evaluation of machine translation,” in Proceedings of the 40th annual meeting of the Association for Computational Linguistics ,2002, pp. 311–318. [54] S. Ren, D. Guo, S. Lu, L. Zhou, S. Liu, D. Tang, N. Sundaresan, M. Zhou, A. Blanco, and S. Ma, “Codebleu: a method for automatic evaluation of code synthesis,” arXiv preprint arXiv:2009.10297 , 2020. [55] S. Banerjee and A. Lavie, “Meteor: An automatic metric for mt evaluation with improved correlation with human judgments,” in
+> Proceedings of the acl workshop on intrinsic and extrinsic evaluation measures for machine translation and/or summarization , 2005, pp. 65–72.
+
+## Appendix A. Experimental Details 
+
+A.1. Evaluation Metrics. 
+
+For completeness, we provide the formal definitions of all evaluation metrics used in this work. 
+
+Accuracy (ACC). For CoLA, SST-2, MRPC and RTE, we use classification accuracy. Given N test examples, predicted labels ˆyi, and gold labels yi, the accuracy is computed as Accuracy = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1(ˆ yi = yi), (31) where 1(·) is the indicator function that returns 1 if the condition is true and 0 otherwise. 
+
+Exact Match Accuracy (EMA). For GSM8K, we use answer accuracy under exact match on the final answer. Let 
+
+ai denote the gold final numeric answer for the i-th sample, and let ˆai denote the extracted final answer from the model output. The metric is ACC EM = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+1(ˆ ai = ai). (32) 
+
+BLEU. For WebNLG, we use BLEU as the evaluation metric. BLEU is defined as BLEU = BP · exp 
+
+> N
+
+X
+
+> n=1
+
+wn log pn
+
+!
+
+, (33) where pn is the modified n-gram precision for n-grams of order n, wn is the corresponding weight, and BP is the brevity penalty: BP =
+
+(1, c > r, 
+
+exp(1 − r/c ), c ≤ r, (34) with c being the generated length and r the reference length. 
+
+CodeBLEU. For CodeAlpaca-20K, we use CodeBLEU to evaluate code generation quality. CodeBLEU extends BLEU by additionally incorporating syntax- and semantics-related information. Its general form is CodeBLEU = α · BLEU + β · WNgram + γ · SyntaxMatch 
+
++ δ · DataflowMatch .
+
+(35) where α,β,γ,δ ≥0 and satisfy 
+
+α + β + γ + δ = 1 . (36) Here, BLEU denotes the standard n-gram overlap score, WN-gram is a weighted n-gram match emphasizing keywords and important code tokens, SyntaxMatch measures similarity in abstract syntax tree structures, and DataflowMatch evaluates semantic consistency through data-flow relations. 
+
+ROUGE-L F1 (RF). We report ROUGE-L F1 to evaluate summary quality on SAMSum, where a higher score indicates greater similarity to the reference summary. It measures the in-order token overlap between a generated text ˆY
+
+and a reference text Y based on their longest common subsequence (LCS). Let m and n denote the lengths of 
+
+Y and ˆY , respectively. The precision and recall are 
+
+PLCS = LCS( Y, ˆY )
+
+n , RLCS = LCS( Y, ˆY )
+
+m . (37) ROUGE-L F1 is computed as their harmonic mean: 
+
+RF = 2PLCS RLCS 
+
+PLCS + RLCS 
+
+. (38) We also use ROUGE-L F1 to evaluate DRAs by com-paring the reconstructed text with the original private text. A lower RF score indicates stronger privacy protection. 
+
+METEOR (ME). We further report METEOR to evaluate the lexical-semantic similarity between the original private text and the reconstructed text. METEOR aligns unigrams based on exact, stem, and synonym matches. Let M denote the number of aligned tokens, and let | ˆY | and |Y | denote the lengths of the reconstructed and reference texts, respectively. The unigram precision, recall and recall-weighted harmonic mean are computed as 
+
+PME = M
+
+| ˆY | , R ME = M
+
+|Y | , F mean = 10 PME RME 
+
+RME + 9 PME 
+
+. (39) To penalize fragmented alignments, let C denote the number of contiguous matched chunks. The final METEOR score is 
+
+Penalty = γ
+
+ CM
+
+θ
+
+, ME = (1 − Penalty) Fmean ,
+
+(40) where γ = 0 .5 and θ = 3 follow the standard configuration. A lower ME score indicates stronger resistance to data reconstruction attacks. 
+
+A.2. Implementation Details 
+
+During token-level obfuscation, secret tokens are sampled uniformly at random from the model vocabulary and inserted at random positions in each input sequence. We insert 20 secret tokens for classification tasks and 40 secret tokens for generation tasks. For representation-level obfuscation, we set both the size of input representations k and output messages m to 3. The entries of the secret mixing matrix 
+
+A and blinding matrix B are randomly generated subject to the constraints described in Section 4.2. The calibration model consists of one low-rank residual block with a bottleneck dimension of r = 64 and a dropout rate of 0.1. During calibration model training, we train the calibration model for two epochs using AdamW with a learning rate of 1 × 10 −4 and a batch size of 4. During privacy-preserving fine-tuning, we train each model for 3
+
+epochs using AdamW with a batch size of 4 and a learning rate of 2 × 10 −5. All inputs are padded or truncated to a maximum sequence length of 512 tokens before being passed through the model. We alternate global-model optimization and calibration-model refinement at a 1 : 1 ratio: each privacy-preserving fine-tuning update is followed by one calibration-model refinement step using public data. For the public and support dataset, we use the Multi-Source corpus constructed by Mai et al. [12], which contains approximately 
+
+100 , 000 samples drawn from 20 heterogeneous public text datasets. The gradient perturbation is based on the zero-mean Gaussian distribution, with its magnitude adaptively determined by the calibration residual. For classification tasks, we set the perturbation coefficient to γ = 1 for Llama3.2-1B and γ = 0 .1 for Qwen3-1.7B. For generation tasks, the corresponding values are γ = 80 and γ = 100 , respectively. During evaluation, we remove the inserted secret tokens before measuring the effectiveness of the DRAs to ensure a fair comparison with the baselines. Since CoLA evaluates grammatical acceptability, insert-ing random tokens may alter the grammaticality of the original sentence and compromise the validity of its label. Therefore, we do not introduce Secret tokens for this dataset. 
+
+TABLE 7. U TILITY PERFORMANCE WITH AND WITHOUT THE CALIBRATION MODEL . ∆ DENOTES THE PERFORMANCE CHANGE .Dataset Qwen3-1.7B Llama3-1B Base + Cal. ∆ ∆% Base + Cal. ∆ ∆%                                                              
+
+> CoLA 0.845 0.844 -0.001 -0.12% 0.839 0.837 -0.002 -0.23% MRPC 0.879 0.884 +0.005 +0.56% 0.723 0.725 +0.002 +0.27% GSM8K 0.459 0.446 -0.013 -2.83% 0.238 0.238 0.000 0.00% SAMSum 0.533 0.532 -0.001 -0.19% 0.520 0.521 +0.001 0.19% 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8
+> Score
+> Utility
+> SIP (RF)
+> SIP (ME)
+> TAG (RF)
+> TAG (ME)
+> LAMP (RF)
+> LAMP (ME)
+> BiSR (RF)
+> BiSR (ME)
+> Metrics
+> Individual runs
+> Mean ±1 Std.
+> n = 10 seeds
+> Metric Mean ± CV
+> Utility 0.8487 ± 0.0053 0.63%
+> SIP (RF) 0.1490 ± 0.0100 6.68%
+> SIP (ME) 0.1390 ± 0.0097 6.98%
+> TAG (RF) 0.2635 ± 0.0208 7.90%
+> TAG (ME) 0.1976 ± 0.0139 7.05%
+> LAMP (RF) 0.2743 ± 0.0153 5.59%
+> LAMP (ME) 0.2028 ± 0.0141 6.97%
+> BiSR (RF) 0.1113 ± 0.0075 6.75%
+> BiSR (ME) 0.1029 ± 0.0072 7.02%
+
+Figure 5. Performance of M IX GUARD across 10 independent random seeds. 
+
+## Appendix B. More Experiments and Results 
+
+B.1. Inference-Time Calibration. 
+
+During privacy-preserving fine-tuning, M IX GUARD em-ploys a lightweight calibration model to mitigate the approx-imation errors introduced by representation-level obfuscation. At inference time, however, the client can optionally omit this module to reduce local computation and latency. Table 7 compares the downstream utility of the trained model with and without inference-time calibration. Across all evaluated datasets and model families, removing the calibration model causes only minor performance variations: the absolute difference remains below 0.02, while the relative change is consistently below 3%. Therefore, the client can generally remove this module after training to reduce inference-time overhead with negligible utility degradation. 
+
+B.2. Reproducibility 
+
+MIX GUARD introduces several stochastic operations, including secret token and support-sample selection, random matrix sampling, and gradient perturbation. We therefore evaluate whether its performance is sensitive to random initialization by repeating the full training and evaluation pipeline with 10 independent random seeds. Figure 5 presents the individual results, together with the mean, standard deviation, and coefficient of variation (CV) for downstream utility and the reconstruction scores on CoLA. As shown in Figure 5, M IX GUARD exhibits stable performance across runs. The downstream utility remains consistent at 0.8487 ±0.0053 , with a CV of only 0.63%. The reconstruction scores also show limited variation, with CV values below 8% across all evaluated metrics, ranging from 5.59% to 7.90%. Notably, this consistency is observed across different DRAs. These results demonstrate that M IX GUARD is not sensitive to a particular random seed and reliably maintains its performance across independent runs. 
+
+B.3. Impact of source size k and message size m.
+
+In Section 5.3 and Figure 3, we analyze the effect of the source size k. Table 8 provides the complete results. We further investigate the message size m, which controls the number of obfuscated messages transmitted to the server. When fixing k = 3 , increasing m from 3 to 5 can improve resistance to DRAs while preserving downstream utility. For example, on GSM8K, the RF scores of TAG, LAMP, and BiSR decrease from 0.298, 0.266, and 0.103 to 0.176, 0.173, and 0.046, respectively. On CoLA, the SIP RF score also decreases from 0.139 to 0.094, while the clean accuracy slightly increases from 0.845 to 0.856. However, further increasing m from 5 to 9 provides marginal benefits. On CoLA, some reconstruction scores continue to decrease, but the improvement becomes progressively smaller. On GSM8K, reconstruction scores increase slightly when m
+
+exceeds 5. For instance, the TAG RF score increases from 0.176 at m = 5 to 0.219 at m = 9 , while the LAMP RF score increases from 0.173 to 0.208. Meanwhile, both computational and communication overhead increase as m
+
+grows. Overall, these results show that simply transmitting more obfuscated messages does not consistently improve the privacy–utility trade-off. A moderate configuration of m
+
+provides a more practical balance among privacy protection, model utility, and efficiency. 
+
+B.4. Overhead Estimation of FHE-based Method. 
+
+Direct FHE-based fine-tuning of Qwen3-1.7B is com-putationally prohibitive. We therefore estimate its overhead using the runtime measurements of Rho et al. [29] and the ciphertext-packing configurations adopted by recent FHE-based Transformer systems [30], [31], [32]. 
+
+Computation Overhead. Rho et al. [29] report that FHE-based full fine-tuning of a two-layer BERT-style Transformer on CoLA requires 67.1 hours per epoch using eight NVIDIA GeForce RTX 4090 GPUs. With 8,551 training samples, this corresponds to approximately 28.2 seconds per sample per epoch, or 14.1 seconds per sample per layer. To extrapolate this result to Qwen3-1.7B, we use the number of parameters per Transformer layer as an approx-imate scaling factor. A BERT-style layer contains about 7 million parameters, whereas a layer in Qwen3-1.7B contains approximately 50 million parameters, which is roughly 7.1×
+
+larger. Assuming encrypted fine-tuning cost scales linearly with the number of processed parameters, the cost of one Qwen3-1.7B layer is estimated as 14 .1s × 7.1 ≈ 100 .7s.
+
+Since our U-shaped split-learning configuration evaluates 28 intermediate layers, the estimated fine-tuning cost is therefore 100 .7s × 28 ≈ 2819 .6s per sample. According to NVIDIA’s official specifications, the aggregate peak BF16 Tensor Core throughput of eight GeForce RTX 4090 GPUs is approximately 1.58 × that of a single H200 NVL GPU (2,643 vs. 1,671 TFLOPS). The estimated cost on one H200 NVL is 2819 .6s × 1.58 ≈ 4454 .9s per sample. This estimate highlights the substantial computational overhead introduced by encrypted training, even under an optimistic linear-scaling approximation. In practice, the actual overhead may be higher because encrypted execution also depends on operation types, ciphertext bootstrapping, and the approximation of non-polynomial functions. 
+
+Communication Cost. In the U-shaped split-learning config-uration, each training step involves 4 communication rounds:  
+
+> •
+
+The encrypted hidden representation from the client to the server during the forward pass;  
+
+> •
+
+The encrypted output of the trunk model from the server to the client during the forward pass;  
+
+> •
+
+The encrypted gradient from the client to the server-side trunk model during backpropagation;  
+
+> •
+
+The encrypted gradient from the server to the client-side head model during backpropagation. For an input sequence of length S = 512 and hidden dimension d = 2048 , each transmitted tensor contains approximately S × d = 1 ,048 ,576 numerical values. Recent FHE-based Transformer systems commonly adopt SIMD-style ciphertext packing and 32,768 slots per ciphertext [29], [30], [31], [32], the transmitted tensor requires 32 ciphertext. Assuming each ciphertext is about 15 MB, the online communication overhead is 4 × 32 × 15 MB = 1920 MB per sample per training step. This estimate excludes one-time setup costs, such as key generation and key exchange, as well as implementation-dependent metadata and auxiliary ciphertexts. Consequently, the reported value should be interpreted as an approximate lower-order estimate of the online communication overhead. TABLE 8. F ULL RESULTS OF ABLATION STUDY ON COLA AND GSM8K UNDER DIFFERENT SETTINGS .
+
+Setting CoLA GSM8K Utility SIP TAG LAMP BiSR Utility SIP TAG LAMP BiSR ACC RF ME RF ME RF ME RF ME EMA RF ME RF ME RF ME RF ME MIX GUARD 0.846 0.135 0.128 0.240 0.193 0.251 0.196 0.092 0.081 0.455 0.042 0.024 0.303 0.349 0.272 0.305 0.106 0.066 
+
+Secret Tokens (STs) 
+
+w/o Secret Tokens 0.855 0.143 0.134 0.278 0.189 0.274 0.193 0.098 0.100 0.464 0.267 0.195 0.388 0.387 0.381 0.378 0.211 0.159 
+
+Calibration Model 
+
+w/o Calibration Model 0.833 0.594 0.598 0.488 0.462 0.475 0.456 0.181 0.172 0.350 0.098 0.078 0.565 0.748 0.566 0.748 0.358 0.435 w/o Pretrain 0.829 0.137 0.125 0.269 0.202 0.272 0.201 0.097 0.096 0.291 0.021 0.012 0.380 0.396 0.367 0.352 0.121 0.082 
+
+Gradient Perturbation 
+
+w/o Gradient Perturbation 0.853 0.140 0.133 0.268 0.198 0.257 0.195 0.109 0.104 0.309 0.043 0.026 0.390 0.374 0.401 0.389 0.175 0.146 w/ non-adaptive Gradient Perturbation 0.852 0.141 0.126 0.280 0.208 0.278 0.197 0.103 0.100 0.306 0.042 0.019 0.370 0.357 0.376 0.362 0.157 0.126 w/o Secret Tokens and Perturbation 0.859 0.139 0.133 0.274 0.210 0.269 0.205 0.107 0.102 0.479 0.266 0.195 0.475 0.423 0.468 0.410 0.255 0.190 
+
+Source Mixing Size k
+
+m=3, k=3 0.845 0.139 0.129 0.255 0.202 0.252 0.195 0.103 0.091 0.443 0.043 0.024 0.298 0.345 0.266 0.296 0.103 0.066 m=3, k=4 0.850 0.134 0.126 0.234 0.192 0.235 0.189 0.068 0.069 0.438 0.043 0.022 0.322 0.349 0.294 0.309 0.104 0.067 m=3, k=5 0.852 0.137 0.128 0.225 0.183 0.227 0.191 0.071 0.070 0.434 0.038 0.021 0.299 0.337 0.271 0.289 0.099 0.066 m=3, k=6 0.848 0.138 0.125 0.241 0.206 0.218 0.179 0.067 0.064 0.441 0.038 0.020 0.263 0.299 0.243 0.265 0.085 0.057 m=3, k=7 0.850 0.137 0.125 0.221 0.193 0.213 0.167 0.063 0.065 0.426 0.034 0.017 0.291 0.315 0.255 0.275 0.090 0.055 m=3, k=8 0.838 0.135 0.123 0.222 0.188 0.211 0.178 0.065 0.066 0.416 0.045 0.024 0.272 0.290 0.236 0.247 0.090 0.053 m=3, k=9 0.839 0.136 0.123 0.214 0.180 0.213 0.179 0.064 0.069 0.419 0.042 0.022 0.273 0.300 0.236 0.244 0.089 0.051 m=3, k=10 0.836 0.131 0.119 0.210 0.178 0.209 0.178 0.055 0.065 0.407 0.038 0.018 0.271 0.301 0.231 0.248 0.084 0.047 
+
+Message Size m
+
+m=5, k=3 0.856 0.094 0.092 0.203 0.145 0.211 0.157 0.091 0.092 0.438 0.022 0.010 0.176 0.187 0.173 0.176 0.046 0.025 m=7, k=3 0.853 0.093 0.092 0.177 0.125 0.191 0.138 0.072 0.081 0.442 0.024 0.010 0.191 0.187 0.186 0.181 0.052 0.028 m=9, k=3 0.853 0.094 0.091 0.158 0.121 0.192 0.142 0.065 0.069 0.450 0.023 0.010 0.219 0.202 0.208 0.180 0.056 0.028 
+
+Public and Support Dataset 
+
+Pub: Wiki / Sup: Wiki 0.851 0.143 0.135 0.278 0.225 0.264 0.213 0.099 0.102 0.428 0.029 0.014 0.300 0.342 0.277 0.299 0.082 0.049 Pub: Wiki / Sup: Multi-Source 0.841 0.143 0.134 0.262 0.198 0.269 0.202 0.095 0.090 0.447 0.030 0.014 0.293 0.328 0.254 0.277 0.075 0.047 Pub: Wiki / Sup: Yelp 0.844 0.143 0.135 0.244 0.194 0.249 0.193 0.086 0.093 0.447 0.030 0.014 0.257 0.311 0.228 0.261 0.072 0.047 Pub: Multi-Source / Sup: Wiki 0.850 0.143 0.134 0.275 0.208 0.256 0.200 0.091 0.095 0.403 0.029 0.014 0.281 0.307 0.257 0.272 0.079 0.049 Pub: Multi-Source / Sup: Multi-Source 0.855 0.144 0.135 0.261 0.191 0.252 0.190 0.102 0.104 0.431 0.029 0.014 0.341 0.373 0.309 0.327 0.082 0.051 Pub: Multi-Source / Sup: Yelp 0.846 0.143 0.134 0.233 0.187 0.240 0.187 0.088 0.093 0.409 0.029 0.014 0.276 0.298 0.256 0.265 0.078 0.049 Pub: Yelp / Sup: Wiki 0.853 0.143 0.135 0.272 0.209 0.262 0.209 0.095 0.093 0.406 0.029 0.013 0.304 0.335 0.279 0.301 0.078 0.049 Pub: Yelp / Sup: Multi-Source 0.857 0.143 0.134 0.259 0.209 0.268 0.210 0.103 0.107 0.456 0.029 0.014 0.301 0.340 0.263 0.284 0.073 0.049 Pub: Yelp / Sup: Yelp 0.851 0.143 0.135 0.255 0.200 0.236 0.190 0.080 0.084 0.420 0.030 0.014 0.278 0.324 0.254 0.281 0.075 0.050

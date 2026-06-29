@@ -1,0 +1,961 @@
+Title: SharedRequest: Privacy-Preserving Model-Agnostic Inference for Large Language Models
+
+URL Source: https://arxiv.org/pdf/2606.05004v1
+
+Published Time: Thu, 04 Jun 2026 01:37:06 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+# SharedRequest: Privacy-Preserving Model-Agnostic Inference for Large Language Models 
+
+Peihua Mai 1,2,3 , Xuanrong Gao 3, Youlong Ding 4, Xianglong Du 5,6 ,Wei Liu 5,6 , Yan Pang 1,2,3 *1National University of Singapore (Chongqing) Research Institute, 
+
+> 2
+
+Chongqing Key Laboratory of Trusted Perception and Interaction Technology for Intelligent and Connected Vehicles, Chongqing, China, 
+
+> 3
+
+National University of Singapore, 4Hebrew University of Jerusalem, 
+
+> 5
+
+State Key Laboratory of Intelligent Vehicle Safety Technology, Chongqing, China 
+
+> 6
+
+CHONGQING CHANGAN AUTOMOBILE Co., Ltd, Chongqing, China 
+
+Abstract 
+
+With the widespread deployment of public large language models (LLMs) such as Chat-GPT, protecting user prompt privacy has be-come an increasingly critical issue. Exist-ing privacy-preserving inference methods sac-rifice either utility or efficiency, and often re-quire model-specific modifications that limit their compatibility. In this paper, we propose SharedRequest, a model-agnostic framework for privacy-preserving LLM inference that re-formulates privacy protection at the batch level rather than the individual-prompt level. The key idea is to obscure sensitive information by mixing original prompts with noisy vari-ants, while grouping semantically equivalent instructions to amortize the inference cost over a large batch of queries with minimal impact on LLM response quality. This design is in-dependent of the LLM architecture, requiring no access to model parameters or architectural modification. Empirical results demonstrate that SharedRequest achieves over 20% higher utility compared to prior differential privacy baselines, and its shared-prompt mechanism reduces query cost by up to 5× compared to non-batched inference. 
+
+1 Introduction 
+
+Rapid advancement of large language models (LLMs) has enabled transformative applications in healthcare, finance, and personal assistance (Chen et al., 2025a; Wang et al., 2025; Wu et al., 2025; Li et al., 2025). State-of-the-art public LLMs, includ-ing ChatGPT, Claude, and Gemini, are primarily deployed on the cloud platform, which protects pro-prietary model architectures but raises significant privacy concerns. User prompts often contain sen-sitive information that should remain confidential from any third party, underscoring the urgent need for effective privacy-preserving inference frame-works. 
+
+> *Corresponding author: jamespang@nus.edu.sg
+
+Current paradigms for privacy-preserving LLM inference are constrained by two fundamental limi-tations: • First, they suffer a trilemma between privacy, utility, and efficiency. Cryptographic meth-ods such as secure multi-party computation (SMPC) (Hao et al., 2022; Luo et al., 2024) typically introduce substantial communication and computation overhead, limiting their prac-ticality for large-scale LLM deployment. Lo-cal differential privacy (LDP) approaches (Du et al., 2023; Mai et al., 2024) introduce ran-domization on client side, which often signifi-cantly degrade utility and are often unsuitable for text generation. • Second, most existing solutions require LLM-specific architectural modifications, imposing significant burdens on service providers. On the other hand, current model-agnostic meth-ods perturb queries individually (Utpala et al., 2023; Tong et al., 2025; Chen et al., 2023), substantially distorting semantic meaning and compromising response quality. We address these bottlenecks through two criti-cal observations in modern LLM usage: • Batched query processing. With massive user bases, commercialized LLMs typically process large batches of queries within short time windows. This creates opportunities to amortize inference costs across users. • Sparse sensitive content. Sensitive informa-tion within user prompts is often sparse, and not all tokens require protection. For example, in the query "Provide career suggestions for a person working in cybersecurity", only the word "cybersecurity" is sensitive. These insights suggest a batch-level formulation of privacy-preserving LLM inference, where pri-vacy protection operates on sensitive prompt com-ponents and the additional cost is shared across 
+
+> arXiv:2606.05004v1 [cs.CR] 3 Jun 2026
+
+the batch .Motivated by this idea, we propose Share-dRequest 1, a privacy -preserving LLM inference paradigm. Rather than perturbing each prompt in-dependently , our framework groups semantically equivalent requests for joint processing at the batch level . It then samples noisy variants of sensitive content and mixes them with original prompts to obscure private information, while amortizing the additional inference cost related to noisy queries across a large batch of requests. We further de-sign a lightweight cryptographic protocol to en-sure secure communication among multiple parties. On three privacy-sensitive benchmarks, our Share-dRequest consistently outperforms prior model-agnostic LDP baselines with over 20% higher util-ity, while the shared-request mechanism reduces query cost by up to 5.6× compared with non-batched inference. Our contributions are summarized as follows: (1) We propose a novel batch-level paradigm for model-agnostic private LLM inference, where semantically equivalent requests are grouped for joint processing, enabling both privacy protection through shuffled noisy variants and cost reduction through batch-level amortization. (2) We design a lightweight multi-party protocol that preserves user anonymity and hides private attributes from the service provider, while requiring no modification to the LLM architecture or access to model parameters. (3) We formalize privacy through (An, ϵ )-indistinguishability and provide theoretical analy-sis of both privacy protection and query-cost amor-tization. (4) We introduce a third-party coordination mechanism for efficient noisy-query sampling, re-ducing user-side computation for prompts with multiple private attributes. 
+
+2 Related Work 
+
+2.1 SMPC-based Private Transformer Inference 
+
+SMPC enables multiple parties to conduct trans-former model inference while ensuring that the server learns nothing about user inputs (Yao, 1982). Iron (Hao et al., 2022) introduces a hybrid crypto-graphic protocol tailored for matrix multiplications 
+
+> 1https://github.com/NusIoraPrivacy/ SharedRequest
+
+and complex non-linear operations, including Soft-max, GELU, and LayerNorm. MPCFormer (Li et al., 2023) integrates MPC with knowledge dis-tillation to approximate expensive functions cryp-tographically. SecFormer (Luo et al., 2024) builds on this foundation by replacing nonlinear opera-tions with optimized SMPC-friendly approxima-tions and redesigning Softmax, GeLU, and Lay-erNorm. BOLT (Pang et al., 2024) reduces the payload through cryptographic optimizations, min-imizing homomorphic encryption rotations via a baby-step giant-step algorithm and employs word-elimination heuristics. NEXUS (Zhang et al., 2024) introduces the first non-interactive SMPC protocol for transformer inference based on RNS -CKKS homomorphic encryption, reducing latency and in-teraction overhead compared to traditional multi-round protocols. Despite their strong privacy guar-antees, these SMPC-based methods entail substan-tial computational and communication overhead, limiting their scalability in practical deployment. 
+
+2.2 Differentially Private Prompt Engineering 
+
+LDP mechanism has been explored to privatize user prompts before they are sent to cloud-based LLMs. Early methods convert tokens into embed-dings, add manipulated noises, and map the em-beddings back, effectively preserving differential privacy (Lyu et al., 2020a,b). To achieve better util-ity, recent approaches differentiate sensitive from non-sensitive tokens and replace sensitive tokens using constrained adjacency lists rather than full vocabulary sampling (Tong et al., 2025; Chen et al., 2023; Yue et al., 2021; Li et al., 2024). For example, CusText assigns smaller replacement sets per token to reduce semantic drift while maintaining privacy. Other approaches include paraphrase-based mech-anisms such as DP-Prompt, which produce priva-tized outputs via temperature-controlled sampling during text rewriting (Utpala et al., 2023; Mattern et al., 2022). While LDP-based prompt privatiza-tion methods can operate with black -box models, they generally face fundamental challenges in bal-ancing trade-offs between utility and privacy. 
+
+3 Background 
+
+3.1 Problem Formulation 
+
+A service provider owns a proprietary generative language model LM : V∗ → V ∗ such as ChatGPT and Gemini (OpenAI, 2023; Hurst et al., 2024; Team et al., 2023; Chen et al., 2025b; Cai et al., Text Generation Model-Agnostic Utility-Preserving Iron × × ✓                              
+
+> MPCFormer ××✓
+> BOLT ××✓
+> NEXUS ××✓
+> RanText ✓✓×
+> CusText ✓✓×
+> DP-Prompt ✓✓×
+> InferDPT ✓✓×
+> DP-Forward ×××
+> SnD ×××
+> SharedRequest ✓✓✓
+> Table 1: Comparison among transformer-based privacy-preserving inference frameworks.
+
+2025), where V∗ represents the space of all token sequences over the vocabulary V. Given a user prompt q, our framework aims to protect its pri-vate attributes Aq = {a1, a 2, ..., a |A(q)|} against the service provider. The user’s prompt q consists of two parts: (i) the generic instruction Tq ∈ T , and (ii) the per-sonal attributes Aq ∈ A . For example, given the prompt "What are the recommended restaurants in Britain?", the personal attribute is "Britain" and the generic instruction is "What are the recommended restaurants". For any generic instruction T ∈ T ,we define the plausible attribute set A(T ) ⊂ A 
+
+as those A(T ) that co-occurs with T with non-zero probability (e.g., various locations compatible with that instruction). In the following, we use 
+
+Aq and A(q) interchangeably to denote the private attributes of prompt q.
+
+3.2 A Simple Construction 
+
+Instead of transmitting a single prompt to the cloud LLM, we propose sending a set of prompts, con-taining original and noisy prompts, to obscure the user’s sensitive information. Given a prompt q with private attributes Aq
+
+and generic instruction Tq, the user samples a set of noisy attributes A′(Tq) from the plausi-ble attribute set A(Tq). Each sampled attribute 
+
+A′(Tq) ∈ A ′(Tq) is then embedded into generic instruction Tq to form noisy prompts. The noisy prompts, together with the original, are submitted to the server, and only the response to the true prompt q is retained locally. While providing accurate responses and preserv-ing privacy, such construction introduces two prac-tical challenges. Firstly, the query cost scales by a factor of |A ′(Tq)| compared to a non-private sce-nario. Secondly, for prompts containing multiple private attributes, it becomes resource-intensive for the user to generate a series of plausible combina-tions. In the following, we propose a framework to mitigate the query cost and user computation overhead. 
+
+4 Framework 
+
+4.1 Overview 
+
+Our protocol involves grouping prompts and sam-pling noisy queries through a third party. We posit that the service provider receives a large volume of requests within each time window, making it highly likely that a certain number of prompts share the same generic instruction. For example, ChatGPT processes more than 1 billion queries every day, which translates to more than 11,500 queries per second (Singh, 2025). By grouping requests based on their generic instructions, we can amortize query costs and server computation time. As depicted in Figure 1, our framework consists of three parties: 
+
+Users hold their queries with private attributes to be kept hidden from the service provider. For each prompt p, they identify the private attributes 
+
+Ap and sample noisy attributes for each individual private attribute a ∈ Ap.
+
+Noise Sampler receives queries with encrypted private attributes from the user. It clusters prompts with the same generic instruction and samples noisy queries to obfuscate original prompt. 
+
+Service Provider receives queries from the noise sampler and generates answers per query. The answers are masked with users’ secrets and transmitted back to the noise sampler. Appendix A outlines the algorithm for our privacy-preserving inference framework. 
+
+4.2 Cryptographic Design 
+
+Our protocol aims to ensure that: (i) The noise sam-pler has no knowledge of any sensitive data and only observes the generic instruction. (ii) The ser-vice provider’s view consists of an anonymous set of shuffled prompts, including genuine and noisy ones. A core design challenge lies in ensuring secure communication among users, noise sam-pler, and service provider, while also preserving the user’s anonymity from the service provider. 
+
+4.2.1 Forward Transmission 
+
+The forward stage transmits of the message from the user to the service provider. During this phase, Figure 1: Overview of SharedRequest. The noise sampler groups user requests based on their generic instruction, samples noisy prompts with each group, and sends a shuffled mix to the server for inference. The inference costs related to noisy queries are amortized across users. 
+
+the user encrypts the private attributes using the service provider’s public key pk s, and the service provider decrypts the ciphertext with its private key 
+
+sk s. This asymmetric encryption scheme hides the private attribute from any third parties, including the noise sampler. Furthermore, any messages sent to the noise sampler are encrypted with the sam-pler’s public key pk n, preventing eavesdroppers (including the service provider) from learning their contents. 
+
+4.2.2 Backward Transmission 
+
+The backward stage transmits the response from the service provider to the user. The response may contain information related to private attributes, and thus it should be concealed from the noise sampler. This phase enables the user to decrypt the response without revealing their identity to the service provider. To accomplish this, we design a masking-based obfuscation scheme: (i) The user sends a seed s encrypted with the service provider’s public key. (ii) The service provider decrypts the seed s and uses a pseudorandom generator (PRG) to derive a pseudo-random mask e = P RG (s),which is used to obfuscate the response via modular addition rs = r+e. (iii) Upon receiving rs, the user reconstructs the response via modular subtraction 
+
+r = rs − e.
+
+4.3 Noisy Query Sampling 
+
+To amortize query cost, the noise sampler groups prompts with semantically equivalent generic in-structions to share the same plausible attribute sets (see Appendix B). When a query involves multiple private attributes, sampling plausible attribute com-binations becomes significantly more complex. If there are μ private attributes, each with k plausible alternatives, the total number of possible combina-tions grows to kμ. To address this combinatorial explosion, we introduce a coordinated approach between the user and the noise sampler, which con-sists of three components: (i) candidate specifica-tion for individual attributes by user; (ii) combi-nation selection by noise sampler; and (iii) combi-nation sampling by noise sampler (see Appendix C). 
+
+4.3.1 Candidates for Individual Attributes (User) 
+
+Rather than sampling full attribute combinations ,the user independently selects alternative attributes for each single attribute: {A ′
+
+> 1
+
+, A′
+
+> 2
+
+, ..., A′|A(q)|},where |A(q)| is the number of attributes within prompt q and A′ 
+
+> i
+
+is the set of alternatives for the 
+
+ith attribute. These alternatives can be manually curated or drawn from a pre-constructed attribute-class database. 
+
+4.3.2 Combination Selection (Noise Sampler) 
+
+It would be prohibitively expensive to sample and send all combinations to the service provider, with payload exponential in the attribute size. To op-timize the query cost, the noise sampler chooses combinations that look genuine within the context: (i) randomly chooses a set of candidate combina-tions from the users’ individual attribute lists; (ii) employs a pre-trained discriminator to score each combination’s genuineness within context; (iii) se-lects only those combinations whose scores exceed a pre-specified threshold δ, obtaining qualified com-bination set An.To ensure adequate coverage, i.e., each of the μ
+
+attributes has all candidates with probability ≥ p,the noise sampler draws m combinations satisfy-ing: 
+
+m ≥ (log(1 − p) − log( μk )) / log(1 − 1/k ),k = max {k1, k 2, ..., k μ},
+
+(1) where ki is the number of candidates for the 
+
+ith attribute. The derivation is detailed in Ap-pendix D. In practice, we can set m = α ·
+
+(log(1 − p) − log( μk )) / log(1 − 1/k ), where α
+
+is a tuning factor to balance privacy guarantees and system overhead. 
+
+5 Privacy Analysis 
+
+5.1 Threat Model 
+
+We assume that both the service provider and noise sampler are curious-but-honest (Yang et al., 2019). Furthermore, we assume that there is no collusion between the noise sampler and service provider. In Appendix E.1, we extend our framework us-ing multi-server architecture and signature scheme (Kaur and Kaur, 2012; Katz, 2010) to withstand stronger adversary models, including malicious noise sampler and collusion between servers. 
+
+5.2 Noise Sampler 
+
+The noise sampler’s view consists of: (i) each user’s generic instruction Tq; (ii) each user’s encrypted private attributes and seed; (iii) candidate alterna-tives for each individual attribute; and (iv) masked response for each user. The IND-CPA security of the encryption scheme guarantees that the sam-pler cannot infer any sensitive information from ciphertexts. Moreover, given that the seed used for masking is chosen uniformly at random, the security of the PRG ensures that the random mask 
+
+e and thus the obfuscated output rs are computa-tionally indistinguishable from random numbers. Therefore, the noise sampler gains no information about the user prompt except its generic instruction and candidate alternatives. 
+
+5.3 Service Provider 
+
+The service provider’s view is a shuffled set of prompts, including both genuine and noisy queries. To formulate the privacy protection, we introduce the notion of (An, ϵ )-indistinguishability. Ap-pendix E.3 elaborates its post-processing and com-position rules. 
+
+Definition 1 (An-Neighbors) . Denote Aq and Tq
+
+as, respectively, the private attributes and generic instruction of user’s prompt q. Let An(Tq) ⊂ A 
+
+be the set of qualified alternative attributes for Tq.Two sets of prompts, Q′ and Q, are An-neighbors if 
+
+Q′ can be obtained from Q by removing the private attributes Aq from one prompt q in Q. We denote 
+
+Q′ ∈ NAn (Q).
+
+Remark 2. The private attributes Aq can be re-moved from q either by generalizing them into public information or by masking them directly. 
+
+Definition 3 ((An, ϵ )-indistinguishability) . For any ϵ > 0, a randomized mechanism M :
+
+Q → Y preserves (An, ϵ )-indistinguishability if for ∀Q, Q ′ ∈ NAn (Q), the following inequality holds: 
+
+Pr[ M (Q) ∈ S] ≤ eϵ Pr[ M (Q′) ∈ S], (2) for all subsets S of the output space Y.
+
+Theorem 4. Denote M : P → Y as our pro-tocol that maps user prompt batches to the shuf-fled output seen by the service provider. For any ϵ > 0, the mechanism M achieves (An, ϵ )-indistinguishability. 
+
+This theorem ensures that the service provider’s view remains indistinguishable with regards to the change in private attributes. 
+
+5.3.1 Connection to Differential Privacy 
+
+In the following, we show that the definition of 
+
+(An, ϵ )-indistinguishability is a customization and relaxation of differential privacy (DP) (Dwork, 2006). 
+
+Definition 5 (Differential Privacy) . Given ϵ > 0
+
+and δ ∈ [0 , 1) , a randomized mechanism preserves 
+
+(ϵ, δ )-differential privacy if and only if, for any neighboring sets of prompts Q, Q ′ ∈ Q , the fol-lowing inequality holds: 
+
+Pr[ M (Q) ∈ S] ≤ eϵ Pr[ M (Q′) ∈ S] + δ
+
+for all subsets S of the output space Y.In standard DP, two datasets Q′ and Q are considered neighbors if they differ by exactly one prompt, i.e., one query q ∈ Q is replaced to any other prompt q′ ∈ Q′. We can obtain 
+
+(An, ϵ )-indistinguishability from standard DP by setting the constraints: (1) only change q’s pri-vate attribute Aq, and (2) private attributes are replaced by the prompt’s qualified alternatives 
+
+An(Tq). Conversely, standard DP can be obtained from (An, ϵ )-indistinguishability by treating Aq as the full prompt q, and allowing An(Tq) to include all possible text values within the context length. Therefore, (An, ϵ )-indistinguishability can be con-sidered as a user-defined variant of DP, with quali-fied alternatives and thus neighbors co-specified by users and noise sampler. 
+
+6 Complexity Analysis 
+
+The computation cost of our protocol is primarily determined by: (i) noise sampler’s grouping and attribute combination filtering cost; (ii) optional user-side query simplification cost; (iii) service provider’s LLM inference cost; (iv) encryption and decryption operations. Since (iv) is negligible rela-tive to (i)-(iii) according to our empirical analysis, we focus on the costs related to the former two components. 
+
+6.1 Noise Sampler Computation Cost 
+
+The primary computational overhead for the noise sampler arises from batch grouping and attribute filtering. The batch grouping involves: (i) en-coding each generic instruction into embedding; and (ii) clustering queries based on the embed-dings. The first part is fully parallelizable across instructions, and the second part depends on the chosen clustering algorithm (Ester et al., 1996; Sumengen et al., 2021; Pelleg and Moore, 1999). Modern clustering algorithms, such as Recipro-cal Agglomerative Clustering (RAC), enable par-allel processing, scaling efficiently to billions of points. Additionally, combination filtering, which evaluates plausible attribute combinations, costs 
+
+O (log( μk )/ log(1 − 1/k )) per generic instruction. In practice, this can also be parallelized across sam-ples, further reducing running time. 
+
+6.2 User Simplification Cost 
+
+Prompt simplification is performed optionally and can be executed manually or via automated meth-ods. For complexity analysis, we assume a local model deployed by the user. Consequently, the computational cost depends directly on the model’s architecture and the lengths of the original and sim-plified prompts. 
+
+6.3 Query Cost from Service Provider 
+
+We consider query cost as the token-based charge from commercial LLM APIs, mostly associated with service provider’s LLM inference cost. To mitigate this cost, the server aggregates identical prompts and generates the response once per group rather than handling each individually. The follow-ing theorem shows how query cost depends on the distribution of generic instructions. 
+
+Theorem 6. Suppose a batch contains B genuine queries, each drawn independently from an under-lying distribution. Denote ci and pi as, respectively, the average query cost and sampling probability for generic instruction Ti, i ∈ [|T | ]. Then the ex-pected per-query cost C is: 
+
+E(C) = 1
+
+B
+
+> |T |
+
+X
+
+> i=1
+
+ 1 − (1 − pi)B  ci. (3) 
+
+If ci = c is equal for all generic instructions 
+
+Ti, i ∈ [|T | ], then E(C) increases with the en-tropy of the instruction distribution H(T ), and the cost maximizes at uniform distribution: 
+
+lim  
+
+> |T |→∞
+
+E(C) = |T | 
+
+B (1 − e−B/ |T | )c. (4) 
+
+Remark 7. Here, pi refers to the real-world oc-currence probability of generic instruction Ti, i ∈
+
+[|T | ], not related to the sampling mechanism of noisy queries. Semantically equivalent generic in-structions are treated as the same Ti.Similarly, the cost reduction compared with non-batched scenario is associated with the entropy of instruction distribution (see Appendix F). The above theorem implies that our sharing strategy is especially cost-effective when the query distri-bution is uneven, such as in long-tail scenarios. Empirical studies have observed such non-uniform distributions in real-world LLM usage (Kelly and Harsel, 2025). 
+
+7 Experiment 
+
+7.1 Datasets and Setting 
+
+Our method is tested on three privacy-sensitive datasets: (i) Legal-QA that contains professional question–answer pairs covering real-world legal scenarios (dzunggg, 2023); (ii) Medical-QA with medical problems (Chen et al., 2024); and (iii) MMLU-Biz that extracts the business-related ques-tions from MMLU dataset (Hendrycks et al., 2021). We evaluate two variants of our framework: (i) original: all users transmit the raw prompt, and (ii) simplified: all users apply prompt simplification to improve efficiency. In practice, mixed deployments across users will likely yield utility and inference overhead between these two extremes. 7.2 Utility Analysis 
+
+We compare the utility of our algorithm with: (1) non-private setting where users issue prompts di-rectly to the LLM, and (2) three model-agnostic private inference approaches (see Table 1), includ-ing: (i) RanText (Tong et al., 2025) that introduces random adjacency list for text perturbation; (ii) Cus-Text (Chen et al., 2023) that provides relaxed DP guarantees by customizing each input token’s re-placement set; (iii) DP-Prompt (Utpala et al., 2023) that applies DP sampling during paraphrase gen-eration via temperature-controlled decoding; (iv) CusText+ that is adapted to provide similar level of relaxed DP of SharedRequest; (v) InferDPT (Tong et al., 2025) that consists of a DP-based perturba-tion module and an extraction module for denois-ing. To provide similar privacy guarantee with the relaxed DP version of SharedRequest, we adapt CusText+ to the aligned relaxed DP version by restricting its replacement space to the same can-didate list An and sampling replacements via an exponential mechanism. For InferDPT, we keep its extraction module unchanged, and replace its perturbation module with CusText+’s An-restricted sampling. As shown in Table 2, the original version achieves nearly identical utility to the non-private baseline (within 1% ), where any minor loss stems from instruction clustering and is negligible. The simplified version incurs an average utility loss of approximately 4.9% relative to the non-private setting.                              
+
+> MMLU-Biz Medical-QA Legal-QA GPT-3.5-Turbo Non-private 0.671 ±0.003 6.89 ±0.01 7.31 ±0.01
+> Ours (Original) 0.665 ±0.002 6.91 ±0.01 7.32 ±0.02
+> Ours (Simplified) 0.638 ±0.002 6.32 ±0.04 7.02 ±0.05
+> GPT-4o-mini Non-private 0.853 ±0.001 8.60 ±0.01 8.69 ±0.03
+> Ours (Original) 0.851 ±0.004 8.58 ±0.00 8.63 ±0.02
+> Ours (Simplified) 0.817 ±0.001 8.28 ±0.03 8.27 ±0.04
+> GPT-4o Non-private 0.899 ±0.001 8.81 ±0.03 8.81 ±0.01
+> Ours (Original) 0.900 ±0.002 8.74 ±0.04 8.79 ±0.01
+> Ours (Simplified) 0.848 ±0.003 8.40 ±0.02 8.46 ±0.06
+
+Table 2: Utility comparison of non - private setting and our approach. We report F1 score for MMLU-Biz, and quality score rated by GPT-4o on a 1–10 scale for Medical-QA and Legal-QA. 
+
+Table 3 compares the utility of our simplified variant against DP baselines under privacy budget from 1 to 5. It can be observed that our method consistently outperforms the baselines. At ϵ = 1 ,our simplified version achieves 2.2×, 1.7×, 1.7×,
+
+1.2×, and 1.2× improved utility on average than RanText, CusText, DP-Prompt, CusText+ and In-ferDPT methods, respectively. 
+
+Method ϵ GPT-4o-mini GPT-4o RanText (Standard DP) 
+
+1 0.381 ±0.002 0.390 ±0.006 
+
+3 0.388 ±0.006 0.405 ±0.008 
+
+5 0.411 ±0.005 0.435 ±0.006 
+
+CusText (Standard DP) 
+
+1 0.511 ±0.008 0.473 ±0.005 
+
+3 0.553 ±0.002 0.603 ±0.003 
+
+5 0.631 ±0.006 0.649 ±0.005 
+
+DP-Prompt (Standard DP) 
+
+1 0.497 ±0.010 0.496 ±0.008 
+
+3 0.522 ±0.009 0.533 ±0.006 
+
+5 0.529 ±0.003 0.542 ±0.003 
+
+CusText+ (Relaxed DP) 
+
+1 0.686 ±0.002 0.694 ±0.003 
+
+3 0.695 ±0.004 0.758 ±0.006 
+
+5 0.743 ±0.005 0.754 ±0.005 
+
+InferDPT (Relaxed DP) 
+
+1 0.700 ±0.006 0.712 ±0.008 
+
+3 0.708 ±0.003 0.758 ±0.006 
+
+5 0.746 ±0.001 0.763 ±0.003 
+
+Ours (Simplified) 1 0.817 ±0.001 0.848 ±0.003 
+
+Table 3: F1 score of our approach (with prompt simplifi-cation across all users) and DP baselines across privacy budget ϵ = 1 to 5 on MMLU-Biz. 
+
+7.3 Attack Results 
+
+While the service provider only observes a shuf-fled set of prompts, it is crucial that the original queries remain indistinguishable from the injected noisy prompts. To assess the indistinguishability, we simulate the following inference attack: service provider utilizes a pre-trained classifier to label each prompt as genuine or noisy, aiming to distin-guish true user queries. Based on the classification result, the server can identify the original prompts. In Figure 2, we perform experiments using two Qwen-based discriminators, i.e., Qwen2.5-0.5B and Qwen2.5-1.5B (Qwen et al., 2025), to generate candidate combinations. For each discriminator, we train four attack classifiers of varying model sizes (Liu et al., 2019; Qwen et al., 2025; Dubey et al., 2024) to distinguish genuine prompts from noisy variants. Depending on the sampled candi-date set size m, the number of plausible combina-tions ranges from 8.3 to 52 .4, and each attribute has over 7 alternatives on average for α ≥ 10 .Among the qualified attributes, the F1 score of the attack is within 63% for Qwen2.5 - 0.5B and 
+
+58% for Qwen2.5 - 1.5B discriminators. In contrast, when the server randomly samples fake prompts without filtration, the attack success rate is much higher, reaching around 80% . Our combination-filtering mechanism reduces attack success by an average of approximately 32 .7% , substantially im-proving robustness against server inference attacks.   
+
+> Figure 2: AUC of attack accuracies and size of qualified attributes on MMLU-Biz dataset using Qwen2.5-0.5B and Qwen2.5-1.5B discriminators. In the “non -filter” scenario, the server randomly samples fake prompts without applying combination filtering.
+
+In Figure 3, we evaluate empirical privacy under attribute inference attack, where uses GPT-5.2 to infer whether a sensitive attribute is owned by the user on MMLU-Biz dataset. It can be observed that SharedRequest achieves comparable attack ASR relative to DP-Prompt, CusText+, and Infer-DPT, while maintaining substantially higher utility. While SharedRequest leads to higher attack ASR for RanText and CusText by up to 20% and 10% ,respectively, the F1 score is higher than the two baselines by at over 80% . 
+
+> Figure 3: Utility (F1 score) and ASR for attribute infer-ence attack of SharedRequest and the baselines under
+> ϵ= 1
+
+7.4 Query Cost 
+
+We compare monetary query cost of our proto-col against a non-batched baseline, where noisy queries are not shared across users. To simulate real-world request distribution, we draw prompts from a Dirichlet distribution with concentration parameter β, where larger β reflects higher uni-formity. As is shown in Figure 4, more concen-trated distributions (smaller β) yield greater cost savings under our request sharing mechanism. At 
+
+β = 0 .05 , our protocol reduces the monetary cost by up to 5.6× compared to the non-batched setting. Prompt simplification further enhances this effect, since it increases collisions in generic instructions and amplifies batching efficiency.   
+
+> Figure 4: Query cost reduction under varying concen-tration parameters βfor gpt models. Reduction ratio is measured as the ratio of non-batched baseline cost to that of SharedRequest.
+
+7.5 Computation Cost for Attribute Filtering 
+
+Figure 5 reports the computation cost required for attribute combination filtering. Computation time increases roughly linearly with sample ra-tio α, staying below 2.1s for Qwen2.5 - 0.5B and 
+
+6.2s for Qwen2.5 - 1.5B when α ≤ 20 . Overall, Qwen2.5 - 1.5B incurs about a 2.8× overhead com-pared to Qwen2.5 - 0.5B, suggesting the trade-off between computation overhead and privacy pro-tection. Prompt simplification further improves filtering efficiency, reducing runtime by an average of 40 .8% , with larger efficiency gains at higher α.  
+
+> Figure 5: Computation cost per generic instruction group (in seconds) for attribute filtering on MMLU-Biz using Qwen2.5 -0.5B and Qwen2.5 -1.5B discriminators.
+
+8 Conclusion 
+
+This paper proposes SharedRequest, a privacy-preserving LLM inference paradigm that requires no architectural modifications to the model. Our multi-party protocol obscures user prompts by in-jecting noisy variants, where the additional infer-ence costs are shared among a large batch of users. To alleviate user-side computation cost, we design a coordinated mechanism between users and noise sampler to sample qualified noisy queries. Theoret-ical analysis reveals that SharedRequest achieves greater query-cost reduction when request distribu-tions are uneven, such as long-tailed. The empirical evaluation demonstrates that: (1) SharedRequest incurs minor utility degradation compared to non-private baseline, and outperforms DP baselines by over 20% . (2) Under concentrated distributions, SharedRequest reduces query costs by up to 5.6×
+
+versus non-batched baselines. Further discussions on our framework is provided in Appendix H. 
+
+Limitation 
+
+Our work has the following limitations and practi-cal considerations. 
+
+Assumption of non-colluding parties. Our pro-tocol assumes that the noise sampler can not col-lude with the service provider to ensure user pri-vacy. In practice, the noise sampler can be: (1) a third party who provides the privacy-related ser-vice; or (2) an organization such as finance com-pany that protects the confidentiality of employees’ or clients’ prompts. While two non-colluding par-ties is a common assumption in SMPC protocols (Corrigan-Gibbs and Boneh, 2017; Mohassel and Zhang, 2017), the security could be enhanced by increasing the colluding threshold. In Appendix E.1, we extend our protocol to multi-server setting, where an adversary needs to collude with all m
+
+noise samplers and the service provider to compro-mise privacy. 
+
+Private attributes and alternatives. We assume that users are responsible for defining their own pri-vacy, i.e., identifying private attributes and generat-ing alternatives for each attribute. This user - defined privacy paradigm is increasingly recognized in academic literature and implemented in practice (Van Alsenoy et al., 2014; Busch, 2019). Appendix H.1 discusses methods for the self-definition pro-cess, along with empirical results. In practice, users can add an anonymization layer prior to Share-dRequest, removing information that is irrelevant to the task yet increases privacy risk. For example, they might might pattern -match and redact phone numbers or replace user names with generic place-holders like [NAME]. Then SharedRequest can be implemented to protect attributes that are sensitive while relevant for LLM inference. 
+
+Ethical Considerations 
+
+We emphasize that all datasets used in this work are publicly available benchmarks widely adopted in the NLP community for evaluation, such as stan-dard language understanding and task benchmarks. These datasets are intended for research and model comparison and do not contain privately collected or user-generated content with personally identi-fying information. We also confirm that the data used in our experiments do not include offensive or sensitive content linked to identifiable individuals. 
+
+Acknowledgements 
+
+The authors utilized ChatGPT for polishing writ-ings of the manuscript. All technical content, ex-perimental design, analysis, and conclusions were developed and verified by the authors. This work was supported by the Chongqing Key Laboratory of Trusted Perception and Interaction Technology for Intelligent and Connected Vehi-cles, the State Key Laboratory of Intelligent Vehi-cle Safety Technology, Chongqing Changan Auto-mobile Co., Ltd, and the Chongqing Natural Sci-ence Foundation (Grant No. CSTB2024NSCQ-LZX0172). Ding was supported in part by a grant from the Israel Science Foundation (ISF Grant No. 1774/20), and by the European Union (ERC, SCALE,101162665). Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council. Neither the European Union nor the granting authority can be held responsible for them. 
+
+References       
+
+> Christoph Busch. 2019. Implementing personalized law.
+> The University of Chicago Law Review , 86(2):309– 332. Yinqi Cai, Jichang Li, Zhaolun Li, Weikai Chen, Rushi Lan, Xi Xie, Xiaonan Luo, and Guanbin Li. 2025. Deepshield: Fortifying deepfake video detection with local and global forgery analysis. In Proceedings of the IEEE/CVF International Conference on Com-puter Vision , pages 12524–12534. Junying Chen, Zhenyang Cai, Ke Ji, Xidong Wang, Wanlong Liu, Rongsheng Wang, Jianye Hou, and Benyou Wang. 2024. Huatuogpt-o1, towards medical complex reasoning with llms. Preprint ,arXiv:2412.18925. Ruibo Chen, Jiacheng Pan, Heng Huang, and Zhen-heng Yang. 2025a. Improving text-to-image gener-
+
+ation with input-side inference-time scaling. arXiv preprint arXiv:2510.12041 .Ruibo Chen, Yihan Wu, Junfeng Guo, and Heng Huang. 2025b. De-mark: Watermark removal in large lan-guage models. In International Conference on Ma-chine Learning , pages 9316–9333. PMLR. Sai Chen, Fengran Mo, Yanhao Wang, Cen Chen, Jian-Yun Nie, Chengyu Wang, and Jamie Cui. 2023. A customized text sanitization mechanism with differ-ential privacy. In Findings of the Association for Computational Linguistics: ACL 2023 , pages 5747– 5758. Henry Corrigan-Gibbs and Dan Boneh. 2017. Prio: Pri-vate, robust, and scalable computation of aggregate statistics. In 14th USENIX symposium on networked systems design and implementation (NSDI 17) , pages 259–282. Minxin Du, Xiang Yue, Sherman SM Chow, Tianhao Wang, Chenyu Huang, and Huan Sun. 2023. Dp-forward: Fine-tuning and inference on language mod-els with differential privacy in forward pass. arXiv preprint arXiv:2309.06746 .Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, and 1 others. 2024. The llama 3 herd of models. 
+
+arXiv preprint arXiv:2407.21783 .Cynthia Dwork. 2006. Differential privacy. In Inter-national colloquium on automata, languages, and programming , pages 1–12. Springer. dzunggg. 2023. legal - qa -v1: A collection of legal q&a pairs. Hugging Face Dataset. 
+
+https://huggingface.co/datasets/dzunggg/ legal-qa-v1 .Maud Ehrmann, Ahmed Hamdi, Elvys Linhares Pontes, Matteo Romanello, and Antoine Doucet. 2023. Named entity recognition and classification in histor-ical documents: A survey. ACM Computing Surveys ,56(2):1–47. Martin Ester, Hans-Peter Kriegel, Jörg Sander, Xiaowei Xu, and 1 others. 1996. A density-based algorithm for discovering clusters in large spatial databases with noise. In kdd , volume 96, pages 226–231. Meng Hao, Hongwei Li, Hanxiao Chen, Pengzhi Xing, Guowen Xu, and Tianwei Zhang. 2022. Iron: Pri-vate inference on transformers. Advances in Neural Information Processing Systems , 35:15718–15731. Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Stein-hardt. 2021. Measuring massive multitask language understanding. Proceedings of the International Con-ference on Learning Representations (ICLR) .Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, and 1 others. 2024. Gpt-4o system card. arXiv preprint arXiv:2410.21276 .Jonathan Katz. 2010. Digital signatures , volume 1. Springer. Ravneet Kaur and Amandeep Kaur. 2012. Digital signa-ture. In 2012 International Conference on Comput-ing Sciences , pages 295–301. IEEE. Brenna Kelly and Luke Harsel. 2025. Investigating chatgpt search: Insights from 80 million clickstream records. Tomasz J Kozubowski and Krzysztof Podgórski. 2000. A multivariate and asymmetric generalization of laplace distribution. Computational Statistics ,15(4):531–540. Dacheng Li, Hongyi Wang, Rulin Shao, Han Guo, Eric Xing, and Hao Zhang. 2023. Mpcformer: Fast, per-formant and private transformer inference with mpc. In The Eleventh International Conference on Learn-ing Representations .Jichang Li, Guanbin Li, Hui Cheng, Zicheng Liao, and Yizhou Yu. 2024. Feddiv: Collaborative noise fil-tering for federated learning with noisy labels. In 
+
+Proceedings of the AAAI Conference on Artificial Intelligence , volume 38, pages 3118–3126. Zhaolun Li, Jichang Li, Yinqi Cai, Junye Chen, Xiao-nan Luo, Guanbin Li, and Rushi Lan. 2025. Fak-eradar: Probing forgery outliers to detect unknown deepfake videos. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 13382–13392. Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-dar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. 2019. Roberta: A robustly optimized bert pretraining ap-proach. arXiv preprint arXiv:1907.11692 .Ilya Loshchilov and Frank Hutter. 2019. Decoupled weight decay regularization. In ICLR (Poster) .Jinglong Luo, Yehong Zhang, Zhuo Zhang, Jiaqi Zhang, Xin Mu, Hui Wang, Yue Yu, and Zenglin Xu. 2024. Secformer: Fast and accurate privacy-preserving in-ference for transformer models via smpc. In Findings of the Association for Computational Linguistics ACL 2024 , pages 13333–13348. Lingjuan Lyu, Xuanli He, and Yitong Li. 2020a. Differ-entially private representation for nlp: Formal guar-antee and an empirical study on privacy and fairness. In Findings of the Association for Computational Linguistics: EMNLP 2020 , pages 2355–2365. Lingjuan Lyu, Yitong Li, Xuanli He, and Tong Xiao. 2020b. Towards differentially private text representa-tions. In Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval , pages 1813–1816. Peihua Mai, Ran Yan, Zhe Huang, Youjia Yang, and Yan Pang. 2024. Split-and-denoise: Protect large lan-guage model inference with local differential privacy. In International Conference on Machine Learning ,pages 34281–34302. PMLR. Justus Mattern, Benjamin Weggenmann, and Florian Kerschbaum. 2022. The limits of word level differ-ential privacy. In Findings of the Association for Computational Linguistics: NAACL 2022 , pages 867– 881. Payman Mohassel and Yupeng Zhang. 2017. Secureml: A system for scalable privacy-preserving machine learning. In 2017 IEEE symposium on security and privacy (SP) , pages 19–38. IEEE. OpenAI. 2023. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 .Harshvardhan J Pandit, Beatriz Esteves, Georg Philip Krog, Paul Ryan, Delaram Golpayegani, and Julian Flake. 2024. Data privacy vocabulary (dpv)-version 2.0. In ISWC (3) .Qi Pang, Jinhao Zhu, Helen Möllering, Wenting Zheng, and Thomas Schneider. 2024. Bolt: Privacy-preserving, accurate and efficient inference for trans-formers. In 2024 IEEE Symposium on Security and Privacy (SP) , pages 4753–4771. IEEE. Dan Pelleg and Andrew Moore. 1999. Accelerating ex-act k-means algorithms with geometric reasoning. In 
+
+Proceedings of the fifth ACM SIGKDD international conference on Knowledge discovery and data mining ,pages 277–281. Qwen, An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, Huan Lin, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jingren Zhou, Junyang Lin, and 24 oth-ers. 2025. Qwen2.5 technical report. arXiv preprint arXiv:2412.15115 .Nils Reimers and Iryna Gurevych. 2019. Sentence-bert: Sentence embeddings using siamese bert-networks. In Proceedings of the 2019 Conference on Empiri-cal Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP) , page 3982. Association for Computational Linguistics. Ronald L Rivest, Adi Shamir, and Leonard Adleman. 1978. A method for obtaining digital signatures and public-key cryptosystems. Communications of the ACM , 21(2):120–126. Yu Rozanov. 2012. Probability theory, random pro-cesses and mathematical statistics , volume 344. Springer Science & Business Media. Shubham Singh. 2025. Chatgpt statistics 2025. Baris Sumengen, Anand Rajagopalan, Gui Citovsky, David Simcha, Olivier Bachem, Pradipta Mitra, Sam Blasiak, Mason Liang, and Sanjiv Kumar. 2021. Scal-ing hierarchical agglomerative clustering to billion-sized datasets. arXiv preprint arXiv:2105.11653 .Shun Takagi, Fumiyuki Kato, Yang Cao, and Masatoshi Yoshikawa. 2022. Asymmetric differential privacy. In 2022 IEEE International Conference on Big Data (Big Data) , pages 1576–1581. IEEE. Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, Katie Mil-lican, and 1 others. 2023. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805 .Meng Tong, Kejiang Chen, Jie Zhang, Yuang Qi, Weim-ing Zhang, Nenghai Yu, Tianwei Zhang, and Zhikun Zhang. 2025. Inferdpt: Privacy-preserving inference for black-box large language models. IEEE Transac-tions on Dependable and Secure Computing .Saiteja Utpala, Sara Hooker, and Pin-Yu Chen. 2023. Locally differentially private document generation using zero shot prompting. In Findings of the Associ-ation for Computational Linguistics: EMNLP 2023 ,pages 8442–8457. Brendan Van Alsenoy, Eleni Kosta, and Jos Dumortier. 2014. Privacy notices versus informational self-determination: Minding the gap. International Re-view of Law, Computers & Technology , 28(2):185– 203. Kaishen Wang, Ruibo Chen, Tong Zheng, and Heng Huang. 2025. Imagent: A unified multimodal agent framework for test-time scalable image generation. 
+
+arXiv preprint arXiv:2511.11483 .Yihan Wu, Ruibo Chen, Georgios Milis, and Heng Huang. 2025. An ensemble framework for unbi-ased language model watermarking. arXiv preprint arXiv:2509.24043 .An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, and 1 others. 2025. Qwen3 technical report. arXiv preprint arXiv:2505.09388 .Qiang Yang, Yang Liu, Tianjian Chen, and Yongxin Tong. 2019. Federated machine learning: Concept and applications. ACM Transactions on Intelligent Systems and Technology (TIST) , 10(2):1–19. Andrew C Yao. 1982. Protocols for secure computa-tions. In 23rd annual symposium on foundations of computer science (sfcs 1982) , pages 160–164. IEEE. Xiang Yue, Minxin Du, Tianhao Wang, Yaliang Li, Huan Sun, and Sherman SM Chow. 2021. Differ-ential privacy for text analytics via natural text san-itization. In Findings of the Association for Com-putational Linguistics: ACL-IJCNLP 2021 , pages 3853–3866. Association for Computational Linguis-tics (ACL). Jiawen Zhang, Xinpeng Yang, Lipeng He, Kejia Chen, Wen-jie Lu, Yinghao Wang, Xiaoyang Hou, Jian Liu, Kui Ren, and Xiaohu Yang. 2024. Secure transformer inference made non-interactive. Cryptology ePrint Archive .Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, and 1 others. 2023. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information pro-cessing systems , 36:46595–46623. 
+
+A Algorithm 
+
+Algorithm 1 and 2 outline our SharedRequest, con-sisting of forward and backward transmission. 
+
+B Grouping and Prompt Simplification 
+
+B.1 Grouping 
+
+To amortize query cost, the noise sampler groups prompts with semantically equivalent generic in-structions to share the same plausible attribute sets. We leverage a sentence transformer to encode each instruction into embedding, and apply clustering to group similar embeddings into batches auto-matically. To improve clustering efficiency and downstream utility, the sampler first pre-groups prompts based on the number of sensitive attributes, enabling parallelized clustering within each sub-group. 
+
+B.2 Prompt Simplification 
+
+Users may optionally apply prompt simplification to improve efficiency by: (i) reducing private at-tributes, which lowers the sampling and query cost; (ii) standardizing generic instructions, enabling the plausible attributes to be amortized among more queries. Simplification can be achieved through manual prompt engineering or automated tools, such as lightweight local models. 
+
+C Combination Sampling by Noise Sampler 
+
+Directly combining noisy attributes with real ones can inadvertently expose genuine queries. If a gen-uine attribute appears multiple times in a batch while a fake one appears only once, an adversarial server would distinguish real queries by frequency patterns. Since private attributes are encrypted, the noise sampler can not guarantee that noisy at-tributes will match the frequency of genuine ones. 
+
+Algorithm 1 SharedRequest: Forward Transmis-sion 
+
+Input: User queries Q = {q1, q 2, ..., q N }.
+
+Output: Responses R = {r1, r 2, ..., r S }, where response ri corresponds to original or noisy query qi.
+
+User i ∈ [N ]
+
+• Sample noisy attributes : The user identi-fies private attributes Aqi , and samples alter-natives for each individual attributes Ai =
+
+{A i
+
+> 1
+
+, Ai
+
+> 2
+
+, ..., Ai
+
+> |A(q)|
+
+}.• Encrypt attribute and seed : The user encrypts the private attributes Aqi and sampled seed s
+
+with service provider’s public key, such that 
+
+Enc is = Enc (pk s, s || Aqi ).• Encrypt and submit message : The user en-crypts the message with the noise sampler’s pub-lic keys: Enc in = Enc (pk n, T qi ||A i|| Enc is),and sends the encrypted message Enc in to noise sampler. 
+
+Noise Sampler n
+
+• Decrypt messages : For every received cipher 
+
+Enc in, the sampler decrypts the cipher with its secret key sk n, producing Tqi , Ai, and Enc is.• Batch prompts : The sampler groups prompts based on their generic instruction via a batching module B, producing K
+
+groups [G1, G 2, ..., G K ] and their correspond-ing generic instruction [TG1 , T G2 , ..., T Gk ].• Sample noisy query : For each group Gk, the sampler: (i) unions all alternatives for each sin-gle attribute; (ii) samples and filters attribute combinations via a local discriminator, produc-ing An(TGk ); (iii) randomly samples N [v] at-tribute combinations. • Encrypt attribute and seed : Given the total count of dummy queries S = P N , the sampler randomly generates S seeds. Then it encrypts the noisy attributes and seeds with the service provider’s public key. • Shuffle and forward message : The sampler shuffles all messages and sends them to the ser-vice provider s.
+
+Service Provider s
+
+• Decrypt message : For every received message 
+
+Enc is, the service provider decrypts the cipher with its secret key sk n, producing si and Api .• Generate response : The service provider re-covers each prompt by inserting the private at-tributes into the generic instruction TGk , k ∈
+
+[K]. Then it groups the same prompts and gen-erates the response for each group at once. Algorithm 2 SharedRequest: Backward Transmis-sion 
+
+Input: Responses for a set of queries (including original and noisy ones) R = {r1, r 2, ..., r S }.
+
+Output: Responses R = {r1, r 2, ..., r N },where response ri corresponds to original query 
+
+qi.
+
+Service Provider s
+
+• Handle and forward responses : For each re-sponse ri, the service provider generates ran-dom number from the corresponding seed esi =
+
+P RG (si), computes ris = ri + esi , and sends them to noise sampler n.
+
+Noise Sampler n
+
+• Handle responses : On receiving the response from service provider s, the sampler de-shuffles them using the inverse permutation, and discards the response corresponding to the noisy queries. • Forward responses : The sampler sends all responses rsi to the corresponding user i.
+
+User i ∈ [N ]
+
+• Reconstruct response : The user receives re-sponse rsi from noise sampler n, generates ran-dom number from their seed esi = P RG (si),and reconstructs ri = rii − esi .To mitigate this issue, we propose a sampling method based on one-sided exponential mechanism (Rozanov, 2012; Kozubowski and Podgórski, 2000; Takagi et al., 2022). Instead of injecting each qual-ified combination exactly once, we add random-ized counts N [v] for each attributes combination 
+
+v ∈ A n. Specifically, for each v, the noise sampler draws λv from the one-sided exponential distribu-tion: 
+
+f (λv) = 
+
+( ϵ 
+
+> 2
+
+exp −λv ϵ 
+
+> 2
+
+λv ≥ 0,
+
+0 λv < 0, (5) with privacy parameter ϵ. The sampler then in-jects N [v] = ⌊λv⌋ instances of each combination 
+
+v ∈ A n. Even though each query might appear multiple times, the query cost maintains the same as the service provider groups identical prompts and generates a single response per group for pay-load optimization (see Appendix H.3). 
+
+D Sampling Size 
+
+Denote ki as the number of candidates for the ith 
+
+attribute, and μ is the number of private attributes within a group. The probability that an alternative attribute is not covered in a sample is: 
+
+(1 − 1/k i)m , (6) for attribute i.Using union bound, the probability that each of the μ attributes has all candidates is bounded by: 
+
+> μ
+
+X
+
+> i
+
+ki (1 − 1/k i)m ≤ μk (1 − 1/k )m ≤ 1 − p, 
+
+(7) where k = max {k1, k 2, ..., k μ}. Taking the loga-rithm of both side, we have: 
+
+m ≥ log(1 − p) − log( μk )log(1 − 1/k ) . (8) 
+
+E Privacy Analysis 
+
+E.1 Resistant to Stronger Adversaries 
+
+Figure 6 presents the overview of our extended version. 
+
+E.1.1 Collusion between Servers 
+
+Our protocol assumes that the noise sampler can not collaborate with service provider. To relax the assumption, we extend our SharedRequest to a multi-server system with m noise samplers. In particular, the following steps in SharedRequest are modified: • Onion encryption: User i onion encrypts the private attribute and seed with the servers public key: 
+
+OEnc i
+
+> 0
+
+= Enc (pk 1
+
+> n
+
+, Enc (...Enc (pk s, s || Aqi ))) ,
+
+(9) where pk jn is the public key for the jth noise sampler. Noise sampler j onion encrypts the private attribute within noisy prompt: 
+
+OEnc ij
+
+= Enc (pk j+1  
+
+> n
+
+, Enc (...Enc (pk s, s || Aqi ))) .
+
+(10) • Onion decryption: Noise sampler j onion decrypts the private attribute and seed with its private key: 
+
+OEnc ij = Dec (sk jn, OEnc ij−1), (11) Figure 6: Overview of SharedRequest’s extension. The requests are transmitted through m noise samplers. On receiving response, the user unmask the message and verify the signature generated by the service provider. 
+
+where sk jn is the secret key for the jth noise sampler. The service provider decrypts with its private key sk s:
+
+(s, A qi ) = Dec (sk s, OEnc im). (12) • Noisy query sampling. Each noise sam-pler generates qualified attribute combina-tions, and samples from the attributes added to the mix. 
+
+E.1.2 Malicious Noise Samplers 
+
+We consider the case where some noise samplers might temper with the transmitted message and return incorrect result to the user, including user queries and service provider’s response. To en-sure the integrity of message, the service provider creates signature for each query: 
+
+σi = Sign (sk ds , q i|| ri), (13) where sk ds is the private signing key. Then the user can verify the correctness of the response by asserting that 
+
+V erif y (pk ds , q i|| ri, σ i) = 1 . (14) 
+
+E.1.3 Security Analysis 
+
+We provide a high-level security analysis of the ex-tended protocol. For secrecy, the views of service provider and noise sampler are similar to that in SharedRequest. The private attributes are onion encrypted through the public keys of m noise sam-plers and finally the service provider. An adversary would need to compromise all m samplers and the service provider to decrypt the attributes. If at least one noise sampler remains honest, the pri-vacy of user attributes is preserved. Furthermore, each sampler independently shuffles and injects noisy variants to the batch, ensuring that the ser-vice provider’s view is a mix of noisy and original prompts. For integrity, the UF-CMA secure signature scheme (Kaur and Kaur, 2012; Katz, 2010) pre-vents the noise samplers from modifying user queries and service provider’s responses. Conse-quently, users are able to identify that the output is incorrect and reject it. 
+
+E.2 Proof of Theorem 4 
+
+Proof. In our algorithm, modifying the private at-tributes within a prompt does not alter the batch-ing outcome; it only affects the server’s observed frequency of each attribute combination within a batch. Therefore, we can prove theorem 4 by show-ing that the frequency of the private attributes, H,satisfies (An, ϵ )-indistinguishability. Changing Q to Q′, i.e., changing the private at-tribute in one prompt, corresponds to decreasing one element in H by 1 and increasing another el-ement in H by 1. Let f : Q → H be the function that maps the group of prompts to the frequency before injecting noisy query, and M ′ : Q → H 
+
+be the mechanism that maps to the frequency after adding λ. Then we have: 
+
+p(M ′(Q) = z)
+
+p(M ′(Q′) = z) =
+
+Q 
+
+> i
+
+exp ( −ϵ(zi − f (Q)i)/2) 
+
+Q 
+
+> i
+
+exp ( −ϵ(zi − f (Q′)i)/2) 
+
+≤ exp X
+
+> i
+
+ϵ|f (Q′)i − f (Q)i|/2
+
+!
+
+≤ exp ( ϵ).
+
+(15) Therefore, for any subset S ∈ H , it holds that: 
+
+P (f (Q) ∈ S) ≤ exp ( ϵ)P (f (Q′) ∈ S). (16) Taking the floor of λ is equivalent to taking the floor of frequency after adding λ. Then we have: 
+
+P (⌊f (Q)⌋ = y) = P  f (Q) ∈ f loor −1(z)
+
+≤ exp ( ϵ)P    f (Q′) ∈ f loor −1(z) 
+
+= exp ( ϵ)P (⌊f (Q′)⌋ = y),
+
+(17) where f loor −1 denotes the inverse of floor func-tion. Hence we complete the proof. E.3 Preservation under Post-processing and Composition 
+
+Proposition 8 and 9 provides the privacy preserva-tion under post-processing and composition. 
+
+Proposition 8. Let M : Q → Y be a (An, ϵ )-indistinguishability mechanism. Let f : Y → Z be an arbitrary (possibly randomized) mapping. Then 
+
+f ◦ M : Q → Z is (An, ϵ )-indistinguishability. Proof. Fix pair of neighboring input Q, Q′ ∈
+
+NAn (Q), and fix a a measurable set S ⊂ Z . By the definition of f , we have: 
+
+Pr[ f (M (Q)) ∈ S]=
+
+Z
+
+> y
+
+Pr[ f (y) ∈ S|y] · Pr[ M (Q) = y]dy 
+
+≤
+
+Z
+
+> y
+
+Pr[ f (y) ∈ S|y] · eϵ Pr[ M (Q′) = y]dy 
+
+= eϵ Pr[ f (M (Q′)) ∈ S].
+
+(18) 
+
+Proposition 9. Let Mi : Q → Y i be a (An, ϵ i)-indistinguishability mechanism. Then if M is de-fined by: 
+
+M (Q) = ( M1(Q), M 2(Q), · · · , M k(Q)) , (19) 
+
+M satisfies (An, ϵ )-indistinguishability. Proof. We start with the proof for k = 2 . Let Q,
+
+Q′ ∈ NAn (Q) be the An-neighbors, and let S =
+
+S1 ×S2 be any measurable set in the product output space. As M1, M1 have independent randomness, we have: 
+
+Pr[( M1(Q), M 2(Q)) ∈ S]= Pr[ M1(Q) ∈ S1] · Pr[ M2(Q) ∈ S2]
+
+≤ eϵ1 Pr[ M1(Q′) ∈ S1] · eϵ2 Pr[ M2(Q′) ∈ S2]= eϵ1+ϵ2 Pr[( M1(Q′), M 2(Q′)) ∈ S].
+
+(20) The result can extend inductively to any k > 2.
+
+F Query Cost Analysis 
+
+F.1 Proof of Theorem 6 
+
+Proof. For each instruction group, it appears in the batch for at least one time with probability 1 −
+
+(1 − pi)B . Then the expected per-query cost is as follows: 
+
+E(C) = 1
+
+B
+
+> |T |
+
+X
+
+> i=1
+
+ 1 − (1 − pi)B  ci. (21) Thus we focus on the proof for the remaining part under ci = c for all generic instructions. To prove the relationship between E(C) and H(T ), we start with a basic case: pi increases with δ, and pj de-creases with δ for any pair pi, p j .For E(C), its derivative with regards to δ is given by: 
+
+∇E(C)
+
+∇δ = ∇∇δ cB
+
+   1 − (1 − pi − δ)B  +  1 − (1 − pi + δ)B  
+
+= c  (1 − pi − δ)B−1 − (1 − pj + δ)B−1 .
+
+(22) Then E(C) increases in δ if δ ≤ (pj − pi)/2, and decreases in δ otherwise. For H(T ), it derivative is as follows: 
+
+∇H(T )
+
+∇δ = ∇∇δ
+
+(( pi + δ) log( pi + δ) + ( pj − δ) log( pj − δ)) = log 
+
+ pi + δpj − δ
+
+
+
+.
+
+(23) 
+
+H(T ) also increases in δ if δ ≤ (pj − pi)/2, and decreases in δ otherwise. Therefore, the change in 
+
+δ leads to the same direction of change for E(C)
+
+and H(T ).We can generalize the above case to any change from p = (p1, ..., p |T | ) to p′ = (p′
+
+> 1
+
+, ..., p ′|T | ),which can be achieved through |T | − 1 steps of the following change (for the ith steps): • Add δ = ( p′ 
+
+> i
+
+−pi +p′ 
+
+> i−1
+
+−pi−1 +· · · +p′ 
+
+> 1
+
+−p1)
+
+to pi.• Subtract the same δ from pi+1 .For each step, the direction of change for E(C)
+
+and H(T ) is the same, and thus E(C) and H(T )
+
+both increase or decrease with regards to the in-struction distribution p.Given that E(C) is positively association with 
+
+H(T ), it maximize at the uniform distribution: 
+
+E(C) = 1
+
+B
+
+> |T |
+
+X
+
+> i=1
+
+ 1 − (1 − 1/|T | )B  c. (24) Taking the limit: 
+
+lim  
+
+> |T |→∞
+
+E(C) = |T | 
+
+B (1 − e−B/ |T | )c. (25) F.2 Comparison with Non-batched Scenario 
+
+For non-batched scenario, we consider the simple construction where each user sends the noisy and original prompts to the server individually, with-out the noise sampler for aggregated sampling and shuffling. Denote c′ 
+
+> j
+
+and p′ 
+
+> j
+
+as, respectively, the average query cost and sampling probability for query qj , j ∈ [|Q| ]. The cost reduction ratio can be formulated as: 
+
+E(C)
+
+E(C′) =
+
+P|T | 
+
+> i=1
+
+ 1 − (1 − pi)B  ci
+
+B P|Q|  
+
+> j=1
+
+p′ 
+
+> j
+
+c′
+
+> j
+
+, (26) where E(C′) is the expected per-query cost for non-batched scenario. Noted that ci and c′ 
+
+> j
+
+is determined by the token length and number of qualified alternatives for each query or instruction group. For simplicity, we as-sume that ci = c′ 
+
+> j
+
+= c for all i ∈ [|T | ], j ∈ [|Q| ].This is reasonable since the per-instruction over-head in our SharedRequest is similar to the average per-query overhead of the non -batched baseline. Then we have: 
+
+E(C)
+
+E(C′) =
+
+P|T | 
+
+> i=1
+
+ 1 − (1 − pi)B 
+
+B = E(C)
+
+c .
+
+(27) Therefore, the reduction ratio increases with E(C)
+
+and H(T ), maximizing at the uniform distribution: 
+
+lim 
+
+> |T |→∞
+
+E(C)
+
+E(C′) = |T | 
+
+B (1 − e−B/ |T | ). (28) 
+
+G Experiment 
+
+G.1 Experiment Setting 
+
+For prompt grouping, we use paraphrase-distilroberta-base-v1 model (Reimers and Gurevych, 2019) to convert generic instruction into embeddings, and leverage RAC (Sumengen et al., 2021) to cluster these embeddings. We set sampling ratio α = 10 , privacy parameter ϵ = 1 ,and batch size B = 5000 unless specified. We employ RSA cryptosystem (Rivest et al., 1978) for asymmetric encryption. The experiments are conducted on a 96 -core Ubuntu Linux 20.04 server with 128 GB RAM and 2 A100 driver. Each reported experiment result is an average of 3
+
+experiments. 
+
+G.1.1 Prompt Simplification 
+
+To train simplification model, We finetune Qwen3-4B (Yang et al., 2025) for 5 epochs with a learning rate of 0.00001 using AdamW opti-mizer (Loshchilov and Hutter, 2019), using demon-strations generated by GPT-4o. Specifically, we ask GPT-4o to simplify a question from the three datasets following the rules: • Remove all unnecessary or redundant infor-mation. • Keep all important information necessary to answer the question. • Do not use abbreviations or emojis. • Compress the origin as short as you can. The initial version of simplification demonstrations may lose important information. To ensure quality, we iteratively refine the dataset. If the simplified version yields lower response quality compared to the original, we prompt GPT - 4o with the orig-inal prompt, initial simplification, and response evaluation to generate an improved version. The refinement refinement loop runs for 5 rounds. For simplified version of SharedRequest, we fine-tune the simplification model on 80% of the con-structed dataset, and implement the simplification on the remaining 20% for evaluation. 
+
+G.1.2 Cluster Algorithm 
+
+RAC (Sumengen et al., 2021) is employed to clus-ter the sentence embeddings during prompt group-ing. Clustering is based on Euclidean distance between embeddings, with a merging threshold of 
+
+0.3, and executed using 8 parallel threads. After clustering, a single instruction is randomly sampled from each cluster to serve as the shared generic in-struction for that group. 
+
+G.1.3 Output Arrangement 
+
+To prevent the noise sampler or any external ob-server from inferring private information via side channels in response lengths and timings, the ser-vice provider pads all outputs within a cluster to the maximum length observed in that cluster us-ing masked values. Masked responses from each cluster are then delivered to the noise sampler at a constant rate of 20 tokens/s. 
+
+G.1.4 Discrimination Model 
+
+We tested two Qwen-based discriminators, i.e., Qwen2.5-0.5B and Qwen2.5-1.5B (Qwen et al., 2025). We input the noisy and original queries, as well as their binary labels, to train the discrimina-tor for 5 epochs with a learning rate of 0.00001 using AdamW optimizer, with balanced batches containing noise and original queries in a 1:1 ratio. We maintain strict separation between the datasets used for training the discriminator and those used for attack models to prevent any data leakage. 
+
+G.1.5 Utility Evaluation Metrics 
+
+MMLU-Biz, which consists of multiple-choice questions, is evaluated using F1 score. Medical - QA and Legal - QA, which comprise of open-ended questions, are scored from 1 to 10 using GPT -4o as an automatic judge, following (Zheng et al., 2023). 
+
+G.1.6 Latency Analysis 
+
+We focus on the active processing time for latency analysis. We assume the noise sampler parallelizes API calls and cryptographic operations across each prompt, and parallelizes attribute combination fil-tering across each generic instruction. As we can-not directly deploy proprietary GPT models, we estimate the LLM inference time using the average query time per prompt without privacy protection. We use Qwen2.5-0.5B for combination filtering. 
+
+G.2 Data Processing G.2.1 Dataset Construction 
+
+The MMLU-Biz dataset is constructed by filter-ing questions from the business or finance-related categories: business ethics, econometrics, market-ing, high school macroeconomics, high school mi-croeconomics, management, and marketing. The final MMLU-Biz dataset contains 1534 samples. To ensure equal representation across domains (business, legal, and medical), we then randomly sample 2,000 items each from the Legal - QA and Medical -QA datasets. The final evaluation set therefore consists of balanced sample sizes across the three domains. In experiment, we sample the items from Dirichlet distribution with concentra-tion parameter β = 1 .
+
+G.2.2 Private Attributes 
+
+The private attributes for each sample are labeled with GPT-4o using the prompt in Figure 7. The GPT-extracted attributes are then manually checked and corrected to ensure quality. 
+
+G.2.3 Alternative Attributes 
+
+To sample alternatives for each single attributes, we prompt GPT-4o to generate candidates using the instruction in Figure 8. Each attribute has around 
+
+10 candidates on average. 
+
+G.3 Computation Cost of Combination Filtering 
+
+Figure 9 presents the computation time for at-tribute combination filtering across datasets. Legal-QA incurs the highest computation cost due to its longer questions and more private attributes, un-der 6s for Qwen2.5-0.5B and 15 s for Qwen2.5-1.5B for α ≤ 20 . Under α ≤ 10 , the computa-tion cost stays within 3s for Qwen2.5-0.5B and 
+
+6s for Qwen2.5-1.5B. Prompt simplification con-sistently reduces the computation cost by an aver-age of 32 .7% , 63 .1% , and 53 .3% for MMLU-Biz, Legal-QA, and Medical-QA, respectively. 
+
+G.4 Statistics Analysis of Private Attributes 
+
+We summarize the statistics of private attributes and their noisy alternatives in Table 4. We can observe that Legal-QA and Medical-QA have more private attributes within each prompt, leading to higher number of noisy combinations. Furthermore, our filtering algorithm ensures that each single attribute has over 8 alternatives on average.                     
+
+> # of Private Attributes # of Noisy Combinations # of Alternatives for Single Attribute MMLU-Biz Original 3.4 49.4 9.1 Simplified 2.3 34.2 8.6 Legal-QA Original 10.7 118.7 11.1 Simplified 5.6 100.2 11.8 Medical-QA Original 7.9 62.4 9.4 Simplified 5.4 52.4 8.7
+> Table 4: Statistics of private attribute for each dataset. The values are summarized as the average over all sam-ples, using Qwen2.5-0.5B discriminator under sample ratio α= 10 .
+
+G.5 Query Cost 
+
+We examine the query cost under privacy parameter 
+
+ϵ ranging from 0.01 to 10 in Figure 10. While the cost decreases as ϵ increases (i.e., privacy is weakened), the query cost and thus reduction ratio retain stable under ϵ ≤ 0.1. This happens because the service provider aggregates and de-duplicates identical prompt variants for LLM inference, and thus the query cost is upper bounded by the size of qualified attribute combinations. Figure 11 presents the query cost under batch size B ranging from 100 to 5000 . Smaller batch size leads to lower level of reduction ratio, since the cost is distributed among fewer queries. At User Prompt: 
+
+> Please extract all words or phrases in the question that indicate sensitive attributes. The sensitive attributes include: Personal identifiable information, job, race, religion, ethnicity, religion, beliefs, age, contact information, geolocation data, residency and citizenship status, date, festival, sexual orientation or practices, gender identity, third-person pronoun, disability, employment and income details, company, physical health and mental health issues, clinical signs including medical conditions and physical examination data, behavioral data, name of medicine, including specific drugs, drug classes, and general medication types (e.g., nasal decongestants, antihistamines, beta-blockers, etc), financial data, vulnerable financial status, account details, loan information, tax records, contract, trading algorithm, confidential business information, educational records, voting status, membership in a trade union, social media and digital footprint, legal consultation and case status, Law enforcement jurisdiction and procedures, consumer rights, ownership details, criminal record or name, biometric data, genetic information, legal proceedings and disputes, surveillance and monitoring data, military and security clearance. Your task is to strictly extract phrases that refer to these sensitive attributes. Even if a term indirectly refers to a sensitive attribute (e.g., a drug category instead of a specific medicine name), it should be included in the list. The list of sensitive attributes provided is not exhaustive — if you encounter any word or phrase that could reasonably be considered sensitive information under privacy laws or common data protection standards (like GDPR, HIPAA, or similar frameworks), include it in the list. Prioritize any data that could identify a person, describe their personal circumstances, or reveal confidential, medical, financial, or legal information. Please preserve the original words from the user’s question to form the attribute list and do not convert full names to abbreviations or abbreviations to full names, and do not add any extra words. Retain all duplicates, regardless of form variations (e.g., burglarize, burglarized, burglarizing). Please strictly return a list of phrases in the format of ["attribute 1", "attribute 2", ..., "attribute n"]. If there is no sensitive attribute, return an empty list []. Try to identify as much as phrases as possible. Question: { question }Sensitive attributes:
+
+Figure 7: The GPT-4o instructions used for private attribute extraction. 
+
+B = 5000 , the reduction ratio ranges from 2×
+
+to 5.6×, whereas at B = 100 , the ratio drops to around 1.6× to 2.1×. Prompt simplification con-sistently reduces the query cost across all batch configurations. 
+
+G.6 Latency Analysis 
+
+The latency can be decomposed into two parts: the idle waiting period used to gather prompts from multiple clients, and the active processing time required to handle the collected batch. The for-mer component depends on the configured window time. We focus on the latter component, which comprises: (i) LLM inference time on the service provider; (ii) attribute combination filtering time for the noise sampler; (iii) prompt grouping time for the noise sampler; (iv) optional user-side query simplification time; (v) remaining overhead, mainly encryption and decryption operations. Components (ii)–(iv) represent the additional latency introduced by SharedRequest’s privacy-preserving protocol. Figure 12 breaks down active batch processing latency under parallelized implementation. It can be observed that attribute combination filtering adds the largest overhead beyond the server-side LLM inference. While prompt simplification sig-nificantly reduces downstream processing time, it introduces an average 1.4s of user-side overhead, illustrating a trade-off between local computation and subsequent latency. In contrast, the overheads for cryptographic operations and prompt grouping are minimal, accounting for only 0.6% and 2% of total latency on average, respectively. 
+
+G.7 Impact of Clustering Parameter 
+
+We study the impact of merging threshold on query costs and accuracies in Figure 13 and 14. As the merging threshold increases, more generic instruc-tions are grouped into fewer clusters, which re-duces both accuracy and query cost. The optimal threshold should be chosen based on the desired trade-off between utility and overhead. 
+
+G.8 Overhead Comparison 
+
+We compare the computation and communication overhead of SharedRequest with existing LLM inference frameworks. We evaluate overhead against two method types: (1) SMPC-based meth-ods (Iron, MPCFormer, BOLT, and NEXUS) and (2) DP-based methods (RanText, CusText and DP-Prompt). Table 5 summarizes the resource requirements and overhead of these inference methods. SMPC-based approaches, due to their multiparty compu-tation protocols, incur significantly higher commu-nication overhead than both SharedRequest and DP-based methods. Moreover, despite running on smaller models (i.e., Bert-base), SMPC-based User Prompt: 
+
+You are an AI designed to generate accurate, contextually relevant, and trustworthy fake sensitive attributes. Your task is to generate one list of fake sensitive attributes for each original attribute provided in filtered private attributes based on the context of the ’question’. The generated attributes must meet the following criteria: 1. Numerical Handling: - If the original attribute is primarily numerical (e.g., percentages, durations, counts), generate fake numerical attributes that have broader variance to reduce guessability. - Avoid clustering numbers closely around the original value. - Avoid adding unnecessary descriptive context (e.g., avoid turning "50%" into "55% of alternative components"). Instead, generate standalone numerical fakes like "20%", "90%", or "10%". - Do not introduce numerical values if the original attribute is non-numerical in any form. (e.g. aviod turning "internship period" into "3 months") 2. Length Consistency: Ensure that the generated fake attributes have a similar length (in words or characters) to the original attribute to maintain fluency and reduce guessability. 3. Sound Sensitive and Relaiable: - The fake attributes should resemble private, confidential, or sensitive concepts, particularly in legal, medical, or financial domains." - Generated fake attributes actually exist in real-world literature. 4. No Rephrasings or Simple Synonyms: Avoid generating superficial rephrasings or synonyms (e.g., do not turn "80 years" into "eight decades"): - Create attributes that keep contextual depth and believability. - Do not generate fakes by slightly modifying words. - The genearted word should under the same category of the original attribute but with strictly distinct meanings. 5. Diversity and Independence: - Generate independent fake attributes for each prompt and do not reference or rely on fake attributes generated for the other prompt. Avoid generating fake attributes that are too similar to each other. - Ensure that the fake attributes are diverse and do not share common themes or patterns. - if the input private attributes are dependent based on the context, generate fake attributes that are dependent on the context as well. 6. Contextual Fluency: - Make sure that the fake attributes fit naturally and coherently within the sentence structure for each context. The list must be structured as follows: - The next five attributes must be unique, fake attributes. - Output format for each list is: [["fake attribute 1_1", ..., "fake attribute 1_n"],...] The input is structured as follows: Private Attributes: { private attributes }Question: { question }Fake attributes for question:  
+
+> Figure 8: The GPT-4o instructions used for alternative attribute generation. Figure 9: Computation cost per generic instruction group (in seconds) for attribute filtering on three datasets using Qwen2.5-0.5B and Qwen2.5-1.5B discriminators.
+> Figure 10: Per-request query cost (in dollars) and reduc-tion ratio under varying privacy parameter ϵ.
+
+methods exhibit higher inference time compared to SharedRequest, which operates on GPT-4o. To our best knowledge, existing SMPC-based tech-niques have only been evaluated on models up to 13B parameters, and their scalability to larger models (e.g., 70B+) remains an open challenge. While SharedRequest has a higher runtime than perturbation-based methods, its substantial utility gains highlight its advantage. 
+
+H Discussions 
+
+H.1 Private Attributes 
+
+Users could identify private attributes and their alternative through: • Named - entity recognition (NER). Deploy standard NER tools (Ehrmann et al., 2023) to identify private information such as dates and locations. • Pre-constructed attribute database. Main-tain a user-curated mapping from private cate-gories to keywords (e.g. “job”: [“cybersecu-rity engineer”, “attorney”,...]). Ontologies like DPV - PD offer structured category definitions and synonym support for this purpose (Pandit et al., 2024). The dictionary can be used to match private attributes in the keyword, and the alternatives can be chosen from keywords of each category. • Local classifier. Train a token-level or span-level model on annotated datasets or token-annotation lexicons to predict whether individ-ual tokens or phrases are sensitive and their privacy categories. • Mask-and-fill via online LLMs. Replace sensitive spans in the prompt with #MASK and request an online LLM to propose plausi-ble substitutes. The validated outputs can be added to the alternative set for Aqi .To ensure the distinguishability between private and candidate attributes, we can enforce a recursive 
+
+(c, l )-diversity constraint on the constructed candi-date set to prevent. For a candidate set S containing the true attribute and alternatives, let Pr( a|T ) be the inferred probability of candidate attribute a ∈ S
+
+given the generic instruction T . After sorting the probability distribution p1 ≥ p2 ≥ · · · ≥ p|S|, we Figure 11: Query cost reduction ratio under varying batch sizes B.                                                      
+
+> Framework Model I./O. size Communication cost Communication setting Runtime SMPC Iron Bert-base (128, 1) 280 GB (3 Gbps, 0.8 ms) ∼475 s MPCFormer Bert-base (128, 1) 12 GB (5 Gbps, 1 ms) ∼55 s BOLT Bert-base (128, 1) 25 GB (3 Gbps, 0.8 ms) ∼185 s NEXUS Bert-base (128, 1) 0.16 GB (100 Mbps, 80 ms) ∼55 s DP RanText GPT-4o (512, ∗)<0.1 MB (100 Mbps, 80 ms) ∼7 s CusText GPT-4o (512, ∗)<0.1 MB (100 Mbps, 80 ms) ∼6.5 s DP-Prompt GPT-4o (512, ∗)<0.1 MB (100 Mbps, 80 ms) ∼7 s
+> Ours SharedRequest GPT-4o (512, ∗)<0.1 MB (100 Mbps, 80 ms) ∼10 s
+
+Table 5: Resource requirement, communication cost, and runtime of privacy-preserving LLM inference frame-works. Values in I./O. size refers to the lengths of input and output tokens, where ∗ denotes an unfixed length. Communication setting specifies the network’s bandwidth and latency parameters. 
+
+Figure 12: Computation time (in seconds) per query for each process. Simplification refers to local query simplification, grouping refers to prompt grouping, and filtering refers to filtering of qualified attribute combina-tions. 
+
+Figure 13: F1 score under varying merging threshold on MMLU-Biz. 
+
+Figure 14: Query cost reduction ratio under varying merging threshold on MMLU-Biz. 
+
+enforce: 
+
+p1 ≤ c
+
+> |S|
+
+X
+
+> i=l
+
+pi, (29) which guarantees that attributes within the candi-date set distributes more evenly. 
+
+H.2 Collision of Generic Instruction 
+
+In some cases, user prompts are highly specific or unique, resulting in very small clusters and lim-ited queries for cost sharing. However, the cost for such extreme cases can be smoothed out by other common instructions on average. Both our theo-retical analysis and empirical results show that the overall reduction is positively correlated with the entropy of the request distribution. In other words, the more skewed (long -tailed) the distribution, the greater the expected amortization benefit, because a larger proportion of prompts have semantically equivalent generic instruction. To reduce per-prompt cost even in those ex-treme cases, we can adaptively adjust the batch window per generic instruction, waiting for suf-ficient queries before forwarding to the service provider. This dynamic batching introduces a nat-ural latency–cost trade - off: longer waiting times enable higher reduction ratios at the expense of increased delay. Furthermore, the noise sampler can support users proactively by estimating the likely cluster size for a given generic instruction based on historical data. The system can warn users when the expected “collision” count is low. The user can then refine or generalize their instruction based on the sampler’s suggestions to increase cluster size. 
+
+H.3 Query Deduplication 
+
+Our framework’s cost analysis implicitly assumes that the service provider can deduplicate identical prompts at inference time and charge only once per unique evaluation. While such deduplication is technically feasible and implementable within a provider’s internal inference stack, current com-mercial LLM APIs might not generally perform this kind of deduplication by default. To address the gap between our cost model and real-world API billing, we propose incorporating an additional non-colluding deduplicator between the noise sampler and service provider: • Encrypted Prompt Deduplication: users en-crypt their private attributes using the dedu-plicator’s public key. The deduplicator de-crypts the private attributes to identify identi-cal prompt for deduplication. • Service Provider Inference: The dedupli-cated prompt set is sent to the service provider, which processes each unique prompt once and returns the corresponding outputs. • Response Expansion and Masking: Upon receiving the responses, the deduplicator ap-plies masking and then expands the responses back to match each user’s original query set. These masked responses are then forwarded to the noise sampler while preserving privacy. Under this design, the deduplicator’s view con-sists of a mixed set of original and noisy prompts that satisfies (An, ϵ )-indistinguishabilit, and by the post-processing property (see Proposition 8), the service provider’s view achieves the same privacy guarantee. According to our empirical evaluation, incorporating the deduplicator incurs within 5% ad-ditional computation cost under our experimental setting, where deduplication is parallelized across clusters. This allows the billing benefits of dedupli-cation to be realized even under pricing models that do not natively support per-prompt deduplication, while still maintaining the privacy guarantees of our framework.

@@ -1,0 +1,726 @@
+Title: Agent-Assisted Side-Channel Attacks on Non-Prefix KV Cache in RAG
+
+URL Source: https://arxiv.org/pdf/2606.21842v1
+
+Published Time: Tue, 23 Jun 2026 01:42:24 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Agent-Assisted Side-Channel Attacks on Non-Prefix KV Cache in RAG 
+
+He Sun 
+
+University of Science and Technology of China 
+
+hesun@mail.ustc.edu.cn 
+
+Shinan Liu 
+
+University of Hong Kong 
+
+shinan6@hku.hk 
+
+Siyuan Ma 
+
+Nanyang Technological University 
+
+MASI0004@e.ntu.edu.sg 
+
+Junhao Li 
+
+University of Science and Technology of China 
+
+lijh2125@mail.ustc.edu.cn 
+
+Mingjun Xiao 
+
+University of Science and Technology of China 
+
+xiaomj@ustc.edu.cn 
+
+Wenhao Jiang 
+
+Guangming Lab 
+
+cswhjiang@gmail.com 
+
+Abstract —Modern Large Language Model (LLM) serving engines increasingly rely on Retrieval-Augmented Generation (RAG) and non-prefix Key-Value (KV) cache fusion to ac-celerate long-context, multi-tenant inference. While existing KV cache side-channel attacks require strict linear prefix alignment—rendering them ineffective against real-world RAG queries that contain unique, user-specific private prefixes—we uncover a critical class of structural vulnerabilities inherent to chunk-aware memory scheduling. We demonstrate that the deterministic micro-architectural mechanisms used to align and fuse disjoint memory chunks inadvertently leak a continuous 
+
+Step-Wave timing signature. Exploiting this physical observation, we introduce SpliceLeak, the first end-to-end side-channel attack targeting non-prefix KV cache fusion. SpliceLeak executes a sys-tematic two-phase privacy breach: it first structurally fingerprints the exact length of hidden private prompts, and subsequently manipulates boundary collisions to extract exact semantic con-tent token-by-token. Extensive evaluations on production-grade frameworks (vLLM integrated with LMCache) demonstrate that SpliceLeak achieves up to a 100% extraction success rate in bounded-entropy scenarios. Driven by a deterministic +104 ms hardware latency void, the attack requires as few as 63 requests per token, piercing through realistic continuous batching noise. To resolve the inherent conflict between memory deduplication and security, we propose SpliceDefense, a bipartite mitigation framework consisting of Quantized Chunk Padding (QCP) and Constant-Time Boundary Fusion (CTBF). Our evaluations con-firm that SpliceDefense effectively flattens the side-channel signal (∆TTFT ≈ 0) with negligible throughput overhead, preserving the critical benefits of global cache sharing. 
+
+I. I NTRODUCTION 
+
+Large Language Models (LLMs) have fundamentally trans-formed natural language processing, demonstrating unprece-dented capabilities across diverse tasks [1], [2], [3]. However, deploying these models for long-context inference introduces severe computational and memory bottlenecks [4], [5]. The prefill phase, characterized by massive quadratic attention matrix calculations, leads to unacceptably high Time-to-First-Token (TTFT) latency [6], [7], [8], [9]. Furthermore, when deployed as general-purpose assistants, LLMs frequently suf-fer from factual hallucinations due to a lack of domain-specific or up-to-date knowledge [10], [11]. To counteract hallucinations, Retrieval-Augmented Genera-tion (RAG) has emerged as the prevailing paradigm, incorpo-rating external knowledge bases to ground responses in factual contexts [12], [13], [14]. Concurrently, to alleviate the TTFT bottlenecks inherent in long-context processing, modern LLM serving engines extensively adopt Key-Value (KV) cache shar-ing [15], [16], [17], [18]. Foundational memory management techniques, such as PagedAttention [15] and RadixAttention [16], enable the fine-grained retention and reuse of KV tensors. However, RAG workloads demand extreme flexibility due to their combinatorial nature. Consequently, state-of-the-art RAG serving frameworks (e.g., LMCache [19] or CacheBlend [20]) have pioneered non-prefix KV cache fusion mechanisms. By enabling the dynamic reuse and stitching of disjoint con-text chunks at arbitrary, non-prefix prompt positions, these advanced architectures drastically reduce the computational latency and memory footprint of complex, multi-document multi-tenant queries. Naturally, the extensive sharing of physical memory states in multi-tenant cloud environments raises severe privacy concerns [21], [22], [23]. Recent pioneering works, such as Shadow in the Cache [24] and PROMPTPEEK [25], have demon-strated that attackers can exploit KV cache sharing as atiming side-channel to deduce prompt lengths and reconstruct sensitive user inputs. However, a fundamental architectural limitation of these existing methods is their strict reliance on linear prefix alignment to establish a timing oracle. In realistic RAG scenarios, retrieved documents are invariably preceded by user-specific private prefixes, such as person-alized system instructions or conversational histories. Even a single-token deviation at the prompt’s root breaks this strict prefix alignment. Consequently, conventional caching mechanisms forcefully isolate the request, falling back to a full attention prefill. Because both correct and incorrect document guesses by the attacker incur this identical full-prefill latency, the macroscopic timing difference collapses entirely ( ∆TTFT ≈ 0). This structural disappearance of the timing signal completely blinds traditional oracles, rendering existing prefix-based attacks fundamentally ineffective in RAG environments and creating a perilous false sense of security. In this paper, we demonstrate that this perceived se-curity is fundamentally illusory. We reveal that the core 
+
+> arXiv:2606.21842v1 [cs.CR] 20 Jun 2026
+
+micro-architectural optimizations driving RAG through-put—specifically, fixed-size chunk routing and non-prefix se-lective re-computation—inherently violate cross-tenant timing isolation. Because modern serving engines must strictly align memory blocks to stitch disjoint context chunks, they are forced to trigger a deterministic attention re-computation for any unaligned residual tokens at the fusion boundary. We expose that this deterministic scheduling manifests as a high-fidelity micro-architectural side-channel. Through rigorous empirical profiling, we uncover the Step-Wave Effect :rather than a discrete cache-miss penalty, the latency overhead strictly adheres to a bipartite linear model, governed by the fixed chunk routing cost (e.g., intercept) and the unaligned tail prefill cost (e.g., slope). By mathematically inverting this physical hardware behavior, an attacker completely cir-cumvents the strict prefix isolation barrier, weaponizing the memory scheduler itself into a high-resolution, continuous length oracle. Operationalizing this micro-architectural vulnerability, we present SpliceLeak , the first practical end-to-end side-channel exploit targeting non-prefix KV cache fusion in multi-tenant RAG systems. SpliceLeak orchestrates a highly deterministic two-phase privacy breach: 1) Phase I: Structural Fingerprinting. By leveraging the Step-Wave Oracle, an attacker mathematically recon-structs the exact length of a victim’s hidden prefix from a single TTFT measurement. This structural fingerprinting achieves single-token precision, drastically reducing the semantic entropy of the targeted prompt. 2) Phase II: Semantic Extraction. Armed with this pre-cise structural blueprint, the attacker deploys an LLM-driven Extraction Agent . By dynamically generating high-probability vocabulary subsets and continuously monitoring the deterministic cache collision penalties at the fusion boundary, the agent iteratively reverse-engineers the victim’s private semantics token-by-token in a continuous right-to-left traversal. Finally, recognizing the critical tension between aggressive memory deduplication and micro-architectural isolation, we propose SpliceDefense , a synergistic, two-stage mitigation framework. Moving beyond naive isolation paradigms that destroy cache sharing, SpliceDefense introduces Quantized Chunk Padding (QCP) to neutralize structural length oracles, and Constant-Time Boundary Fusion (CTBF) to eliminate semantic timing dips. Together, they effectively eradicate the side-channel Signal-to-Noise Ratio (SNR) while preserving the critical throughput benefits of global KV cache sharing. In summary, our core contributions are:  
+
+> •
+
+Vulnerability Discovery & Theoretical Modeling: We identify a fundamental micro-architectural vulnerability in modern non-prefix KV cache fusion mechanisms. We are the first to mathematically model the Step-Wave Effect 
+
+in chunk-aware memory scheduling, proving that current prefix-centric threat models severely underestimate the privacy risks in multi-tenant LLMaaS environments.  
+
+> •
+
+Novel Agentic Attack Framework (SpliceLeak): We design and implement SpliceLeak, a robust two-phase attack that perfectly bypasses strict prefix isolation barri-ers. Empowered by an automated algorithmic extraction pipeline, we demonstrate its lethality across three dis-tinct real-world scenarios: Confidential Input Extraction, Proprietary Template Reverse-Engineering, and Zero-Knowledge Privacy Reconstruction.  
+
+> •
+
+Comprehensive Empirical Evaluation: We systemat-ically evaluate SpliceLeak on production-grade serving architectures (vLLM with LMCache) utilizing advanced GQA/MHA mechanisms. Our bulk experiments reveal up to a 100% extraction success rate across structured templates and bounded-search scenarios. Driven by a deterministic hardware latency void (e.g., +104 ms), SpliceLeak systematically extracts deeply private seman-tics utilizing as few as 63 requests per token, demonstrat-ing high resilience against practical continuous batching noise.  
+
+> •
+
+Deployable Mitigations (SpliceDefense): We resolve the inherent conflict between non-prefix memory deduplica-tion and side-channel security by proposing SpliceDe-fense. Through real-world micro-architectural validation, we confirm that our coordinated QCP and CTBF mech-anisms completely flatten the physical TTFT signal (∆TTFT ≈ 0) with negligible throughput overhead, effectively restoring strict timing isolation and mitigating micro-architectural side-channels for RAG frameworks II. B ACKGROUND 
+
+LLM Generation and Strict Prefix Caching. Modern LLM inference operates autoregressively, systematically divided into two distinct phases: prefill and decode [1], [2]. During the pre-fill phase, the serving engine ingests the entire input sequence in parallel to compute the initial hidden states and material-ize the Key-Value (KV) tensors. Because the computational complexity of the attention mechanism scales quadratically with the sequence length [26], [27], processing extensive contexts—such as those inherent to RAG workloads—requires massive, compute-bound matrix multiplications. Consequently, this prefill phase stands as the primary bottleneck dominat-ing the Time-to-First-Token (TTFT) latency. To mitigate this severe computational overhead, state-of-the-art LLM serving frameworks, most notably vLLM [15] and SGLang [16], have pioneered strict prefix caching mechanisms. As illustrated in Figure 1(a), when multiple requests share an identical, contiguous starting sequence (e.g., the shared instruction “Imagine you are a cloud engineer...” for both User 1 and User 2), the engine computes and retains the KV tensors for this common prefix (highlighted in green). When the prompts subsequently diverge (e.g., “AWS” versus “Azure”, highlighted in red), the system only executes the computationally expensive prefill for the newly appended query-specific tokens. In the subsequent memory-bound de-code phase, the model generates new tokens sequentially, 2Fig. 1: Comparison of KV cache sharing mechanisms in LLM serving and RAG-optimized serving. (a) Traditional strict prefix caching, where the common prefix from the beginning of the sequence can be reused, while divergent suffix tokens are computed for each request. (b) RAG-optimized arbitrary-position chunk sharing, where retrieved document chunks can be modularly reused independent of their positions in the prompt. utilizing the fully assembled KV cache to bypass redundant matrix multiplications. 
+
+Continuous Batching and Scheduling Determinism. To maximize GPU utilization in multi-tenant environments, mod-ern engines employ continuous batching (or iteration-level scheduling). Unlike static batching, continuous batching dy-namically injects new requests into the active execution queue at the token-generation iteration boundary. Crucially, the scheduler inherently prioritizes requests whose KV states are already materialized in the cache. If a new request shares a cached prefix (as seen in Figure 1(a)), it rapidly bypasses the extensive prefill stage and is prioritized to enter the decode phase. While this mechanism drastically optimizes overall sys-tem throughput, it inadvertently introduces a highly determin-istic relative processing order among concurrent requests. This prioritization logic transforms a performance optimization into a measurable micro-architectural vulnerability, serving as the foundation for scheduling-based side-channel leakage [25], [24]. 
+
+Retrieval-Augmented Generation (RAG) Serving Work-flow. While LLMs demonstrate remarkable generative capa-bilities, they inherently suffer from hallucinations and knowl-edge cut-offs when responding to domain-specific or real-time queries [11], [10]. RAG architectures effectively mitigate these limitations by dynamically injecting external knowledge into the generation pipeline. As illustrated in Figure 1(b), a standard RAG serving workflow comprises distinct retrieval and generation phases. When a user submits an initial query, the retriever searches a vector database to fetch the top-k most relevant document chunks. Subsequently, the serving engine assembles a composite prompt for the LLM to generate the final output. Crucially, this composite prompt is highly structural and combinato-rial. Rather than a simple linear text input, it is typically constructed by concatenating a foundational private system instruction (e.g., a designated persona like “cloud engineer”), the retrieved modular chunks, and the specific user query. This combinatorial paradigm dictates that while the underlying retrieved documents are frequently shared and reused across multiple distinct user requests (e.g., Chunk 1 being utilized by both User A and User C), their absolute sequence positions and surrounding contextual tokens are highly dynamic. Con-sequently, modern RAG systems require advanced, position-independent chunk sharing mechanisms to efficiently cache and reuse these modular knowledge components [20], [19], fundamentally bypassing the restrictive linear requirements of traditional strict prefix caching. 
+
+From Prefix Caching to Arbitrary Chunk Reuse. To alleviate the severe TTFT bottlenecks inherent to the prefill phase, cloud providers implement KV cache sharing. Tra-ditional frameworks (e.g., vLLM [15], SGLang [16]) uti-lize strict prefix caching, which retains and shares the KV tensors of identical initial tokens across multiple requests. However, this architecture relies on a strict linear match-ing assumption: if a sequence diverges by even a single token—such as a personalized, private system instruction prepended to a user’s prompt—the cache match instantly aborts. Consequently, standard prefix caching is fundamentally inadequate for multi-tenant RAG workloads, where highly reusable retrieved chunks are invariably preceded by distinct, user-specific private contexts. To unlock the performance potential of RAG serving, next-generation frameworks (e.g., LMCache [19] or CacheBlend [20]) have introduced non-prefix KV cache fusion . This mech-anism enables the arbitrary, position-independent reuse of retrieved document chunks. To manage GPU memory I/O 30 20 40 60 80 100 120 140 160 
+
+> Execution Time (ms)
+> Total: 20 ms
+> Ideal Strict
+> Prefix Match
+> (Attack Success)
+> Total: 150 ms
+> Realistic RAG
+> Prefix Mismatch
+> (Attack Failure)
+> Private system prompt mismatch prevents reaching the
+> shared RAG chunk in the cache tree, forcing full re-computation.
+> Full Attention Prefill
+> (Miss)
+> Network & Tokenize
+> Prefix Match Check
+> Prefix Mismatch Detected
+> Fast KV Load (Hit)
+> Full Attention Prefill (Miss)
+> First Token Decode
+
+Fig. 2: Micro-architectural execution timeline comparing an ideal prefix cache hit against a RAG prefix mismatch. The mismatch forces a fallback to the slow Full Attention Prefill, neutralizing the latency advantage of the cached chunk. efficiently, these systems partition cached documents into fixed-size KV blocks. When a disjoint, pre-cached chunk is fused into a new prompt at an arbitrary position, the system executes a specialized process known as KV Blending. Due to positional encoding shifts (e.g., RoPE) and cross-attention dependencies, the engine cannot simply concatenate memory pointers. Instead, it performs selective re-computation: it se-lectively routes and loads the maximally aligned full chunks directly from the shared memory pool, while forcing a full attention prefill for any unaligned residual tokens (i.e., the tail). While this selective re-computation drastically reduces la-tency compared to a full prefill, its computational overhead is strictly bipartite: a fixed memory routing cost per aligned chunk, and a linear computational penalty for the unaligned tail tokens modulo the chunk size. As we will demonstrate, this deterministic, chunk-aware scheduling logic inadvertently transforms the engine’s prefill latency into a high-fidelity, micro-architectural timing fingerprint. III. M OTIVATION : L IMITATIONS OF EXISTING WORKS 
+
+Mechanisms of Existing Side-Channel Attacks. Recent pioneering studies, such as Shadow in the Cache [24] and PROMPTPEEK [25], have successfully demonstrated that shared KV caches in multi-tenant LLM serving can be ex-ploited as a timing side-channel. The core principle relies on treating the LLM serving engine as a Timing Oracle. By sending a carefully crafted probe prompt, the attacker mea-sures the TTFT. A significantly low TTFT indicates a Cache Hit (i.e., the victim has queried the exact sequence), while a high TTFT indicates a Cache Miss. Attackers exploit this macroscopic timing difference ( ∆T ) to reconstruct the victim’s prompt token-by-token. However, a fundamental architectural prerequisite for this oracle to function is strict prefix alignment .The attacker’s probe must perfectly match the victim’s prompt starting from the very first token to trigger the underlying PagedAttention/RadixTree hit. 
+
+The Paradigm Shift in RAG Serving. This strict prefix assumption structurally conflicts with the practical deployment of Retrieval-Augmented Generation. A standard RAG prompt Ideal Assumption  
+
+> (Strict Prefix
+> Match)
+> Realistic RAG
+> (Prefix
+> Mismatch)
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> Timing Signal Δ T (ms)
+> 17.68 ms
+> 0.06 ms
+> Loss of Prompt
+> Reconstruction Signal
+> in RAG
+> Signal Lost
+> (ΔT≈ 0 )
+
+(a) Macroscopic timing signal col-lapse ( ∆T ). 50 100 150   
+
+> TTFT (ms)
+> 0.000
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> 0.150
+> 0.175
+> 0.200
+> Density
+> ΔT≈ 0.06 ms
+> submerged in noise
+> Ideal Prefix Match
+> (Hit)
+> RAG Baseline
+> (Miss)
+> RAG Prefix Mismatch
+> (Pseudo-Hit)
+
+(b) Statistical submergence of ∆T
+
+in system noise. 
+
+Fig. 3: Vulnerability of traditional timing side-channel attacks in multi-tenant RAG frameworks. (a) In an ideal strict prefix matching scenario, a successful guess yields an exploitable timing signal ( ∆T ≈ 17 .68 ms). In realistic RAG envi-ronments, the inevitable prefix mismatch triggers full re-computation, causing the macroscopic signal to collapse. (b) The resulting marginal timing difference ( ∆T ≈ 0.06 ms) is statistically submerged within system noise, rendering Cache Miss and Pseudo-Hit practically indistinguishable. is intrinsically composite: it begins with a user-specific private prefix Pvic (e.g., persona settings or conversational history), followed by the retrieved knowledge chunks Ctarget , and concludes with the specific query. To optimize the reuse of 
+
+Ctarget despite the personalized prefixes, next-generation RAG serving frameworks (e.g., LMCache [19], [20]) utilize non-prefix KV cache fusion . These frameworks dynamically locate and reuse cached chunk tensors even when they appear at arbitrary, non-prefix positions. 
+
+Micro-Architectural Fallback: Why Traditional Attacks Fail. This architectural evolution completely blinds the tra-ditional timing oracle. In a realistic RAG scenario, an at-tacker might correctly guess the retrieved document but will inevitably fail to perfectly guess the victim’s unique, hidden system prefix. Even a single-token deviation at the root of the prompt breaks the strict prefix alignment. As illustrated in the execution timeline in Figure 2, standard caching mechanisms will aggressively isolate the request upon detecting this mis-match at the first token of the prefix. Consequently, the engine treats the request as a complete Cache Miss, falling back to a computationally expensive Full Attention Prefill for the entire sequence. When both correct and incorrect document guesses result in an identical full-prefill pathway, the timing difference (∆T ) collapses to zero, annihilating the side-channel. 
+
+Empirical Validation. To empirically validate this signal collapse, we conducted a controlled side-channel experiment using the LLaMA-2-7B model. We simulated a prompt re-construction attack targeting a 300-token document under two strictly controlled scenarios using vLLM [15] and LMCache [19], [20]:  
+
+> •
+
+Ideal Assumption (Strict Prefix Match): The attacker perfectly guesses both the system prefix and the target 4document, representing the optimistic threat model of prior works.  
+
+> •
+
+Realistic RAG (Prefix Mismatch): The attacker targets the correct document but uses an incorrect system prefix. To rigorously isolate the computational overhead and eliminate length bias, we forced the tokenizer to align the absolute lengths of both the correct and incorrect probes to 300 tokens. As shown in Figure 3(a), the results reveal a stark contrast. Under the ideal assumption, a cache hit yields a substantial and easily exploitable timing signal ( ∆T ≈ 17 .68 ms). However, in the realistic RAG scenario, the minor prefix mismatch forces a full prefill, crushing the timing signal to a mere 
+
+∆T ≈ 0.06 ms. Furthermore, as depicted in the Probability Density Function (KDE) plot in Figure 3(b), this 0.06 ms residual difference is entirely swallowed by the systemic noise of kernel scheduling and network jitter. The distributions for a Cache Miss and a “Pseudo-Hit” perfectly overlap, proving that existing prefix-dependent side-channel attacks are statistically and fundamentally ineffective in RAG workloads. 
+
+Orthogonality to Existing RAG Security Research. Recent security research on RAG systems has primarily focused on application-layer threats and knowledge base vulnerabilities. A significant line of work investigates data poisoning and ad-versarial manipulation (e.g., PoisonedRAG [28], FlippedRAG [29], Topic-FlipRAG [30]), demonstrating how malicious doc-uments can manipulate LLM outputs. Similarly, works like ImportSnare [31] and CodeGuarder [32] address code vulner-abilities injected through untrusted retrieval manuals. Other prominent works focus on availability via “jamming” attacks [33] or Intellectual Property (IP) protection via watermarking [34]. While these pioneering works comprehensively address 
+
+content-level security originating from malicious inputs or untrusted corpora, they implicitly assume that the underly-ing cloud serving infrastructure securely isolates concurrent users. They do not investigate the system-level and micro-architectural vulnerabilities introduced by multi-tenant per-formance optimizations. These studies are orthogonal to the timing side-channels caused by continuous batching and non-prefix KV cache fusion. Consequently, their threat models cannot address the structural privacy leaks targeted in this paper, where an unprivileged attacker extracts sensitive prompt properties merely by exploiting the memory blending dynam-ics of advanced RAG serving engines. IV. O VERVIEW 
+
+Retrieval-Augmented Generation serving has become ubiq-uitous, powering a broad spectrum of applications ranging from large-scale, multi-tenant public cloud platforms to inter-nal enterprise intelligent assistants. However, this widespread deployment introduces severe, yet previously unexplored, pri-vacy challenges. To the best of our knowledge, this is the first work to systematically expose and exploit micro-architectural side-channel vulnerabilities inherent in modern RAG serving Requests Adversarial Probe Outputs Side Channel Signal 
+
+> Vector Database RAG Engine
+> Cloud Serving Provider
+> Retrieval
+> GPU Workers
+> Composite Prompt
+> Tasks Scheduler
+> KV Cache LLM Victim Clients Attacker Clients
+
+Fig. 4: High-level overview of our system model for multi-tenant RAG serving. pipelines. In this section, we establish the foundational frame-work for our study. We first formulate a unified system model that characterizes the modular architecture of advanced RAG serving engines (Section IV-A). Next, we rigorously define the threat model, detailing the attacker’s capabilities, assumptions, and privacy-extraction goals (Section IV-B). Subsequently, we analyze the emerging micro-architectural side-channel oppor-tunities and provide a high-level overview of our proposed attack methodology (Section IV-C). Finally, recognizing the critical need for remediation, we formalize a comprehensive defense policy designed to systematically mitigate these vul-nerabilities while preserving serving efficiency (Section IV-D). 
+
+A. System Model 
+
+Our research targets modern multi-tenant LLM serving engines (denoted as Esys ) optimized for RAG workloads. To mitigate the massive I/O and computation bottlenecks caused by long-context documents, advanced frameworks (e.g., LM-Cache [19], [20]) implement a Non-Prefix KV Cache Fusion 
+
+mechanism. As illustrated in Figure 4, our system architecture comprises a retrieval layer and a serving layer interconnected within a cloud infrastructure, enabling arbitrary, position-independent reuse of granular knowledge chunks. 
+
+Entities. We identify three principal entities within this multi-tenant ecosystem:  
+
+> •
+
+Cloud Serving Provider. The encompassing infrastruc-ture that hosts Esys . As depicted in Figure 4, it integrates four core internal components: the Tasks Scheduler that queues incoming requests, the Vector Database storing retrievable documents, the RAG Engine acting as the central orchestrator, and the GPU Workers equipped with the LLM and a global, unified KV Cache pool (denoted as 
+
+Ωshared ). Upon receiving a task, the RAG Engine fetches relevant document chunks via Retrieval , assembles a
+
+Composite Prompt , and dispatches it to the GPU Workers where pre-computed tensors are dynamically loaded from 
+
+Ωshared and fused with new inputs.  
+
+> •
+
+Victim Clients. Legitimate users interacting with the RAG service via standard Requests and Outputs . The victim’s input sequence, denoted as Xvic , is structurally composed of three segments: Xvic = Pvic ∥ C target ∥Qvic , where ∥ denotes sequence concatenation. Here, 
+
+Pvic represents the victim’s highly confidential private 5prefix. To illustrate, in a healthcare RAG application, Pvic 
+
+typically encapsulates highly sensitive implicit context dynamically injected by the backend (e.g., a hidden system profile detailing the user’s medical history, such as “Patient is HIV-positive and currently on antiretroviral therapy” ). Ctarget represents the shared public knowledge chunk retrieved from the vector database (e.g., the phar-macological contraindications of a common antibiotic ), and Qvic is the explicit, often benign, user query (e.g., 
+
+“Are there any severe side effects if I take this medica-tion?” ). By system design, both the semantic content and the structural length ( Nvic = |P vic |) of the private prefix are strictly isolated from other tenants, even when Pvic is semantically intertwined with the shared retrieved chunk 
+
+Ctarget . 
+
+> •
+
+Attacker Clients. A co-located adversarial tenant uti-lizing the same Esys instance. The attacker submits an 
+
+Adversarial Probe , structurally crafted as Xadv = Padv ∥Ctarget ∥ Q adv . Here, Padv is an attacker-controlled pre-fix with a meticulously chosen length ( Nadv = |P adv |). Without requiring any special system privileges, the at-tacker’s objective is to systematically modulate Nadv to trigger and monitor deterministic Side-Channel Signals 
+
+(e.g., latency anomalies) during the engine’s cross-chunk KV fusion phase. By analyzing these signals, the attacker dynamically extracts the private properties—both the structural length Nvic and the deep semantic content (e.g., the hidden HIV status) of Pvic .
+
+Policy Specifications. The operations within our system model are governed by a suite of policies tailored for advanced RAG serving:  
+
+> •
+
+Retrieval Policy ( Pret ). When a client submits a query, the RAG Engine queries the Vector Database to fetch the top-k most semantically relevant document chunks. Cru-cially, these chunks are treated as modular components that can be placed at arbitrary positions within the final composite prompt, independent of the sequence’s starting tokens.  
+
+> •
+
+KV Cache Policy ( PKV ). Unlike traditional strict prefix caching that evicts cache entries upon the first token mis-match, Esys maintains Ωshared within the GPU Workers as a modular memory pool. The KV states of frequently retrieved public chunks ( Ctarget ) are persistently stored. Access to Ωshared is shared globally across all tenants (clients) to maximize memory efficiency.  
+
+> •
+
+Chunk-Aware Blending Policy (Pblend ). While ad-vanced engines utilize KV Blending to stitch the pre-computed tensors of Ctarget with the private prefix ( Pvic 
+
+or Padv ), the critical operational unit of this policy is the fixed-size memory chunk (e.g., the block size B = 256 
+
+tokens). During the assembly of Xvic or Xadv , the GPU Workers selectively route and load the maximally aligned full chunks of Ctarget directly from Ωshared .Consequently, any unaligned residual tokens—referred to as the sequence tail —cannot be directly memory-mapped and must undergo Selective Re-computation to restore attention states. As we will demonstrate, this chunk-level memory allocation combined with the tail re-computation introduces a deterministic, step-wave-like execution latency, serving as the primary side-channel leakage source continuously monitored by the attacker. 
+
+B. Threat Model 
+
+We consider a realistic and highly restrictive threat model that strictly adheres to the operational constraints of modern cloud-based LLM-as-a-Service (LLMaaS) environments. Cru-cially, the adversary operates entirely in a black-box setting from a system administration perspective. 
+
+Attacker’s Goal. The ultimate objective of the adversary is to breach the KV cache memory isolation of the RAG serving engine, systematically reconstructing the highly confidential private prefix ( Pvic ) of co-located tenants. Depending on the adversary’s background knowledge of the LLM application (e.g., whether the adversary and the victim are using the same service template), the specific extraction target may vary from a single sensitive user variable to the entire proprietary system instruction. We examine these diverse extraction scenarios in detail in Section VII. To achieve this, the attacker executes a two-phase strategy: 1) Phase I: Structural Fingerprinting. Exploiting micro-architectural timing anomalies (e.g., the Step-Wave Ef-fect ) to mathematically deduce the exact hidden token length ( Nvic ) of the victim’s context. 2) Phase II: Semantic Extraction. Utilizing Nvic as an indispensable anchor to manipulate boundary collisions, forcing the engine to leak the exact semantic content of 
+
+Pvic token-by-token. 
+
+Attacker’s Capabilities. The adversary possesses the same capabilities as an ordinary user, with no direct control or visibility over the inference server’s physical hardware, hy-pervisor, or internal memory states (e.g., KV cache pointers). They can only interact with the server through standard client APIs to submit textual prompts ( Xadv ) and observe the end-to-end response latency (specifically, the TTFT). Following standard assumptions in prior side-channel re-search, we assume the attacker is aware of the default internal mechanisms of the LLM serving framework, specifically the deployment of chunk-aware non-prefix KV cache fusion. The background knowledge extends to the target LLM’s public tokenizer, which is widely accessible for both open-source and commercial models. Furthermore, to execute Phase II efficiently, we assume the attacker possesses a standard offline auxiliary LLM. This local model is utilized to generate high-probability token candidates based on contextual semantics, drastically reducing the search space required for the online oracle. 
+
+System Assumptions. The attack relies on two practical pre-conditions: (1) Co-residency: The attacker achieves logical co-residency with the victim on the same physical serving node, a probabilistic inevitability in dense multi-tenant architectures [35], [36], [25], [37]. (2) Shared Corpus: The attacker can 6Fig. 5: TTFT side-channel in a 16K-token RAG scenario (n = 30 ). (a) Histogram showing a distinct latency shift for cache hits. (b) Boxplot confirming a statistically significant latency drop ( ∆ ≈ 464 ms, Welch’s p = 0.025 ) upon retrieving a cached document. This validates that cross-tenant timing leakage pierces systemic noise. identify or reasonably guess the public knowledge chunks (Ctarget ) retrieved by the RAG system. This is highly realistic in domain-specific applications (e.g., enterprise legal analysis) where multiple tenants frequently query a centralized, deter-ministic knowledge base [19], [20]. 
+
+C. Attack Overview 
+
+To breach the KV cache memory isolation enforced by modern RAG serving frameworks, we propose a novel two-phase attack methodology. This attack exploits deterministic micro-architectural timing anomalies—introduced during se-lective KV cache re-computation and cross-chunk fusion—to systematically compromise both access privacy and semantic confidentiality. 
+
+Phase I: Structural Fingerprinting via Hierarchical TTFT Side-Channels. The first phase of our attack establishes a high-resolution structural blueprint of the victim’s hidden context by exploiting hierarchical timing leakages. When the serving engine ( Esys ) fuses a shared, pre-computed KV tensor ( Ctarget ) into an attacker’s context, it circumvents the computationally expensive full prefill phase. We demonstrate that this micro-architectural acceleration can be observed and exploited at two distinct resolutions: 
+
+1) The Binary Cache-Hit Oracle: As empirically validated in Figure 5, profiling the TTFT ( TT T F T ) across a massive 16K-token RAG context reveals a pronounced distribution gap. A fresh cache miss incurs a substantial prefill latency (mean TT T F T = 8120 ms), whereas a cache hit leveraging the fusion mechanism significantly accelerates the response (mean TT T F T = 7656 ms). This latency reduction ( ∆ ≈ 464 
+
+ms) is highly statistically significant (e.g., Welch’s t-test [38], 
+
+p = 0 .025 at the significance level α = 0 .05 , n = 30 ). This formally proves that the observed timing discrepancy is not an artifact of random system noise or network jitter, but a deterministic binary signal. By crafting probe queries that trigger the retrieval of specific sensitive chunks, an attacker can exploit this oracle to definitively sniff the victim’s retrieval intent. 
+
+2) The Step-Wave Length Oracle: The vulnerability extends far beyond simple binary detection. As demonstrated in our micro-architectural profiling (Figure 6), the underlying fusion mechanism inadvertently acts as a high-resolution length or-acle. As illustrated in Figure 6(a), rather than following a theoretical sawtooth pattern, TT T F T exhibits a deterministic 
+
+Step-Wave distribution as document length L increases. This phenomenon is driven by the fixed-size block management of the engine (where B denotes the block size, e.g., B = 256 in frameworks like lmcache [19], [20]). This empowers the attacker to hierarchically extract the structural fingerprint: First, as shown in Figure 6(b), the abso-lute TT T F T strictly correlates with the number of full chunks (⌊L/B ⌋), exposing the macro-level length with zero error due to the per-chunk blending overhead ( b ≈ 38 .6 ms/chunk). Second, as shown in Figure 6(c), within each chunk group, the residual latency linearly exposes the partial tail length (L mod B) driven by the tail prefill overhead ( a ≈ 0.13 
+
+ms/tok, intra-group r ≈ 0.91 ). By synthesizing these signals, the attacker can pinpoint the precise token length of the hidden context ( Nvic ) with an unprecedented accuracy of ±30 tokens. 
+
+Phase II: Semantic Extraction via SpliceLeak. Armed with the high-resolution structural blueprint derived from the step-wave oracle, the attacker transitions from structural fingerprint-ing to targeted semantic extraction. Crucially, uncovering the precise token length ( Nvic ) resolves the previously intractable challenge of block misalignment. It empowers the attacker to strategically craft probing prefixes that perfectly align with the engine’s fixed KV block boundaries (e.g., B = 256 -token chunks in CacheBlend ). By precisely manipulating the boundary tokens immediately adjacent to the fusion point of 
+
+Ctarget , and exploiting the deterministic KV block allocation and selective re-computation logic of the engine, the attacker can force the system to systematically leak the actual semantic contents comprising the victim’s prompt ( Pvic ). The rigor-ous mathematical modeling of this boundary-aligned leakage channel, alongside the end-to-end extraction algorithms, will be comprehensively detailed in Section V. 
+
+D. Defense Policy 
+
+The discovery of the SpliceLeak vulnerability underscores a critical tension between aggressive performance optimization (e.g., arbitrary position chunk sharing) and fundamental KV cache memory isolation in multi-tenant LLM serving. Recog-nizing the urgent need for remediation, we propose a com-prehensive defense policy designed to systematically mitigate these micro-architectural side-channels while preserving the throughput benefits of RAG-optimized caching. Our proposed mitigation strategies operate across two dis-tinct architectural layers:  
+
+> •
+
+System-Level Isolation (Namespace Partitioning): We advocate for the enforcement of strict tenant-level iso-lation within the global KV cache pool ( Ωshared ). By configuring the serving engine (e.g., vLLM or LMCache) to bind cached chunks to specific tenant cryptographic 7256 512 768 1024 1280                                    
+
+> Document Length L(tokens)
+> 3050
+> 3100
+> 3150
+> 3200
+> TTFT (ms)
+> b38.6 ms
+> Slope a 0.13 ms/tok
+> (a) TTFT vs. L: The Step-Wave Phenomenon
+> 12345
+> Cached Full Chunks L/256
+> 3100
+> 3150
+> 3200
+> 3250
+> TTFT (ms)
+> 3091
+> 3130
+> 3168
+> 3206
+> 3231
+> r= 0.955, p< 10 47
+> (b) Phase I: Macro Chunk-Count Leakage
+> b= 38.6 ms/chunk
+> 050 100 150 200 250
+> Partial Tail Lmod 256 (tokens)
+> 3075
+> 3100
+> 3125
+> 3150
+> 3175
+> 3200
+> 3225
+> TTFT (ms)
+> Intra-group r0.91
+> (c) Phase II: Micro Partial-Tail Leakage
+> Nchunk = 1 Nchunk = 2 Nchunk = 3 Nchunk = 4 Nchunk = 5
+
+Fig. 6: Micro-architectural profiling of the Step-Wave TTFT side-channel in LMCache. (a) The overall TT T F T exhibits a distinctive step-wave pattern as document length L increases, defying the theoretical sawtooth model. (b) Phase I: The absolute 
+
+TT T F T strictly correlates with the number of full chunks ( ⌊L/ 256 ⌋), exposing the macro-level length with zero error ( b ≈
+
+38 .6 ms/chunk). (c) Phase II: Within each chunk group, the residual TT T F T linearly correlates with the partial tail length (L mod 256 ), forming a micro-level length oracle with an intra-group correlation of r ≈ 0.91 (a ≈ 0.13 ms/tok). namespaces, we physically prevent cross-tenant non-prefix fusion. While this reduces the global cache hit rate for public documents, it decisively neutralizes the attacker’s ability to trigger the selective re-computation penalty on a victim’s cached tensor.  
+
+> •
+
+Micro-Architectural Obfuscation (Alignment Noise Injection): For environments where cross-tenant sharing is strictly necessary for economic viability, we pro-pose modifying the underlying PagedAttention scheduler. By intentionally injecting randomized padding tokens (dummy computations) during the fusion phase, the en-gine can artificially misalign the blocks or equalize the selective re-computation latency. This effectively destroys the high-resolution timing profile required for the Phase I Structural Fingerprinting attack, submerging the align-ment signal beneath an impenetrable layer of algorithmic noise. The detailed implementation and performance overhead evalu-ation of these defense mechanisms are presented in Section VI. V. S PLICE LEAK : S EMANTIC EXTRACTION 
+
+METHODOLOGY 
+
+In Phase I of our methodology, we established that the micro-architectural Step-Wave Effect reliably exposes the exact structural length ( Nvic ) of the victim’s hidden private prefix 
+
+Pvic . In this section, we detail SpliceLeak , the second phase of our attack. We first formalize the physical boundary-anchored token extraction mechanism, and subsequently intro-duce an LLM-driven Agentic framework that synergizes micro-architectural feedback with advanced contextual reasoning to execute scenario-driven privacy extraction. 
+
+A. Boundary-Anchored Extraction Mechanism 
+
+The core vulnerability enabling SpliceLeak’s semantic ex-traction lies in the engine’s deterministic Key-Value (KV) deviation evaluation during cross-chunk fusion. Let the vic-tim’s targeted private prefix be Pvic = [ t1, t 2, . . . , t Nvic ]. The attacker initially targets the boundary token tNvic , positioned immediately adjacent to the shared retrieved chunk Ctarget .Armed with Nvic , the attacker constructs an adversarial probe Xadv composed of a precisely calculated padding se-quence Ppad (where |P pad | = Nvic − 1), a guessed candidate token tguess ∈ V (where V is the model’s vocabulary), and the shared chunk Ctarget :
+
+Xadv = Ppad ∥ tguess ∥ C target (1) When the serving engine processes Xadv , it evaluates the L2-deviation between the incoming KV states and the cached states of Ctarget . If the guessed token exactly matches the victim’s true boundary token ( tguess = tNvic ), semantic conti-nuity is preserved, minimizing the cross-attention discrepancy. This triggers a zero-collision state, drastically reducing the selective re-computation budget. The attacker observes this as a deterministic, statistically significant drop in TT T F T . By shifting the padding length leftward iteratively and appending successfully extracted tokens, the attacker can traverse the prefix in reverse. 
+
+B. LLM-Driven Agentic Extraction Framework 
+
+While a naive right-to-left reverse brute-force across the entire LLM vocabulary V (typically > 32 , 000 tokens) is the-oretically possible, it incurs a prohibitively high API request cost (Req./tok). To bridge the gap between a theoretical hard-ware vulnerability and a practical, lethal exploit, we formulate the SpliceLeak attacker as a Side-Channel Feedback-Driven Extraction Agent (ALLM ). 
+
+Agentic Capabilities: Depending on the attacker’s opera-tional constraints, ALLM can be instantiated in two modali-ties. In an extremely restrictive, air-gapped threat model, the attacker can deploy a lightweight local open-source model (e.g., Llama-3-8B [39]) to ensure zero external reliance. Conversely, an unconstrained attacker can leverage state-of-the-art commercial APIs (e.g., GPT-5 [40] or Gemini 3 Pro [41]). By feeding the known public chunk ( Ctarget ) and any 8Algorithm 1 SpliceLeak: Agentic Right-to-Left Token Extrac-tion 
+
+Require: Shared RAG chunk Ctarget , Target prefix length 
+
+Nvic 
+
+Require: Extraction Agent ALLM (Local Model or External API) 
+
+Require: Threshold δth for TTFT deviation drop 
+
+Ensure: Extracted sequence Sextracted  
+
+> 1:
+
+Sextracted ← []  
+
+> 2:
+
+for i = Nvic down to 1 do  
+
+> 3:
+
+Ppad ← GeneratePaddingSequence (i − 1)  
+
+> 4:
+
+Vsub ← A LLM .PredictCandidates (Sextracted , Ctarget ) 
+
+> 5:
+
+Tbaseline ← ∞  
+
+> 6:
+
+ttarget ← NULL  
+
+> 7:
+
+for each tguess ∈ V sub do  
+
+> 8:
+
+Xadv ← P pad ∥ tguess ∥ S extracted ∥ C target  
+
+> 9:
+
+Tcurrent ← Measure TTFT (Xadv ) ▷
+
+Side-Channel Oracle  
+
+> 10:
+
+if Tcurrent < Tbaseline − δth then  
+
+> 11:
+
+Tbaseline ← T current  
+
+> 12:
+
+ttarget ← tguess  
+
+> 13:
+
+end if  
+
+> 14:
+
+end for  
+
+> 15:
+
+if ttarget ̸ = NULL then  
+
+> 16:
+
+Prepend ttarget to Sextracted  
+
+> 17:
+
+else  
+
+> 18:
+
+break ▷ Agent prediction failed; halt extraction or fallback to beam-search  
+
+> 19:
+
+end if  
+
+> 20:
+
+end for  
+
+> 21:
+
+return Sextracted 
+
+previously extracted tokens into ALLM , the Agent possesses immense contextual inference capabilities, generating highly constrained and accurate candidate subsets ( Vsub ). As formalized in Algorithm 1, this Agent operates in a continuous loop: reasoning about the context to propose Vsub ,acting by sending probes to the target engine, and using the physical TT T F T side-channel dip as an absolute ground-truth perception oracle to validate its hypotheses. 
+
+C. Execution across Threat Scenarios 
+
+Empowered by this Agentic framework, SpliceLeak grace-fully adapts across the three defined threat scenarios (Sec-tion IV-B), minimizing the search space and attack cost:  
+
+> •
+
+Scenario A (Confidential Input Extraction): When the rigid prompt template is known (e.g., “Patient profile: [STATUS]” ), the Agent ALLM utilizes this structural constraint to generate extremely targeted candidates for the private variables (e.g., “HIV”, “Diabetic” ). This dras-tically shrinks the search space to |V sub | < 10 , extracting critical personal secrets with a negligible probing budget.  
+
+> •
+
+Scenario B (Proprietary Template Reverse-Engineering): When commercial RAG platforms shield their core system prompts, the Agent utilizes the known RAG document Ctarget to guide its predictions. By narrowing Vsub to structural instructions, role-playing personas, and connective grammar, the Agent iteratively strips the application of its proprietary intellectual property.  
+
+> •
+
+Scenario C (Zero-Knowledge Privacy Reconstruc-tion): Even in a complete zero-knowledge baseline lack-ing both template and user input constraints, the Agentic framework remains devastatingly effective. By continu-ously querying its internal language distribution to guess the preceding context of Ctarget , the Agent treats the micro-architectural timing dip as an ultimate truth mech-anism. It persistently walks backward, deterministically extracting deeply personal, free-form user queries token-by-token. VI. S PLICE DEFENSE : M ITIGATING NON -P REFIX 
+
+SIDE -C HANNELS 
+
+The discovery of the SpliceLeak vulnerability highlights a fundamental and previously unresolved tension in multi-tenant LLM serving: the conflict between aggressive memory deduplication (e.g., non-prefix chunk fusion) and strict micro-architectural isolation. To secure RAG serving frameworks without sacrificing the substantial throughput benefits of global KV cache sharing, we propose SpliceDefense , a synergistic, two-stage mitigation framework operating directly at the mem-ory scheduling and attention computation layers. 
+
+A. Defense I: Quantized Chunk Padding (QCP) 
+
+The root cause of SpliceLeak’s Phase I structural finger-printing is the periodic timing fluctuation that occurs when an attacker sweeps their prefix length across the engine’s phys-ical PagedAttention block boundaries. Rather than isolating cache namespaces—which completely destroys cross-tenant deduplication—we propose Quantized Chunk Padding (QCP) to eliminate the structural timing oracle. 
+
+Mechanism. QCP operates at the prompt processing phase. Before the engine allocates KV cache blocks for a tenant’s private prefix Pvic , the scheduler mathematically rounds the sequence length up to the nearest strict multiple of the block size B (e.g., 256 tokens). The engine dynamically appends de-terministic null-tokens to the private prefix such that |P ′
+
+> vic
+
+| ≡ 
+
+0 (mod B). Consequently, any subsequently retrieved public chunk Ctarget is guaranteed to be fused perfectly at a block boundary, regardless of the original prompt length. 
+
+Security and Trade-offs. QCP provides deterministic immu-nity against the Phase I length extraction attack. By forcing all private prefixes to align uniformly to the block grid, the observable step-wave timing pattern T = {T T T F T (Nadv )} is entirely flattened. Crucially, QCP retains 100% of the global KV cache sharing capabilities for Ctarget , fulfilling the primary objective of frameworks like LMCache. The only overhead is the computational and memory footprint of padding at most 
+
+B−1 dummy tokens per request, which introduces a negligible microsecond-level latency penalty. 9B. Defense II: Constant-Time Boundary Fusion (CTBF) 
+
+While QCP neutralizes structural length leaks, the Phase II semantic extraction relies on the micro-architectural L2-deviation dip that occurs during a correct token guess at the fusion boundary. Injecting random noise to mask this dip is vulnerable to statistical averaging attacks. Therefore, we introduce Constant-Time Boundary Fusion (CTBF), enforcing strict timing guarantees at the attention layer. 
+
+Mechanism. Modern fusion frameworks attempt to selectively skip re-computation if the incoming tensor states closely match the cached states (low L2-deviation). CTBF modifies this greedy optimization. When splicing a shared chunk Ctarget be-hind a private prefix, the engine enforces a constant, worst-case selective re-computation budget for the boundary block, re-gardless of semantic collisions. Even if the attacker’s guessed token tguess perfectly matches the victim’s true token, the GPU kernel is artificially mandated to execute the exact same number of FLOPs as it would for a completely mismatched token. 
+
+Security and Trade-offs. By enforcing constant-time execu-tion specifically at the cross-chunk fusion boundary, CTBF permanently destroys the timing asymmetry required for token-by-token extraction. The attacker observes a static 
+
+TT T F T regardless of their candidate guesses. The performance trade-off is exquisitely balanced: the system still avoids the massive full prefill of the entire Ctarget (which may span thou-sands of tokens), only sacrificing the micro-optimization of skipping the boundary block re-computation. This ensures that the system maintains near-optimal serving throughput while achieving strict micro-architectural side-channel resistance. VII. E VALUATION 
+
+In this section, we comprehensively evaluate the effective-ness of SpliceLeak across diverse real-world scenarios and assess the security-performance trade-offs of SpliceDefense. Our evaluation is designed to answer the following core research questions: (1) How effective and costly is SpliceLeak in extracting private inputs, proprietary templates, and full prompts under varying levels of adversary knowledge? (2) Does the underlying attention architecture (MHA vs. GQA) inherently mitigate or exacerbate the side-channel vulnerabil-ity? (3) Can SpliceDefense effectively neutralize the structural leakage with an acceptable system overhead? 
+
+A. Experimental Setup 
+
+Hardware and Software Environment. All experiments are conducted on a local GPU cluster equipped with 4 NVIDIA A40 GPUs (48GB VRAM each) and 256GB of system RAM. For the serving backend, we utilize a state-of-the-art continu-ous batching inference engine, vLLM [15], integrated with the open-source LMCache [19], [20] framework to enable cross-request non-prefix KV cache sharing. 
+
+Target Models. To demonstrate the architectural generaliz-ability of the step-wave side-channel, we evaluate our attacks on two widely deployed LLM architectures. This allows us to observe if techniques like key-value head sharing inherently impact the attack surface.  
+
+> •
+
+LongChat-7B-v1.5-32K [42], [43]: A model utilizing the standard Multi-Head Attention (MHA) mechanism, widely used for long-context RAG applications.  
+
+> •
+
+Qwen2.5-7B-Instruct [44]: A state-of-the-art model em-ploying Grouped-Query Attention (GQA), representative of modern high-efficiency LLMs that significantly com-press KV cache sizes. 
+
+Simulated Multi-Tenant Environment. To evaluate attack resilience, we simulate a multi-tenant LLM service adopt-ing the workload methodology from PROMPTPEEK [25]. Background traffic follows a Poisson distribution with a per-client arrival rate of λ = 0 .004 req/s. Despite the seemingly low rate, the extensive memory footprint of long-context RAG documents effectively saturates the continuous batching scheduler (max batch size 16), inducing authentic queuing and scheduling jitter representative of production environments. 
+
+Datasets and Scenarios. To align with our defined threat mod-els, we construct evaluation workloads using a combination of standard RAG context benchmarks (e.g., 2WikiMQA [45] and Musique datasets [46]), as utilized in recent KV cache fusion evaluations like CacheBlend [20]), prepended with specific prompt styles drawn from large-scale datasets. Following the scenario design in PROMPTPEEK [25], we utilize:  
+
+> •
+
+Cloze-style Prompts (for Scenario A): We sample prompts from PromptBase, where the rigid template is known, but specific placeholders (e.g., patient conditions, financial figures) represent the targeted private input.  
+
+> •
+
+Role/Instruction-based Prompts (for Scenario B): We utilize the awesome-chatgpt-prompts and alpaca-gpt4 
+
+datasets [47] to simulate proprietary system instructions that the attacker aims to reverse-engineer.  
+
+> •
+
+General Prompts (for Scenario C): We sample un-structured, multi-round dialogue data from the Ultrachat 
+
+dataset to evaluate the baseline whole-prompt reconstruc-tion without any prior knowledge. 
+
+Evaluation Metrics. We rigorously quantify the attack ef-ficacy and defense overhead using the following standard metrics similar to PROMPTPEEK [25]:  
+
+> •
+
+Success Rate (SR): The percentage of targeted prompts that are fully or partially extracted successfully.  
+
+> •
+
+Reversal Ratio (RR): The ratio of the extracted token length to the total hidden prompt length, measuring the completeness of the extraction.  
+
+> •
+
+Attack Cost (Req./tok & Req./inp): The average num-ber of probing requests required to extract a single token and the entire targeted input, respectively. This quantifies the stealthiness and efficiency of SpliceLeak.  
+
+> •
+
+System Overhead: The Time-To-First-Token (TTFT) latency penalty and throughput degradation introduced by SpliceDefense compared to the vanilla LMCache engine. 
+
+Extraction Agent ( ALLM ) Setup. To instantiate ALLM , we assume an attacker utilizing state-of-the-art commercial LLM APIs. This reflects the asymmetrical technical advantage of 10 HIV Flu Diabetes Cancer Asthma     
+
+> Candidate Disease Label
+> 0
+> 200
+> 400
+> 600
+> 800
+> 1000
+> 1200
+> 1400
+> Median TTFT (ms)
+> 98 ms
+> 1165 ms 1153 ms 1153 ms 1157 ms
+> = 1057 ms
+> Model: Qwen2.5-7B-Instruct
+> Req./inp = 51 TTFT = +1057 ms
+> Scenario A: Confidential Input Extraction
+> True label: 'HIV' (cache hit)
+> Other candidates (cache miss)
+> Miss baseline (1155 ms)
+
+(a) Micro-benchmark: Single tar-geted extraction (e.g., medical profile). GQA   
+
+> (Qwen2.5-7B)
+> MHA
+> (LongChat-7B)
+> Model Architecture
+> 200
+> 400
+> 600
+> 800
+> TTFT per task  (ms)
+> SR@1 = 100%
+> = 358 ms
+> SR@1 = 100%
+> = 446 ms
+> Scenario A: SpliceLeak Extraction
+> TTFT Drop Distribution
+> 30 cloze tasks ·30 req/extraction
+
+(b) Bulk evaluation: ∆TT T F T 
+
+distribution across 30 distinct tasks. 
+
+Fig. 7: Experimental results for Scenario A (Confidential Input Extraction). (a) A targeted case study on the Qwen2.5-7B-Instruct (GQA) model reveals a massive deterministic latency drop ( ∆ = 1057 ms) upon a correct token guess. (b) A large-scale statistical evaluation over 30 tasks confirms a 100% ex-traction success rate across both MHA and GQA architectures, despite natural system variance and varying document lengths. modern threat models, where powerful cloud reasoning is available at a negligible cost. Consequently, for Scenarios B and C, we power ALLM with the Gemini-3-Pro API. To demonstrate the out-of-the-box lethality of SpliceLeak, we strictly avoid any fine-tuning. The API is configured with a temperature of 0.7 and top-p of 0.9, optimally balancing de-terministic structural comprehension of Ctarget with sufficient lexical diversity to generate high-coverage candidate subsets (|V sub | = 20 ). 
+
+B. Effectiveness and Attack Cost 
+
+We first evaluate the efficacy of SpliceLeak across the three defined threat scenarios, measuring extraction accuracy, required API request costs, and the underlying architectural impacts. 
+
+1) Scenario A: Confidential Input Extraction: In this sce-nario, the attacker knows the rigid prompt template but aims to extract highly sensitive user variables (e.g., medical con-ditions). As a micro-benchmark, we utilize the cloze-style template: “Patient medical profile: [TARGET]” followed by a 
+
+∼2000-token shared document chunk. The attacker constructs a candidate subset Vsub of 5 common diseases and sequentially probes the target engine. To ensure a realistic evaluation, we inject background traffic at a calibrated rate of λ = 0 .004 req/s following the prior work [25]. This background noise actively populates the continuous batching queue, introducing natural hardware execution variance and scheduling delays that the attacker must overcome. As illustrated in Figure 7(a), SpliceLeak demonstrates dev-astating efficacy. When the attacker’s guessed token (e.g., 
+
+“Flu” ) diverges from the victim’s hidden input, the strict prefix-matching condition is violated, forcing the engine to ex-ecute a computationally expensive full prefill (mean TT T F T ≈Step 1          
+
+> "cancer"
+> Step 2
+> "pancreatic"
+> Step 3
+> "stage"
+> Step 4
+> "advanced"
+> Step 5
+> "aggressive"
+> Extraction Step (right left)
+> 0
+> 50
+> 100
+> 150
+> 200
+> Median TTFT  (ms)
+> TTFT = +138 ms TTFT = +139 ms
+> Scenario C: Token-by-Token SpliceLeak ·5-Token Privacy Breach
+> Victim: "User: test results confirm aggressive advanced stage pancreatic cancer"
+> Extracted: "aggressive advanced stage pancreatic cancer"
+> True token (cache hit)
+> Avg. false tokens (19)
+
+Fig. 8: Micro-benchmark of Token-by-Token Continuous Ex-traction (validating the shared physical mechanism for Sce-narios B & C). Over five continuous right-to-left extraction steps, splicing the exact true boundary token triggers an unmistakable, deterministic TTFT dip ( ∼42 ms) compared to the average latency of incorrect candidates ( ∼180 ms). The ∆TTFT = +138 ms signal exhibits zero decay, proving the physical persistence of the side-channel oracle required for both proprietary template reverse-engineering and zero-knowledge privacy reconstruction. 
+
+1155 ms). Crucially, when the guessed token exactly matches the victim’s input ( “HIV” ), semantic continuity is restored. The engine fuses the cached tensors, bypassing the full prefill and triggering a massive latency drop (mean TT T F T = 98 ms). This stark temporal asymmetry ( ∆ = 1057 ms) completely pierces through the system’s background scheduling noise. 
+
+Signal Amplification in Short-to-Medium Contexts: It is worth noting the stark temporal asymmetry ( ∆ = 1057 ms) observed here compared to the foundational 16K-token mea-surement in Section IV-C (which yielded ∆ ≈ 464 ms). This variation is physically grounded in the non-linear scaling of KV cache fusion overhead. The observable side-channel signal is defined as the prefill latency minus the cache-hit fusion latency ( ∆T = Tmiss − T hit ). For massive 16K contexts, the heavy computational burden of loading and realigning numerous disjoint memory blocks (Thit ) masks a signifi-cant portion of the latency savings. Conversely, for short-to-medium contexts ( ∼2000 tokens) common in personalized RAG applications, this fusion overhead drops precipitously. This allows the sheer computational avoidance of the cache hit to manifest as an unmistakably large temporal void, render-ing such systems paradoxically more vulnerable to semantic extraction. 
+
+Large-scale Evaluation and Architectural Impact: To rule out anecdotal success, we expanded our evaluation to a bulk test suite comprising 30 distinct cloze-style tasks with varying shared document lengths. As summarized in Table I and depicted in Figure 7(b), SpliceLeak maintained a 100% Top-1 Success Rate (SR@1) across both MHA (LongChat-7B) and GQA (Qwen2.5-7B) architectures. Interestingly, both architec-tures exhibited highly pronounced median latency drops, with the GQA model showing a slightly larger void ( ˜∆ = +358 
+
+ms) and the standard MHA model reaching ˜∆ = +446 ms under these specific workloads. Crucially, the signal remained 11 TABLE I: Comprehensive attack results across all threat scenarios. Succ. is the number of fully successful attacks, Part. denotes partial success, and Fail indicates unsuccessful attempts. SR (Success Rate) indicates the percentage of tasks with at least partial leakage. RR (Reversal Ratio) measures the extracted length versus target length, and Req./tok is the average number of physical requests to extract one token (applicable only to continuous extraction in Scenarios B and C). The rightmost column presents the median physical side-channel signal strength ( ∆TTFT). Note that Scenarios B and C were evaluated exclusively on the modern GQA architecture (Qwen2.5-7B).                                               
+
+> Threat Scenario Total Tasks Target Length Succ. Part. Fail SR RR Req./tok Median ∆TTFT
+> Scenario A – GQA (Qwen2.5-7B) 30 –30 00100% ––+358.0 ms Scenario A – MHA (LongChat-7B) 30 –30 00100% ––+446.0 ms Scenario B (Proprietary Template) 50 10 50 00100% 100% 63 +104.2 ms Scenario C (Zero-Knowledge) 15 10 15 00100% 100% 63 +104.3 ms
+
+overwhelmingly larger than any network jitter across both models. This empirically proves that advanced attention com-pression techniques do not mitigate the structural vulnerability; they leave the relative micro-architectural divergence intact, perfectly preserving the attack surface. 
+
+Attack Cost: Across all tasks, the attack required an ex-ceptionally low budget. To deterministically extract a critical secret with a 5-candidate subset, the attacker required only 
+
+∼21 total requests (Req./inp = 21 ). This demonstrates that when the structural template is known, SpliceLeak effectively collapses the search space, transforming a micro-architectural vulnerability into a highly lethal, low-cost privacy extraction weapon. 
+
+2) Scenarios B & C: Token-by-Token Continuous Extraction (Micro-benchmark): While Scenario A demonstrates Splice-Leak’s lethality when a rigid template is known, Scenarios B and C represent threat models that require continuous, right-to-left token extraction. Whether the target is a proprietary system instruction (Scenario B) or a zero-knowledge unstructured user query (Scenario C), the attacker must iteratively align and deduce single boundary tokens. To validate the physical feasibility of this continuous extraction—and specifically to confirm whether the localized micro-architectural signal per-sists across multiple iterations—we conducted a rigorous right-to-left micro-benchmark on the Qwen2.5-7B-Instruct model. 
+
+Experimental Setup: As a representative stress test, we assume a victim queries a shared medical RAG document (Ctarget ) appended to a highly sensitive, free-form personal payload: “User: test results confirm aggressive advanced stage pancreatic cancer” . The attacker’s Extraction Agent (ALLM ) aims to iteratively reverse-engineer this semantic se-quence preceding the document by sweeping candidate subsets (|V sub | = 20 ) at dynamically shifting alignment boundaries. 
+
+Extraction Efficacy and Signal Persistence: As illustrated in Figure 8, SpliceLeak completely strips away the victim’s semantic privacy. Over five consecutive iterations, the Agent successfully isolates and extracts critical, high-entropy content words ( “cancer”, “pancreatic”, “stage”, “advanced”, “ag-gressive” ). Crucially, the micro-architectural measurement reveals a massive and highly deterministic latency void. A correct token guess consistently avoids the boundary re-computation penalty, yielding a median TTFT of approximately 42 ms. In stark contrast, incorrect candidates invariably force a selective prefill, averaging 180 ms. This ∆TT T F T ≈ 138 ms gap is overwhelmingly larger than typical system jitter. Furthermore, the evaluation proves that the physical signal does not decay as the extraction traverses deeper into the sequence. The latency drop for the fifth token ( “aggressive” ) is functionally identical to the first token ( “cancer” ). 
+
+3) Scenarios B & C: Large-Scale Bulk Evaluation: To contextualize the micro-benchmark within a broader statistical landscape, we conducted a bulk evaluation comprising 50 Proprietary Template extraction tasks (Scenario B) and 15 Zero-Knowledge User Query extraction tasks (Scenario C). For each task, the attacker sought to iteratively extract a contin-uous 10-token boundary suffix. To rigorously test the physical limits of the side-channel oracle, we intentionally constrained the Extraction Agent’s candidate subset size ( |V sub | = 21 ), guaranteeing the inclusion of the true target token to decouple hardware determinism from AI predictive perplexity. 
+
+Hardware Determinism and Oracle Stability: As presented in Table I, SpliceLeak achieved an astounding 100% Success Rate (SR) and Reversal Ratio (RR) across all evaluated tasks. Most remarkably, the median ∆TTFT converged perfectly to 
+
++104 .2 ms for Scenario B and +104 .3 ms for Scenario C. This minute sub-millisecond variance highlights the extreme stability of the micro-architectural oracle. Because the LLM engine incurs a fixed matrix-multiplication penalty for re-computing a mismatched boundary block, the timing drop is fundamentally data-independent. Whether the attacker extracts an undocumented system template or a deeply private user query, the physical side-channel relies on the exact same underlying GPU latency void. 
+
+Hardware Capacity vs. End-to-End Semantic Complex-ity: Table I also reports identical physical probing costs (∼63 requests per token) for both scenarios. This reflects the controlled micro-architectural capacity of the side-channel (21 candidates × 3 probes = 63 ). However, in a real-world, end-to-end exploit, the attack complexity sharply diverges between the two models. For structured proprietary templates (Scenario B) characterized by low semantic entropy, an Ex-traction Agent can confidently restrict its search space to a minimal top-k subset ( k ≤ 20 ) and maintain near-perfect reconstruction. Conversely, zero-knowledge queries (Scenario C) exhibit extraordinarily high entropy. To prevent extraction 12 TABLE II: SpliceDefense (CTBF) Evaluation. The defense successfully flattens the latency gap across both targeted single-token extractions and large-scale zero-knowledge tasks, effectively eradicating the side-channel signal.                                  
+
+> Attack (No CTBF) Defense (CTBF) Scope Target TTFT ∆TTFT ∆
+> Case Study
+> cancer 42 +138 193 −11
+> pancreatic 42 +138 193 −12
+> stage 42 +138 193 −11
+> advanced 42 +139 182 −1
+> aggressive 42 +139 192 −11 Bulk Eval
+> 15 Tasks –+104 .3†191 −9.0
+> (75 Steps)
+> Units in milliseconds (ms). †Median baseline ∆derived from Table I.
+
+halts caused by unpredictable user vocabulary, an attacker would be forced to dynamically expand the candidate subset (e.g., k ≥ 100 ). Consequently, while the hardware vulnera-bility remains uniform, the practical request budget required for Scenario C scales significantly higher than Scenario B in real-world deployments. 
+
+C. Effectiveness of SpliceDefense 
+
+We evaluate the effectiveness of SpliceDefense by analyzing its ability to eradicate the timing oracle (via CTBF) and measuring its impact on system performance (via QCP). 
+
+Signal Eradication (Security). As summarized in Table II, Constant-Time Boundary Fusion (CTBF) successfully neutral-izes the semantic side-channel. In our continuous extraction case study, the massive +138 ms latency gap—which previ-ously enabled deterministic token extraction—is completely flattened to a median of −9.2 ms. This near-zero (and slightly negative) ∆TTFT ensures that the correct token guess is physically indistinguishable from incorrect candidates, as the engine is forced to execute a deterministic re-computation penalty for every boundary fusion. Our bulk evaluation across 15 distinct Scenario C tasks con-firms the robustness of this mitigation. Across 75 individual extraction steps, CTBF achieved a 100% signal eradication rate, maintaining a median residual ∆TTFT of −9.0 ms. This confirms that SpliceDefense effectively collapses the side-channel SNR, rendering the micro-architectural oracle functionally useless for semantic extraction. 
+
+Performance Overhead. To evaluate the cost of micro-architectural protection, we measured the TTFT overhead introduced by Quantized Chunk Padding (QCP). By rounding hidden prefixes to the nearest block boundary ( B = 16 ), QCP introduces a mean padding of 7.5 tokens per request. In our benchmarking on NVIDIA A40 GPUs, this translates to a negligible mean latency increase of less than 5 ms (less than 1% of the total prefill time). This empirically validates that SpliceDefense restores robust timing isolation while preserving the critical throughput and memory benefits of global KV cache sharing. VIII. R ELATED WORKS 
+
+Side-Channel Attacks in LLM Serving. Multi-tenant LLM deployments are vulnerable to timing side-channels via shared KV caches. Pioneering works like PROMPTPEEK [25] and Shadow in the Cache [24] exploit Time-to-First-Token (TTFT) discrepancies to reverse-engineer co-located victim prompts. However, these attacks target traditional architectures (e.g., vLLM [15], SGLang [16]) that rely on strict prefix caching ,requiring perfect token alignment from the sequence root. As established in Section III, this assumption structurally fails in RAG workloads, where shared chunks are invariably preceded by distinct, user-specific private prefixes ( Pvic ), causing severe signal collapse. Our work pioneers side-channel exploration beyond strict prefix matching, targeting the complex memory blending dynamics of next-generation non-prefix KV cache fusion frameworks (e.g., LMCache [19], CacheBlend [20]). 
+
+Retrieval-Augmented Generation Security. The proliferation of RAG has catalyzed extensive security research, predomi-nantly focusing on the integrity of the retrieval corpus. Studies extensively investigate adversarial contamination of vector databases (e.g., PoisonedRAG [28], FlippedRAG [29], Topic-FlipRAG [30]), malicious code injection via untrusted manuals [31], [32], document-based DoS attacks [33], and IP protection via watermarking [34]. Crucially, this literature operates within an application-centric threat model focusing on the data plane 
+
+(content semantics), implicitly assuming the cloud infrastruc-ture securely isolates multi-tenant workloads. Our work shifts the analytical spotlight to the control plane (engine scheduling and memory management). We demonstrate that even with a perfectly sanitized RAG corpus, severe privacy leakages persist at the micro-architectural level due to aggressive KV cache optimizations. 
+
+Summary. Current literature leaves a critical intersection un-explored: side-channel research relies on rigid prefix-matching incompatible with RAG workloads, while RAG security re-search overlooks system-level micro-architectural vulnerabili-ties. Our research bridges this gap. SpliceLeak demonstrates that, completely independent of application-level defenses against data poisoning, unprivileged attackers can extract highly sensitive structural and semantic privacy merely by ex-ploiting the deterministic chunk-aware scheduling and memory blending dynamics of advanced RAG engines. IX. C ONCLUSION 
+
+In this paper, we expose a critical micro-architectural vulnerability in non-prefix KV cache fusion within modern LLM engines. We demonstrate that deterministic scheduling of disjoint context chunks leaks a reliable Step-Wave timing oracle, fundamentally breaking the security of strict prefix isolation. By introducing SpliceLeak , we prove that attackers can weaponize this structural leakage to pinpoint hidden prompt lengths and extract exact semantic content token-by-token. To neutralize this threat, we propose SpliceDefense ,integrating Quantized Chunk Padding (QCP) and Constant-Time Boundary Fusion (CTBF). Our evaluation confirms that SpliceDefense restores strict timing isolation while preserving 13 the essential throughput benefits of global cache sharing. Ultimately, side-channel resilience must be treated as a first-class citizen in the design of next-generation LLMaaS memory schedulers. REFERENCES [1] W. X. Zhao, K. Zhou, J. Li, T. Tang, X. Wang, Y. Hou, Y. Min, B. Zhang, J. Zhang, Z. Dong, et al. , “A survey of large language models,” arXiv preprint arXiv:2303.18223 , vol. 1, no. 2, 2023. [2] Y. Chang, X. Wang, J. Wang, Y. Wu, L. Yang, K. Zhu, H. Chen, X. Yi, C. Wang, Y. Wang, et al. , “A survey on evaluation of large language models,” ACM transactions on intelligent systems and technology ,vol. 15, no. 3, pp. 1–45, 2024. [3] O. N. Oyelade, H. Wang, and K. Rafferty, “A survey of adaptation of large language models to idea and hypothesis generation: Downstream task adaptation, knowledge distillation approaches and challenges,” ACM Computing Surveys , 2025. [4] W. Lee, J. Lee, J. Seo, and J. Sim, “ {InfiniGen }: Efficient generative inference of large language models with dynamic {KV } cache manage-ment,” in 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24) , pp. 155–172, 2024. [5] H. Sun, S. Liu, L. Li, and M. Xiao, “Hillinfer: Efficient long-context llm inference on the edge with hierarchical kv eviction using smartssd,” 
+
+arXiv preprint arXiv:2602.18750 , 2026. [6] A. Agrawal, H. Qiu, J. Chen, ´ I. Goiri, C. Zhang, R. Shahid, R. Ramjee, A. Tumanov, and E. Choukse, “Medha: Efficiently serving multi-million context length llm inference requests without approximations,” arXiv preprint arXiv:2409.17264 , 2024. [7] H. Sun, L. Li, M. Xiao, and C. Xu, “Breaking the boundaries of long-context llm inference: Adaptive kv management on a single commodity gpu,” arXiv preprint arXiv:2506.20187 , 2025. [8] B. Wu, S. Liu, Y. Zhong, P. Sun, X. Liu, and X. Jin, “Loongserve: Effi-ciently serving long-context large language models with elastic sequence parallelism,” in Proceedings of the ACM SIGOPS 30th Symposium on Operating Systems Principles , pp. 640–654, 2024. [9] B. Lin, C. Zhang, T. Peng, H. Zhao, W. Xiao, M. Sun, A. Liu, Z. Zhang, L. Li, X. Qiu, et al. , “Infinite-llm: Efficient llm service for long context with distattention and distributed kvcache,” arXiv preprint arXiv:2401.02669 , 2024. [10] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen, W. Peng, X. Feng, B. Qin, et al. , “A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions,” 
+
+ACM Transactions on Information Systems , vol. 43, no. 2, pp. 1–55, 2025. [11] X. Liu, “A survey of hallucination problems based on large language models,” Applied and Computational Engineering , vol. 97, pp. 24–30, 2024. [12] P. Zhao, H. Zhang, Q. Yu, Z. Wang, Y. Geng, F. Fu, L. Yang, W. Zhang, J. Jiang, and B. Cui, “Retrieval-augmented generation for ai-generated content: A survey,” arXiv preprint arXiv:2402.19473 , 2024. [13] F. Ye, S. Li, Y. Zhang, and L. Chen, “R2ag: Incorporating retrieval information into retrieval augmented generation,” in Findings of the Association for Computational Linguistics: EMNLP 2024 , pp. 11584– 11596, 2024. [14] S. Agarwal, S. Sundaresan, S. Mitra, D. Mahapatra, A. Gupta, R. Sharma, N. J. Kapu, T. Yu, and S. Saini, “Cache-craft: Managing chunk-caches for efficient retrieval-augmented generation,” Proceedings of the ACM on Management of Data , vol. 3, no. 3, pp. 1–28, 2025. [15] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. Gonzalez, H. Zhang, and I. Stoica, “Efficient memory management for large language model serving with pagedattention,” in Proceedings of the 29th symposium on operating systems principles , pp. 611–626, 2023. [16] L. Zheng, L. Yin, Z. Xie, C. Sun, J. Huang, C. H. Yu, S. Cao, C. Kozyrakis, I. Stoica, J. E. Gonzalez, et al. , “Sglang: Efficient execution of structured language model programs,” Advances in neural information processing systems , vol. 37, pp. 62557–62583, 2024. [17] Y. Zhong, S. Liu, J. Chen, J. Hu, Y. Zhu, X. Liu, X. Jin, and H. Zhang, “{DistServe }: Disaggregating prefill and decoding for goodput-optimized large language model serving,” in 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24) , pp. 193–210, 2024. [18] R. Qin, Z. Li, W. He, J. Cui, F. Ren, M. Zhang, Y. Wu, W. Zheng, and X. Xu, “Mooncake: Trading more storage for less computation—a 
+
+{KVCache-centric } architecture for serving {LLM } chatbot,” in 23rd USENIX conference on file and storage technologies (FAST 25) , pp. 155– 170, 2025. [19] Y. Liu, Y. Cheng, J. Yao, Y. An, X. Chen, S. Feng, Y. Huang, S. Shen, R. Zhang, K. Du, et al. , “Lmcache: An efficient kv cache layer for enterprise-scale llm inference,” arXiv preprint arXiv:2510.09665 , 2025. [20] J. Yao, H. Li, Y. Liu, S. Ray, Y. Cheng, Q. Zhang, K. Du, S. Lu, and J. Jiang, “Cacheblend: Fast large language model serving for rag with cached knowledge fusion,” in Proceedings of the Twentieth European Conference on Computer Systems , pp. 94–109, 2025. [21] K. Chu, Z. Lin, D. Xiang, Z. Shen, J. Su, C. Chu, Y. Yang, W. Zhang, W. Wu, and W. Zhang, “Selective kv-cache sharing to mitigate timing side-channels in llm inference,” arXiv preprint arXiv:2508.08438 , 2025. [22] H. Zhang, N. Javidnia, S. Pardeshi, Q. Lou, and F. Koushanfar, “Cryp-togen: Secure transformer generation with encrypted kv-cache reuse,” 
+
+arXiv preprint arXiv:2602.08798 , 2026. [23] W. Zeng, Y. Dong, J. Zhou, J. Tan, L. Wang, T. Wei, R. Wang, and M. Li, “Mpcache: Mpc-friendly kv cache eviction for efficient private llm inference,” arXiv preprint arXiv:2501.06807 , 2025. [24] Z. Luo, S. Shao, S. Zhang, L. Zhou, Y. Hu, C. Zhao, Z. Liu, and Z. Qin, “Shadow in the cache: Unveiling and mitigating privacy risks of kv-cache in llm inference,” arXiv preprint arXiv:2508.09442 , 2025. [25] G. Wu, Z. Zhang, Y. Zhang, W. Wang, J. Niu, Y. Wu, and Y. Zhang, “I know what you asked: Prompt leakage via kv-cache sharing in multi-tenant llm serving.,” in NDSS , 2025. [26] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin, “Attention is all you need,” Advances in neural information processing systems , vol. 30, 2017. [27] I. Beltagy, M. E. Peters, and A. Cohan, “Longformer: The long-document transformer,” arXiv preprint arXiv:2004.05150 , 2020. [28] W. Zou, R. Geng, B. Wang, and J. Jia, “ {PoisonedRAG }: Knowledge corruption attacks to {Retrieval-Augmented } generation of large lan-guage models,” in 34th USENIX Security Symposium (USENIX Security 25) , pp. 3827–3844, 2025. [29] Z. Chen, Y. Gong, J. Liu, M. Chen, H. Liu, Q. Cheng, F. Zhang, W. Lu, and X. Liu, “Flippedrag: Black-box opinion manipulation adversarial attacks to retrieval-augmented generation models,” in Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security , pp. 4109–4123, 2025. [30] Y. Gong, Z. Chen, J. Liu, M. Chen, F. Yu, W. Lu, X. Wang, and X. Liu, “ {Topic-FlipRAG }:{Topic-Orientated } adversarial opinion ma-nipulation attacks to {Retrieval-Augmented } generation models,” in 34th USENIX Security Symposium (USENIX Security 25) , pp. 3807–3826, 2025. [31] K. Ye, L. Su, and C. Qian, “Importsnare: Directed’code man-ual’hijacking in retrieval-augmented code generation,” in Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security , pp. 335–349, 2025. [32] B. Lin, S. Wang, Y. Qin, L. Chen, and X. Mao, “Give llms a security course: Securing retrieval-augmented code generation via knowledge injection,” in Proceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security , pp. 3356–3370, 2025. [33] A. Shafran, R. Schuster, and V. Shmatikov, “Machine against the 
+
+{RAG }: Jamming {Retrieval-Augmented } generation with blocker doc-uments,” in 34th USENIX Security Symposium (USENIX Security 25) ,pp. 3787–3806, 2025. [34] P. Lv, M. Sun, H. Wang, X. Wang, S. Zhang, Y. Chen, K. Chen, and L. Sun, “Rag-wm: An efficient black-box watermarking approach for retrieval-augmented generation of large language models,” in Pro-ceedings of the 2025 ACM SIGSAC Conference on Computer and Communications Security , pp. 1709–1723, 2025. [35] T. Ristenpart, E. Tromer, H. Shacham, and S. Savage, “Hey, you, get off of my cloud: exploring information leakage in third-party compute clouds,” in Proceedings of the 16th ACM conference on Computer and communications security , pp. 199–212, 2009. [36] G.-I. Yu, J. S. Jeong, G.-W. Kim, S. Kim, and B.-G. Chun, “Orca: A distributed serving system for {Transformer-Based } generative models,” in 16th USENIX symposium on operating systems design and implemen-tation (OSDI 22) , pp. 521–538, 2022. [37] Y. Wang, R. Paccagnella, Z. Gang, W. R. Vasquez, D. Kohlbrenner, H. Shacham, and C. W. Fletcher, “Gpu. zip: On the side-channel implications of hardware-based graphical data compression,” in 2024 
+
+14 IEEE Symposium on Security and Privacy (SP) , pp. 3716–3734, IEEE, 2024. [38] B. L. Welch, “The significance of the difference between two means when the population variances are unequal,” Biometrika , vol. 29, no. 3/4, pp. 350–362, 1938. [39] A. Grattafiori, A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur, A. Schelten, A. Vaughan, et al. , “The llama 3 herd of models,” arXiv preprint arXiv:2407.21783 , 2024. [40] A. Singh, A. Fry, A. Perelman, A. Tart, A. Ganesh, A. El-Kishky, A. McLaughlin, A. Low, A. Ostrow, A. Ananthram, et al. , “Openai gpt-5 system card,” arXiv preprint arXiv:2601.03267 , 2025. [41] Google, “Gemini 3 pro model reference.” https://ai.google.dev/ gemini-api/docs/models#gemini-3-pro, 2025. Accessed: 2026-05-07. [42] D. Li, “Longchat: An open framework for long-context language mod-els.” https://github.com/DachengLi1/LongChat, 2025. [43] LMSYS and H. Face, “Longchat-7b-v1.5-32k.” https://huggingface.co/ lmsys/longchat-7b-v1.5-32k, 2025. [44] B. Hui, J. Yang, Z. Cui, J. Yang, D. Liu, L. Zhang, T. Liu, J. Zhang, B. Yu, K. Lu, et al. , “Qwen2. 5-coder technical report,” arXiv preprint arXiv:2409.12186 , 2024. [45] X. Ho, A.-K. D. Nguyen, S. Sugawara, and A. Aizawa, “Constructing a multi-hop qa dataset for comprehensive evaluation of reasoning steps,” in Proceedings of the 28th International Conference on Computational Linguistics , pp. 6609–6625, 2020. [46] H. Trivedi, N. Balasubramanian, T. Khot, and A. Sabharwal, “Musique: Multihop questions via single-hop question composition,” Transactions of the Association for Computational Linguistics , vol. 10, pp. 539–554, 2022. [47] B. Peng, C. Li, P. He, M. Galley, and J. Gao, “Instruction tuning with gpt-4,” arXiv preprint arXiv:2304.03277 , 2023. 
+
+APPENDIX 
+
+A. Discussion and Future Work 
+
+Impact of Network Jitter. Like other timing channels [25], SpliceLeak’s efficacy relies on the TT T F T Signal-to-Noise Ratio (SNR). While large latency drops ( ∆ ≥ 800 ms) easily pierce standard batching noise, extreme WAN fluctuations or API rate-limiting can degrade SNR. Attackers can mitigate this in volatile environments by dynamically increasing probing iterations and applying robust statistical filtering (e.g., median absolute deviation). 
+
+Auxiliary LLM Dependence. In zero-knowledge scenarios (B and C), SpliceLeak’s efficiency (Req./tok) is bounded by the auxiliary LLM’s predictive accuracy. Highly anomalous or out-of-distribution tokens may fall outside the Top-k candidate subset ( Vsub ), halting the right-to-left extraction. Integrating beam-search heuristics and dynamic subset expansion presents a promising avenue to gracefully recover from such predictive misses. 
+
+Temporal Co-residency and Cache Eviction. Crucially, our attack assumes the probe is launched while the shared chunk 
+
+Ctarget remains active in Ωshared before eviction. If the victim’s request occurred significantly earlier and the system’s eviction policy has already reclaimed the KV tensors due to memory pressure, the attacker’s probe will invariably trigger a full prefill, neutralizing the timing signal. Therefore, Splice-Leak fundamentally relies on temporal co-residency within the document’s active Time-To-Live (TTL) window. 
+
+Extensibility to Other Architectures. Our evaluation targets block-based KV managers [15] utilizing linear non-prefix fusion [19], [20]. Future research should investigate if similar 
+
+Step-Wave oracles exist in advanced Radix-Tree-based systems (e.g., SGLang [16]) or context-compression architectures. We hypothesize that any system prioritizing aggressive memory deduplication over strict logical isolation will inevitably leak measurable micro-architectural state transitions. 
+
+Defense Capacity Trade-offs. While our evaluation confirms that the TTFT latency impact of SpliceDefense is minimal, we explicitly acknowledge that QCP inherently trades off raw KV cache memory capacity (i.e., storing dummy padding tokens) for robust isolation. In highly saturated LLMaaS environ-ments, this artificial inflation of the memory footprint could marginally reduce the maximum concurrent batch size. Future work could optimize this capacity overhead by introducing dynamically sized quantization boundaries or semantic-aware sparse padding. 
+
+Hardware-Assisted Mitigations. While SpliceDefense pro-vides robust deployable software mitigation via QCP and CTBF, it fundamentally relies on enforcing worst-case com-putational bounds. Future hardware-software co-design—such as leveraging TEEs (e.g., NVIDIA Confidential Computing) for encrypted KV blocks or SmartNICs for constant-time ten-sor stitching—could offer ultimate cryptographic guarantees without sacrificing fusion optimization. 15
