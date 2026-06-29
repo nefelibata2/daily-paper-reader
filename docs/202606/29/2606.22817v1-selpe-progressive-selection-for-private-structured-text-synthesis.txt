@@ -1,0 +1,824 @@
+Title: SelPE: Progressive Selection for Private Structured Text Synthesis
+
+URL Source: https://arxiv.org/pdf/2606.22817v1
+
+Published Time: Tue, 23 Jun 2026 02:37:46 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# SelPE: Progressive Selection for Private Structured Text Synthesis 
+
+# Xuancheng Zhu 
+
+Beijing University of Posts and Telecommunications Beijing, China zhuxuanch@bupt.edu.cn 
+
+# Guoshun Nan ∗
+
+Beijing University of Posts and Telecommunications Beijing, China nanguo2021@bupt.edu.cn 
+
+# Han Zhang 
+
+Beijing University of Posts and Telecommunications Beijing, China zhangh@bupt.edu.cn 
+
+# Ben Niu 
+
+Beijing University of Posts and Telecommunications Beijing, China byrne625@bupt.edu.cn 
+
+# Yang Yue 
+
+Beijing University of Posts and Telecommunications Beijing, China yueyang2024@bupt.edu.cn 
+
+# Zixu Wang 
+
+Beijing University of Posts and Telecommunications Beijing, China 2022213257@bupt.cn 
+
+# Yilian Liu 
+
+Beijing University of Posts and Telecommunications Beijing, China liuyilian@bupt.edu.cn 
+
+# Min Lei ∗
+
+Beijing University of Posts and Telecommunications Beijing, China leimin@bupt.edu.cn 
+
+# Xiaofeng Tao 
+
+Beijing University of Posts and Telecommunications Beijing, China taoxf@bupt.edu.cn 
+
+## Abstract 
+
+Many data-driven applications rely on structured textual records, such as clinical triage notes and financial transaction logs, for down-stream learning and decision-making. In privacy-sensitive domains, access to such records is strictly regulated, often resulting in only a small number of available private examples for model development and analysis. Yet existing differential privacy data synthesis meth-ods fall short: tabular techniques cannot faithfully model free-form text, while text-based approaches often break structural constraints. We propose SelPE , a selection-guided progressive evolution frame-work for small-sample private structured text synthesis. Rather than relying on noisy aggregation or private model training, SelPE concentrates privacy budget on a sequence of multi-batch top-1 se-lections, enabling efficient guidance under tight privacy constraints. To support faithful and valid synthesis, SelPE decouples semantic abstraction from schema realization via a two-stage generation pipeline, and evaluates candidates using a multi-channel distance kernel that jointly models textual, categorical, and numeric fields in their native representations. A non-private contrastive expansion mechanism further promotes diversity without incurring additional privacy cost. Extensive Experiments demonstrate that SelPE consis-tently improves structural validity, fidelity, and downstream utility under strict differential privacy budgets, particularly in low-data regimes. Our code is available at this link.  
+
+> ∗Guoshun Nan and Min Lei are corresponding authors.
+> This work is licensed under a Creative Commons Attribution 4.0 International License.
+> KDD 2026, Jeju Island, Republic of Korea.
+> ©2026 Copyright held by the owner/author(s). ACM ISBN 979-8-4007-2259-2/2026/08 https://doi.org/10.1145/3770855.3817858
+
+## CCS Concepts 
+
+• Security and privacy → Differential privacy ; Privacy pro-tections .
+
+## Keywords 
+
+Structured Text Data, Data Synthesis, Differentially Private 
+
+ACM Reference Format: 
+
+Xuancheng Zhu, Guoshun Nan, Han Zhang, Ben Niu, Yang Yue, Zixu Wang, Yilian Liu, Min Lei, and Xiaofeng Tao. 2026. SelPE: Progressive Selection for Private Structured Text Synthesis. In Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD 2026), August 9–13, 2026, Jeju Island, Republic of Korea. ACM, New York, NY, USA, 12 pages. https://doi.org/10.1145/3770855.3817858 
+
+## 1 Introduction 
+
+Data has become a central asset in modern data-driven systems [ 18 ,49 , 75 ], underpinning model training [ 10 , 19 , 32 ], evaluation [ 16 , 34 ,45 ], and decision [ 43 , 62 , 66 ]. In many real-world settings, data is inherently structured, consisting of multiple interdependent fields that combine numeric values, categorical attributes, and free-form text under strict schemas [ 63 ]. Such structured textual data is ubiq-uitous and can be viewed equivalently as tables with text or struc-tured text with rich semantics [ 26 , 68 ]. However, regulations and compliance requirements often restrict access to such sensitive datasets, leaving practitioners with only a small number of private examples. This tension highlights the importance of studying small-sample structured text data synthesis, where useful and realistic data must be synthesized under tight differentially privacy (DP) constraints [20, 42, 51, 77]. Existing research on private data synthesis [ 27 ] largely follows two directions: tabular data synthesis [ 8] and text data synthe-sis. For tabular data [ 65 ], prior methods perturb low-dimensional marginals or graphical models, or train deep generative models such as VAEs [ 2 , 7, 50 ] and diffusion models; however, they mainly target numeric or categorical fields and do not naturally handle free-form  
+
+> arXiv:2606.22817v1 [cs.CR] 22 Jun 2026 KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. DP Mechanism
+
+…                 
+
+> Synthetic A
+> APrivate Patient Record
+> Temp: 36.8°C
+> HeartRate: 76
+> RESPRATE: 16
+> O2Sat: 96
+> SBP: 76mmHg DBP: 51mmHg
+> Acuity: 5
+> ChiefComplaint: Acute onset abd-ominal pain prompting ….
+> Samples
+> Golden Samples
+> Patient Record
+> Private Set
+> Synthetic Set
+> INPUT OUTPUT
+> Gumble Noise
+> Home Transfer 36.8°C 37.5°C
+> Private Utility
+> Noise Domination
+> Context :A 42-year-old fe-male, evere calf pain, wor-se with toe raises, and bila-teral poste-rior thigh pain. Temperature 38°C , Heart Rate 114 beats …
+> VS
+> Missing O2sat Filed!
+> Structural Invalidity Distance Misalignment
+> VS
+
+Figure 1: Overview of our differentially private synthesis pipeline. The figure illustrates the end-to-end DP synthesis pipeline and highlights three key challenges. 
+
+text. For textual data, DP-SGD [ 1 ] and Private Evolution (PE) [ 60 ]enable private generation without releasing raw data, but are pri-marily designed for unstructured text [ 24 ], leaving schemas and cross-field dependencies under-modeled. Recent work [ 56 ] shows that for structured text with mixed field types and explicit schemas, existing DP synthesis methods still suffer from unstable utility es-timation, semantic drift, and schema violations. These limitations expose the lack of DP synthesis mechanisms that can effectively exploit structural information when private data are scarce. As shown in Figure 1, we study private structured-text synthe-sis under small sample sizes, which faces three key challenges. (i) Signal sparsity. With limited private data, additive-noise mecha-nisms [ 21 ] and multi-output selection [ 44 ] dilute utility signals [ 72 ], allowing noise to dominate private guidance and obscure candidate distinctions. (ii) Schema fidelity. Generated records must satisfy complex schema constraints [ 22 ] across heterogeneous fields, yet hard constraints may restrict model reasoning [ 5, 23 ], whereas free-form generation often violates schemas [ 46 , 64 ]. (iii) Cross-type alignment. Candidate evaluation must jointly compare free-form text, categorical attributes, and numeric fields with incompatible spaces and scales [ 6 , 25 ]; single-space embeddings or unified nu-meric metrics collapse heterogeneous signals and yield misaligned comparisons [76]. A central observation is that, in the small-sample regime, noise-based aggregation mechanisms become dominated by perturbation, as the noise magnitude grows with the candidate pool size while the available signal is constrained by the limited private data (Sec. 3.3). Moreover, text differs fundamentally from images [ 72 ] or numeric data [ 58 ]: textual records are diverse and compositional, and can-not be meaningfully summarized by a single average. As a result, privacy budget is better concentrated on a small number of high-confidence decisions .Building on this, we propose SelPE (Selection-guided Progres-sive Evolution ), a framework for small-sample private structured text synthesis. SelPE allocates privacy budgets to repeated multi-batch top-1 selections rather than noisy aggregation. Each private selection operates over a carefully designed mixed-type distance kernel and actively conditions future candidate generation, forming a compact evolution trajectory with high downstream impact. First, we introduce a context–schema decoupled generation pipeline that separates free-form semantic abstraction from schema-grounded realization, enabling diversiform semantic modeling while strictly enforcing structural validity. Second, we propose a multi-channel distance kernel that enables accurate comparison between struc-tured text records by jointly modeling global semantics, field-level text, categorical attributes, and numeric values in their native rep-resentations. Third, we develop a selection-guided progressive evolu-tion strategy that stabilizes selection under small samples, promotes diversity through non-private contrastive expansion, and concen-trates privacy budget on the most informative decisions. This work makes three main contributions: (i) Schema-aware generation and evaluation. We propose a cohesive framework that decouples semantic abstraction from schema-grounded realiza-tion, and supports mixed-type comparison through a multi-channel distance kernel, jointly ensuring structural validity and cross-field consistency in structured text. ii) Selection-driven private evo-lution for structured text. We introduce a selection-centric PE framework tailored to small-sample structured text synthesis, re-placing noise-based aggregation with multi-batch top-1 DP selec-tion. iii) Empirical evaluation. We conduct extensive experiments on 3 realistic structured text datasets, comparing against 5 text data synthesis baselines under 4 privacy budgets. Results demonstrate consistent improvements in structural fidelity and downstream utility. We further analyze robustness across varying data scales, hyperparameter settings, and ablation variants. 
+
+## 2 Related Work 
+
+Private Tabular Data Synthesis. Prior work on DP tabular data synthesis can be broadly categorized into two directions [ 8, 65 ]. 
+
+i) Statistics-based approaches privately estimate low-dimensional marginals [ 4, 31 ] or graphical-model parameters [ 38 , 71 ] and recon-struct synthetic datasets consistent with these statistics, offering strong privacy guarantees and competitive utility on structured tabular benchmarks. ii) Deep learning approaches [73 ] employ deep generative models, such as GAN, Diffusion [ 17 , 61 ] or VAE [ 2, 7, 50 ]trained with Differentially Private Stochastic Gradient Descent (DP-SGD) [ 1] or teacher-student frameworks, providing greater mod-eling flexibility but often exhibiting sensitivity to privacy budgets and training stability [ 17 ]. Overall, existing tabular data stnthesis methods primarily target purely numeric or categorical schemas and do not address synthesis for datasets with mixed numerical and free-form textual attributes. 
+
+Private Text Data Synthesis. Private text data synthesis is gen-erally more challenging than tabular data synthesis due to the high dimensionality of language and its semantic sensitivity [ 27 ]. Exist-ing work can be broadly grouped into two categories. i) DP training SelPE: Progressive Selection for Private Structured Text Synthesis KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+approaches apply mechanisms such as DP-SGD [ 1] to fine-tune lan-guage models for downstream tasks [ 36 ] or text generation [ 33 , 69 ], providing end-to-end privacy guarantees but often exhibiting sen-sitivity to privacy budgets and training stability [ 70 ]. ii) Private Evolution (PE) methods [ 35 , 60 ] leverage large pre-trained language models without parameter updates, iteratively selecting and refin-ing synthetic samples via differentially private mechanisms [ 78 ], thereby avoiding DP training and enabling the use of strong foun-dation models [ 24 ]. Recent evaluations [ 57 ] suggest that existing private text synthesis methods primarily emphasize semantic simi-larity and sample-level diversity, while providing limited support for preserving structural constraints. As a result, synthesizing struc-tured text that follows implicit schemas [ 22 , 37 ] or compositional rules [ 30 , 59 ] under differential privacy remains an open challenge. 
+
+## 3 Preliminaries 3.1 Problem Definition. 
+
+Structured Text Data. Building on prior formulations [ 56 ], we study structured text data composed of multiple labeled fields with heterogeneous value types. A schema S is a specification that de-fines a set of field labels together with field-level rules. A structured text record 𝑠 = {( 𝑐 𝑗 , 𝑣 𝑗 )} 𝑑 𝑗 =1, where each value 𝑣 𝑗 satisfies the con-straints specified by the schema S and may be numeric, categorical, or free-form textual. We denote by S the space of all records that conform to schema S. When a dataset consists of 𝑛 such records 
+
+𝐷 = {𝑠 𝑖 }𝑛 𝑖 =1 ⊆ S, they can be naturally organized in a tabular form. 
+
+We focus on structured text data with free-form textual fields , as opposed to datasets consisting solely of numeric fields. 
+
+Private Data Synthesis. Let 𝑃 = {𝑠 𝑖 }𝑛 𝑖 =1 ⊂ S be a private dataset of structured text records. The goal of differentially private data synthesis[ 27 ] is to construct a synthetic dataset 𝑆 = { ˜𝑠 𝑗 }𝑚 𝑗 =1 ⊂ S
+
+such that 𝑆 preserves fidlity, utility and privacy properties. More-over, the algorithm is required to satisfy (𝜀, 𝛿 )-DP with respect to the private dataset 𝑃 .
+
+Access model. Unlike DP Training method[ 1], we consider synthesis in a privacy-preserving access regime: the algorithm does not directly reveal or train on private records, and any interaction with 𝑃 is mediated through DP mechanisms . Accordingly, privacy loss is fully characterized by the sequence and composition of DP mechanisms applied to 𝑃 .
+
+## 3.2 Differential Privacy 
+
+Differential Privacy [ 14 ] provides a worst-case, distribution-independent privacy guarantee against a broad class of inference attacks [ 48 , 67 ]. Two datasets 𝐷, 𝐷 ′ ∈ S 𝑁 are neighbors , denoted 𝐷 ∼ 𝐷 ′, if they differ in exactly one record. A randomized mechanism M satisfies 
+
+(𝜀, 𝛿 )-DP if for all 𝐷 ∼ 𝐷 ′ and all measurable events E,
+
+Pr [M ( 𝐷 ) ∈ E] ≤ 𝑒 𝜀 Pr [M ( 𝐷 ′) ∈ E] + 𝛿. (1) 
+
+Sequential Composition. DP supports adaptive sequential composition [ 13 ]. If a dataset is accessed by a sequence of 𝑇 mech-anisms {M 𝑡 }𝑇 𝑡 =1, each satisfying (𝜀, 𝛿 )-DP, then their joint output satisfies (𝜀 tot , 𝛿 tot )-DP, where 𝜀 tot and 𝛿 tot follow standard advanced composition bounds [ 30 ]. Moreover, by the post-processing prop-erty [ 15 ], any data-independent transformation of DP outputs in-curs no additional privacy loss. 
+
+Parallel Composition. When DP mechanisms operate on dis-joint subsets of the data [ 14 ], if 𝐷 = Ò𝐾 𝑖 =1 𝐷 𝑖 and each mechanism 
+
+M𝑖 accesses only 𝐷 𝑖 and satisfies (𝜀, 𝛿 )-DP, then the combined mechanism M ( 𝐷 ) = (M 1 (𝐷 1), . . . , M𝐾 (𝐷 𝐾 )) also satisfies (𝜀, 𝛿 )-DP. In this case, privacy loss is governed by the maximum loss of any component, rather than accumulating across mechanisms. 
+
+Gaussian Mechanism. Let 𝑓 be a 𝐷 -dimensional query with 
+
+ℓ2-sensitivity Δ𝑓 = max 𝐷 ∼𝐷 ′ ∥𝑓 (𝐷 ) − 𝑓 (𝐷 ′)∥ 2. The Gaussian mech-anism releases MG (𝐷 ) = 𝑓 (𝐷 ) + N ( 0, 𝜎 2𝐼 𝐷 ). For 𝜀 ∈ ( 0, 1) and 
+
+𝛿 ∈ ( 0, 1), choosing 
+
+𝜎 = Δ𝑓 ·√︁ 2 log (1.25 /𝛿 )
+
+𝜀 (2) ensures that MG satisfies (𝜀, 𝛿 )-differential privacy. 
+
+Top-1 Exponential Mechanism. Let R be an output range and let 𝑢 : S𝑁 × R → R be a utility function with sensitivity Δ𝑢 =
+
+max 𝑟 ∈ R max 𝐷 ∼𝐷 ′ |𝑢 (𝐷, 𝑟 ) − 𝑢 (𝐷 ′, 𝑟 )| . The exponential mechanism [9, 39] samples an output 𝑟 ∈ R according to 
+
+Pr [M E (𝐷 ) = 𝑟 ] = exp (𝜀 𝑢 (𝐷, 𝑟 )/ Δ𝑢 )
+
+Í𝑟 ′ ∈ R exp (𝜀 𝑢 (𝐷, 𝑟 ′)/ Δ𝑢 ) , (3) which satisfies 𝜀 -differential privacy. 
+
+## 3.3 Limitations of Noise-Based Mechanisms 
+
+Prior work has observed that original PE algorithm becomes in-effective in small-sample regimes, particularly for image synthe-sis [ 35 , 72 ]. We formalize this limitation and show that noise-based DP mechanisms suffer from vanishing signal-to-noise ratio when the private sample size is small. 
+
+Lemma 3.1 (Noise domination in small-sample PE). Consider a private dataset of size 𝑛 and a candidate pool of size 𝑀 . For histogram-based PE mechanisms using additive Gaussian noise, the effective signal-to-noise ratio satisfies 
+
+SNR = 𝑂 
+
+ 𝑛 𝜎𝑀 3/2
+
+
+
+. (4) 
+
+In the small-sample regime where 𝑛 ≪ 𝑀 , the released utility signal is dominated by noise, leading to unreliable candidate selection. 
+
+Proof sketch. Noise-based PE evaluates candidates by releasing a differentially private histogram over 𝑀 bins. While the perturba-tion magnitude scales as Θ(𝜎 √𝑀 ), the total signal contributed by 
+
+𝑛 private records is at most 𝑂 (𝑛 ), yielding a per-candidate signal of order 𝑂 (𝑛 /𝑀 ). As a result, the signal-to-noise ratio decays as 
+
+𝑂 (𝑛 /( 𝜎𝑀 3/2)) . A full derivation is provided in Appendix B.1. An analogous limitation applies to multi-output selection mechanisms based on Gumbel perturbations (top-𝑘 ), see Appendix B.2. 
+
+## 4 Methodology 
+
+As shown in Figure 2, SelPE is a selection-guided framework for small-sample structured text synthesis. Motivated by the noise domination of aggregation-based mechanisms in low-data regimes (Lemma 3.1), SelPE concentrates the privacy budget on repeated multi-batch top-1 structure-aware selections. It consists of three components: (i) a context–schema decoupled generation pipeline that separates free-form semantic modeling from constrained real-ization; (ii) a multi-channel distance kernel that compares textual, KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. Context–Schema Decoupled Generation 
+
+Multi-Channel Distance Kernel             
+
+> Free-Form Generation
+> cheif: abnormal lab …
+> Constrained Realization
+> Round
+> Candidates
+> Select good examples
+> Structured Data:
+> "temperature":36, "dbp":40 ，
+> "dis": 'home', ''chief'': 'Abd pain radiating posterior' Probability Distribution
+> Random Selection
+> Private Set
+> batch1 batch2
+> Candidates
+> Round T Distance Distribution
+> EM
+> Schema
+> sbp integer
+> dbp integer
+> Field Type
+> …
+> pain str
+> cheif str
+> Data Context: A 47-year-old man presents to the Emergency Depart-ment with severe, sharp, central ab-dominal pain radiating to the back...
+> temperature: 36.4°
+> Numeric Field Categorical Field
+> dis: home / transfer..
+> Textual Field
+
+= 
+
+> Bad Example
+> farthest
+> Filed-Level
+> Number
+> Semantic Channel
+> Numeric Channel
+
+Selection-Guided Progressive Evolution    
+
+> few-shot Generation
+> εtt
+> dd
+> tem em
+> tn n
+> Global
+> [[
+> [[
+> Good Example
+> =
+> Encoder
+> Normalizer 2
+> Final Synthesized Data
+> ···
+> ···
+> center
+> 1
+> top-cumulative center
+> center
+> cumulative center top-
+> 21
+
+Figure 2: Overview of SelPE . SelPE decouples semantic abstraction from schema realization to ensure structural validity. SelPE employs a multi-channel distance kernel to jointly evaluate textual and numeric fields, and concentrates the privacy budget on a sequence of progressive selections to enable high-fidelity synthesis under tight DP constraints. 
+
+categorical, and numeric fields in their native spaces; and (iii) a progressive evolution strategy that uses selected samples to guide subsequent generation while maintaining diversity. 
+
+## 4.1 Context-Schema Decoupled Generation 
+
+To ensure the structural validity of LLM outputs, prior work com-monly relies on constrained decoding [ 74 ]. However, strict schema enforcement substantially narrows the token space, often degrading semantic expressiveness and increasing decoding cost, particularly under long or complex prompts [ 5, 40 ]. At the same time, structured text records represent coherent real-world instances rather than in-dependent field values [ 56 ]. To reconcile this tension, SelPE adopts a context–schema decoupled generation paradigm that separates semantic abstraction from schema-grounded realization. 
+
+Stage I: Latent Data Context. For each synthesized sample 
+
+𝑠 , SelPE first constructs a latent record context 𝑡 that captures a coherent real-world instance and its cross-field semantics in free-form text. Formally, let M𝜃 be a language model with parameters 
+
+𝜃 , inducing a conditional distribution 𝑝 𝜃 (·) over token sequences. Given a prompt context, the model samples a latent description 
+
+𝑡 ∼ 𝑝 𝜃 (𝑡 | prompt ). We treat 𝑡 as a latent semantic variable and postpone schema enforcement to the subsequent stage, thereby decoupling semantic modeling from structural realization. 
+
+Stage II: Schema-Grounded Realization. In the second stage, the latent data context 𝑡 is realized as a structured record that strictly conforms to the target schema S. A schema S = (C , {V 𝑗 }𝑑 𝑗 =1, R) ,
+
+where C = {𝑐 1, . . . , 𝑐 𝑑 } denotes field labels, V𝑗 specifies the domain of field 𝑐 𝑗 , and R encodes constraints. Let 𝑝 𝜃 (𝑦 𝑘 | 𝑦 <𝑘 , 𝑡 ) denote the base distribution at decoding step 𝑘 from M𝜃 , conditioned on the previously generated prefix 𝑦 <𝑘 and the latent record context 𝑡 .Let AS be a schema-induced constraint automaton that specifies admissible next tokens given prefix 𝑦 <𝑘 . The constrained decoding distribution is defined as 
+
+𝑝 S 
+
+> 𝜃
+
+(𝑦 𝑘 | 𝑦 <𝑘 , 𝑡 ) ∝ 𝑝 𝜃 (𝑦 𝑘 | 𝑦 <𝑘 , 𝑡 ) 1[𝑦 𝑘 ∈ V S (𝑦 <𝑘 )] , (5) where VS (𝑦 <𝑘 ) denotes the set of schema-valid tokens permitted by AS after prefix 𝑦 <𝑘 , and 1[·] denotes the indicator function that masks out schema-invalid tokens. Decoding proceeds by iter-atively sampling 𝑦 𝑘 ∼ 𝑝 S 
+
+> 𝜃
+
+(· | 𝑦 <𝑘 , 𝑡 ) until termination, yielding a token sequence 𝑦 1: 𝐿 , which is parsed into a structured record 𝑠 ∈ S
+
+according to S. We instantiate AS using LLGuidance [40]. 
+
+## 4.2 Multi-Channel Distance Kernel 
+
+Structured text consists of heterogeneous fields (textual, categorical, and numeric) that differ in representation and scale. To enable reliable comparison under this heterogeneity, SelPE defines a multi-channel distance kernel 𝑔 (· , ·) that evaluates each field in its native space and aggregates distances via late fusion. 
+
+Hybrid representation. Given a schema S (Eq. (4.1) ), each structured record 𝑠 ∈ S is mapped to 
+
+Φ(𝑠 ) =  {z𝛼 (𝑠 )} 𝛼 ∈ K 𝑧 , {𝑥 𝛽 (𝑠 )} 𝛽 ∈ K 𝑥 
+
+, (6) where K𝑧 indexes semantic embedding channels and K𝑥 indexes scalar numeric channels, explicitly separating semantic and nu-meric signals. 
+
+Channel-wise encoding. Each field contributes one or more channels depending on its type. 
+
+Semantic channels. For a field 𝑐 𝑗 with value 𝜉 𝑗 , SelPE constructs a semantic representation by encoding the field–value pair via a deterministic lexicalization function ℓ (𝑐 𝑗 , 𝜉 𝑗 ). A semantic embed-ding is then obtained using a sentence encoder 𝑓 emb followed by ℓ2
+
+normalization: 
+
+z𝑗 (𝑠 ) = 𝑓 emb 
+
+ ℓ (𝑐 𝑗 , 𝜉 𝑗 )
+
+𝑓 emb 
+
+ ℓ (𝑐 𝑗 , 𝜉 𝑗 )
+
+> 2
+
+. (7) This construction applies uniformly to textual, categorical, and numeric fields, enabling a unified semantic treatment across het-erogeneous attributes. In addition to field-level semantic, SelPE also constructs a global semantic representation . Specifically, a global embedding zglob (𝑠 ) is obtained by encoding a canonical linearization of the entire record, SelPE: Progressive Selection for Private Structured Text Synthesis KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+formed by concatenating {ℓ (𝑐 𝑗 , 𝜉 𝑗 )} 𝑑 𝑗 =1 in a fixed schema order. This global channel captures cross-field coherence beyond individual. 
+
+Numeric channels. For numeric fields, SelPE additionally intro-duces a scalar channel to preserve numerical precision, yielding a dual-channel representation  z𝑗 (𝑠 ), 𝑥 𝑗 (𝑠 ), where 𝑥 𝑗 (𝑠 ) ∈ [ 0, 1] is obtained via robust normalization. Normalization statistics are esti-mated over the candidate set in each round, to ensure a consistent scale during selection. 
+
+Distance kernel. Given two records 𝑠 and 𝑠 ′, their structured distance 𝑑 (𝑠, 𝑠 ′) is computed via the following distance kernel: 
+
+𝑔 (𝑠, 𝑠 ′) =∑︁  
+
+> 𝛼 ∈ K 𝑧
+
+𝑤 𝛼 𝑑 cos 
+
+ z𝛼 (𝑠 ), z𝛼 (𝑠 ′) +∑︁  
+
+> 𝛽 ∈ K 𝑥
+
+𝑤 𝛽 |( 𝑥 𝛽 (𝑠 ) − 𝑥 𝛽 (𝑠 ′)| ,
+
+(8) where 𝑑 cos (𝑎, 𝑏 ) = 1 − ⟨ 𝑎, 𝑏 ⟩ and 𝑤 𝛼 , 𝑤 𝛽 ≥ 0 are channel weights. In practice, each distance is clipped to [0, 1] before aggregation, and all channel weights are set equally by default. The kernel aggregates field distances additively, ensuring that each attribute contributes independently to the overall similarity. 
+
+## 4.3 Selection-Guided Progressive Evolution 
+
+SelPE formulates private structured text synthesis as a selection-guided progressive evolution process. Instead of releasing noisy ag-gregates over private data, the privacy budget is concentrated on a small number of utility-based selections that directly influence sub-sequent generation. This design is motivated by Lemma 3.1, while long evolutionary chains yield diminishing returns in text synthe-sis [ 60 ]. SelPE therefore favors compact yet influential evolution trajectories, where each private decision has persistent impact. 
+
+Progressive conditional generation. SelPE synthesizes a dataset of total size 𝑁 over 𝑇 evolution rounds. Rather than allocating syn-thesis uniformly, we adopt an increasing-quota schedule 
+
+𝑚 𝑡 = 𝑡 𝑞, 
+
+> 𝑇
+
+∑︁ 
+
+> 𝑡 =1
+
+𝑚 𝑡 = 𝑁 , (9) where 𝑞 is a base expansion unit. Later rounds thus operate on a richer synthetic context formed by previously selected high-quality samples, yielding higher marginal utility per private selection. At round 𝑡 , SelPE generates a candidate pool 
+
+H𝑡 = {𝑠 𝑡, 1, . . . , 𝑠 𝑡,𝐾𝑚 𝑡 }, (10) using the context–schema decoupled generation mechanism (Sec. 4.1). Candidate generation is conditioned on both positive (previously selected) and negative (contrastive) synthetic exemplars from round 
+
+𝑡 −1, biasing proposals toward regions of the structured space val-idated by earlier private decisions while preserving exploration. The multiplicity factor 𝐾 controls exploratory breadth. 
+
+Multi-batch private selection. To stabilize selection under limited private data, SelPE partitions the private dataset 𝑃 into 
+
+𝑏 disjoint batches {𝐵 𝑖 }𝑏 𝑖 =1. Each batch is represented by a batch-wise empirical center computed independently for each channel. Specifically, for semantic vector channels 𝑘 ∈ K 𝑣 and numeric scalar channels ℓ ∈ K 𝑢 , the batch center is defined as 
+
+Φ 𝜇 (𝐵 𝑖 ) =
+
+n Í𝑥 ∈𝐵 𝑖 𝑣 𝑘 (𝑥 )
+
+Í𝑥 ∈𝐵 𝑖 𝑣 𝑘 (𝑥 ) 2
+
+o 
+
+> 𝑘 ∈ K 𝑣
+
+,
+
+n 1
+
+|𝐵 𝑖 |∑︁ 𝑥 ∈𝐵 𝑖 
+
+𝑢 ℓ (𝑥 )
+
+o 
+
+> ℓ∈ K 𝑢
+
+
+
+,
+
+(11) corresponding to a normalized mean direction for semantic chan-nels and a mean aggregation for numeric channels. Each candidate 𝑠 ∈ H 𝑡 is scored against batch 𝐵 𝑖 by 
+
+𝑢 𝑖 (𝑠 ) = − 𝑔  𝜇 (𝐵 𝑖 ), 𝑠 , (12) where 𝑔 (· , ·) is the multi-channel distance kernel. This yields 𝑏 
+
+independent utility signals without aggregating the private data into a single statistic. Since 𝑔 (· , ·) is bounded in [0, 1], SelPE applies the Top-1 Exponential Mechanism (Eq. (3)) to each batch with 𝜀 𝑡 :
+
+Pr  ˜𝑠 𝑡,𝑖 = 𝑠  ∝ exp (𝜀 𝑡 𝑢 𝑖 (𝑠 )) , 𝑠 ∈ H 𝑡 . (13) By parallel composition, the 𝑏 selections together satisfy 𝜀 𝑡 -DP. The selected set ˜𝑆 𝑡 = { ˜𝑠 𝑡, 1, . . . , ˜𝑠 𝑡,𝑏 } thus consists of synthetic samples most aligned with the private data under each batch view. 
+
+Non-private contrastive evolution. To encourage diversity without incurring additional privacy cost, each private winner ˜𝑠 𝑡,𝑖 
+
+is paired with a contrastive synthetic sample 
+
+ˆ𝑠 𝑡,𝑖 = arg max  
+
+> 𝑠 ∈ H 𝑡
+
+𝑔  𝑠, ˜𝑠 𝑡,𝑖 
+
+, (14) which depends only on distances among synthetic candidates. These contrastive samples push subsequent generation away from already selected modes. The paired exemplars {( ˜𝑠 𝑡,𝑖 , ˆ𝑠 𝑡,𝑖 )} 𝑏 𝑖 =1 are used as few-shot conditioning inputs for the next round. 
+
+At the end of each round, SelPE aggregates the selected candidates to construct the final synthetic dataset. Formally, we maintain a cumulative set of DP-selected winners S≤𝑡 = Ð𝑡 𝑟 =1 ˜𝑆 𝑟 , where ˜𝑆 𝑟 
+
+denotes the batch-wise Top-1 selections obtained at evolution round 
+
+𝑟 . This cumulative set S≤𝑡 is summarized by its aggregated center in the hybrid representation space. Candidates in the current pool 
+
+H𝑡 are then ranked by their distance to this cumulative center, and the top-𝑚 𝑡 samples are selected for inclusion. A full algorithmic description is provided in Appendix A. 
+
+## 5 Experiments 5.1 Settings 
+
+Datasets. Datasets. We evaluate SelPE on three structured text datasets with strict schema constraints. Water [55 ] contains water bottle reviews with 5 fields, MIMIC-ED [ 29 ] consists of clinical triage records with 7 fields, and Loan [47 ] comprises LendingClub-style financial records with 13 fields. To enrich textual content without introducing external information, we prompt gpt-4o-mini [ 41 ]to rewrite selected fields: the chiefcomplaint field in MIMIC-ED is expanded into a more descriptive sentence, and Loan records include an additional financial_profile_desc field summarizing mul-tiple credit-related attributes. 
+
+Baselines. We compare SelPE with five representative private text data synthesis methods: DP-DS [ 69 ] (DP-SGD on downstream models), DP-Gen [ 70 ] (DP-finetuned LLM-based generation), Aug-PE [60 ] (text-oriented private evolution), WASP [ 78 ] (collaborative PE with DP voting), and CTCL [52 ] (DP topic modeling with fine-grained text generation). 
+
+Metrics. We evaluate synthetic data quality from two perspec-tives: utility , which measures the preservation of task-relevant information for downstream learning, and fidelity , which assesses the structural correctness and completeness of generated records. KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. 
+
+Utility. We train downstream classifiers on synthetic data and evaluate them on held-out real test sets (see Appendix B.4). We report ROC-AUC as the utility metric. To capture utility under different modeling assumptions, we consider two downstream pre-dictors. Text-centric utility. We fine-tune RoBERTa [ 36 ] by treating each synthesized record as plain text, assessing whether seman-tic information is preserved for text-based models. Structured-text utility. We train TabSTAR [ 3], a foundation model for tabular data with textual fields, to evaluate whether structured dependencies and cross-field interactions are retained. For baselines that do not produce valid JSON outputs, structured fields are extracted via a regular-expression-based parser. 
+
+Fidelity. Beyond utility, structured text synthesis requires gener-ated samples to satisfy schema constraints and remain directly us-able. However, many existing text-based synthesis methods do not reliably produce fully structured outputs, making strict schema val-idation infeasible. We therefore report two complementary fidelity metrics based on Context-Free Grammar (CFG) validation. Rough-CFG (R-CFG) measures data completeness by checking whether re-quired fields are present and parsable under a relaxed CFG, enabling fair comparison with partially structured baselines. Strict-CFG (S-CFG) follows the protocol of Wang et al . [56] and enforces full schema validity, including structural consistency and value-range plausibility. Since SelPE employs schema-constrained decoding, all generated samples can be evaluated under S-CFG. 
+
+Synthesis settings. Expect the transfer experiments, all meth-ods use Llama-3.1-8B-Instruct [ 11 ] as the base generator. We in-stantiate the semantic encoder 𝑓 emb using gte-large-en-v1.5 . In the main experiments, we sample 20 records per class to form the private dataset. All methods operate under this fixed small-sample regime. We generate 20 × synthetic records per class, resulting in 
+
+𝑁 = 2000 samples for Water and MIMIC (5 classes) and 𝑁 = 2800 
+
+samples for Loan (7 classes). For SelPE, we set the candidate mul-tiplicity 𝐾 = 3, evolution rounds 𝑇 = 5, and temperature 𝜏 = 1.2.
+
+## 5.2 Main Results 
+
+Table 1 summarizes the main results across datasets whose schema complexity (number of fields) and text length increase from Water 
+
+to MIMIC-ED and Loan . Across all privacy budgets, SelPE achieves the most consistent performance on both evaluation axes, namely RoBERTa for holistic-text utility and TabSTAR for channel-wise structured utility, while maintaining high fidelity (R-CFG). No-tably, SelPE’s advantage becomes more pronounced as records grow longer and more heterogeneous. Under tight privacy budgets (𝜀 ∈ { 2, 1}), SelPE preserves downstream utility on MIMIC-ED and 
+
+Loan , whereas many baselines exhibit sharp degradation or fail to produce usable structured outputs. We observe that some methods achieve competitive, and occa-sionally stronger, performance under RoBERTa-based evaluation, particularly for Water and under non-private or mild privacy set-tings ( 𝜀 = ∞, 4). This is expected, as holistic text evaluation pri-marily reflects global semantic fluency and benefits from increased generative diversity. However, such gains do not consistently trans-late to structure-aware utility. Under tighter privacy budgets and for more complex records, these methods degraded performance on TabSTAR, indicating difficulties in maintaining cross-field con-sistency. In contrast, SelPE consistently performs well. 
+
+Obs. 1. Increasing schema/length exposes a text–structure gap, which SelPE closes. As records become longer and more heterogeneous, holistic-text evaluation (RoBERTa) can be satisfied by fluent narratives that still drift on numeric values or cross-field 
+
+Table 1: Main results on three datasets (Water, MIMIC, Loan) under different privacy budgets ( 𝜀 ).                                                                                                                                                                                                                                                  
+
+> 𝜺 =∞𝜺 =4𝜺 =2𝜺 =1
+> Dataset Method RoBERTa TabSTAR R-CFG RoBERTa TabSTAR R-CFG RoBERTa TabSTAR R-CFG RoBERTa TabSTAR R-CFG DP-DS 57.54 56.97 –45.81 52.88 –45.81 52.23 –45.81 44.61 –DP-Gen 83.69 61.91 100 77.65 59.07 100 76.85 53.67 99.95 78.03 58.74 100
+> AUG-PE 64.99 52.11 98.35 58.96 52.11 52.10 63.17 54.63 52.15 64.46 53.93 53.15 WASP 85.08 57.38 55.40 82.15 57.02 53.25 85.34 54.15 62.05 78.52 52.22 39.45 CTCL 44.25 59.78 96.15 52.08 51.25 055.75 50.58 052.43 50.21 0Water
+> Ours 86.95 66.80 100 86.62 65.07 100 84.98 64.89 100 85.86 63.15 100
+> DP-DS 70.48 56.47 –55.58 52.91 –55.58 47.26 –55.58 48.50 –DP-Gen 56.22 63.46 78.94 55.07 53.46 66.20 51.35 51.89 68.05 50.96 50.70 66.20 AUG-PE 54.22 56.04 96.95 54.26 47.53 54.20 50.06 51.29 55.10 40.59 47.21 56.00 WASP 70.27 52.21 45.75 63.57 52.55 49.75 68.02 53.17 56.25 62.85 43.19 52.75 CTCL 54.63 49.31 8.36 48.42 52.06 048.53 46.95 050.62 48.54 0Mimic
+> Ours 75.15 68.67 95.20 66.08 59.34 87.05 62.44 59.65 91.90 65.06 53.20 95.80
+> DP-DS 49.84 55.30 –47.74 53.57 –47.74 52.63 –47.73 45.48 –DP-Gen 53.64 50.42 83.08 54.41 52.21 95.37 54.76 48.86 94.89 53.42 47.44 94.67 AUG-PE 49.01 49.47 90.50 49.33 49.56 49.54 48.72 51.46 49.04 50.01 49.12 50.50 WASP 58.51 49.64 14.43 58.22 51.89 12.11 58.01 49.64 22.36 55.78 53.11 18.36 CTCL 49.86 48.98 100 48.64 52.11 050.67 46.94 051.00 49.03 0Loan
+> Ours 55.54 55.27 93.21 57.18 56.43 97.57 55.55 53.21 98.21 58.27 53.21 95.00 SelPE: Progressive Selection for Private Structured Text Synthesis KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea.
+
+Table 2: Transferability of SelPE across different backbone LLMs under various privacy budgets.                                                                                    
+
+> 𝜺 =∞𝜺 =4𝜺 =2𝜺 =1
+> Backbone RoBERTa TabSTAR S-CFG RoBERTa TabSTAR S-CFG RoBERTa TabSTAR S-CFG RoBERTa TabSTAR S-CFG Llama-3.1-8B-Instruct 75.15 68.67 95.20 66.08 59.34 87.05 62.44 59.65 91.90 65.06 53.20 95.80 Gemma-2-9B-Instruct 64.20 60.21 49.75 63.57 59.48 43.95 62.71 59.48 61.50 62.01 54.02 82.30 Mistral-7B-Instruct 66.95 66.44 62.35 64.97 57.15 39.60 61.79 53.37 27.20 57.20 52.36 93.65 Qwen-2.5-7B-Instruct 63.85 64.74 95.65 64.50 60.10 99.50 63.20 59.26 100 69.29 57.40 99.25 Qwen-2.5-14B-Instruct 70.24 66.52 99.85 67.75 56.23 95.60 66.53 60.12 99.95 68.64 60.11 99.95
+
+relations. TabSTAR, which consumes field-separated channels, is more sensitive to such inconsistencies. SelPE remains strong on Tab-STAR across settings, indicating that its gains stem from preserving structured dependencies rather than surface-level text fluency. This gap is evident when baselines score competitively on RoBERTa but lag on TabSTAR and fidelity. 
+
+Obs. 2. Structural validity alone is insufficient; mixed-type alignment drives utility. Several baselines achieve high R-CFG in some regimes (e.g., DP-Gen on Water), yet still underperform SelPE in downstream utility, especially on TabSTAR. This shows that producing parseable fields does not guarantee numeric accuracy or cross-field consistency. SelPE’s advantage is most pronounced on structured-text utility, reflecting better alignment across fields. 
+
+Obs. 3. RoBERTa and TabSTAR expose complementary failure modes. Across datasets, some methods perform well on text-centric evaluation but degrade on structured-text utility, reveal-ing fluent yet inconsistent generations. SelPE consistently ranks at or near the top on both RoBERTa and TabSTAR under tight privacy, indicating that its evolution preserves both semantic coherence and structured interactions. Even when a baseline attains higher RoBERTa scores in intermediate regimes, SelPE remains stronger on structure-aware utility and fidelity. 
+
+## 5.3 Backbone Transferability 
+
+We study the transferability of SelPE across backbone LLMs by instantiating the two-stage generator (Sec. 4.1) with a diverse set of instruction-tuned models: Llama-3.1-8B-Instruct [ 11 ], Gemma-2-9B-Instruct [ 53 ], Mistral-7B-Instruct-v0.3 [ 28 ], Qwen-2.5-7B-Instruct, and Qwen-2.5-14B-Instruct [ 54 ]. All other components are kept identical. As shown in Tabel 2, across a diverse set of backbone LLMs with different architectures and scales, SelPE consistently maintains strong utility and high schema fidelity under all privacy budgets. While stronger backbones yield higher absolute performance, the relative gains of SelPE are stable, indicating that its effectiveness is largely backbone-agnostic and stems from the proposed selection-guided evolution rather than reliance on a specific generator. 
+
+Obs. 4. Consistent structured performance across back-bones. As shown in Table 2, SelPE preserves high structured-text utility (TabSTAR) and near-perfect schema validity (S-CFG) across all tested backbones, even under tight privacy budgets ( 𝜀 =
+
+2, 1). Although RoBERTa-based utility varies with backbone capac-ity—reflecting differences in holistic text generation quality—the structured evaluation remains stable. This suggests that SelPE ef-fectively decouples structured data quality from backbone-specific generation variability, enabling reliable private synthesis under heterogeneous model choices. 
+
+## 5.4 Stability under Data-Scale Variations 
+
+We evaluate the robustness of different methods under varying de-grees of private data availability on the MIMIC dataset. Specifically, we vary the private data size per class with 𝑛 ∈ { 5, 10 , 20 , 35 , 50 }
+
+while fixing the synthetic size to 𝑁 = 2000 and 𝜀 = 2.Figure 3 analyzes how different synthesis methods respond to in-creasing private sample size 𝑛 . Across both RoBERTa-based (holistic text) and TabSTAR-based (structured) evaluations, SelPE consis-tently achieves the strongest and most stable performance, particu-larly in the small- to medium-sample regimes. While some baselines benefit from larger private datasets, their gains are uneven across evaluation axes, whereas SelPE exhibits robust improvements that are consistent with both semantic and structural utility. n=5 n=10 n=20 n=35 n=50 
+
+> 40
+> 45
+> 50
+> 55
+> 60
+> 65
+> 70
+> 75
+> Score
+
+(a) Utility on RoBERTa          
+
+> DP-DS DP-GEN AUG-PE WASP CTCL Ours
+> n=5 n=10 n=20 n=35 n=50
+> 40
+> 45
+> 50
+> 55
+> 60
+> 65
+> Score
+
+(b) Utility on TabSTAR 
+
+Figure 3: Downstream utility under varying data sizes 𝑛 
+
+Obs. 5. SelPE is robust to data scale and excels in low-𝑛 
+
+regimes. Across 𝑛 ∈ [ 5, 50 ], SelPE consistently outperforms all baselines on both RoBERTa and TabSTAR. Notably, SelPE already achieves strong utility at very small sample sizes ( 𝑛 = 5, 10 ), where other methods are more affected by noise and instability. This suggests that SelPE effectively concentrates limited privacy budget on high-impact selections, reducing sensitivity to data scale. 
+
+Obs. 6. Model diversity mainly benefits holistic text utility. 
+
+Methods leveraging model diversity tend to improve with larger KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. 
+
+𝑛 under RoBERTa-based evaluation, reflecting gains in global se-mantic richness. However, these improvements do not consistently translate to TabSTAR, indicating that enhanced holistic semantics alone is insufficient to ensure robust cross-field structure. 
+
+## 5.5 Hyperparameter Analysis 
+
+We analyze the sensitivity of SelPE to key hyperparameters that control the evolution process, including the number of evolution rounds 𝑇 , candidate multiplicity 𝐾 , batch count 𝑏 , and generation temperature 𝜏 . Figure 4 reports downstream utility under each setting, evaluated using both RoBERTa and TabSTAR classifiers. 3 4 5 6 7              
+
+> 50
+> 55
+> 60
+> 65
+> 70
+> Score
+> RoBERTa
+> TabSTAR
+> (a) Evolution rounds ( 𝑇 )2345
+> 50
+> 55
+> 60
+> 65
+> 70
+> Score
+> RoBERTa
+> TabSTAR (b) Candidates multiplicity ( 𝐾 )2510 20
+> 45
+> 50
+> 55
+> 60
+> 65
+> 70
+> Score
+> RoBERTa
+> TabSTAR
+> (c) Batch Count ( 𝑏 )0.6 0.8 1.0 1.2 1.4 1.6
+> 50
+> 55
+> 60
+> 65
+> 70
+> Score
+> RoBERTa
+> TabSTAR (d) Temperature ( 𝜏 )
+
+Figure 4: Hyperparameter sensitivity of SelPE. Obs. 7. Moderate evolution depth yields the best utility– stability trade-off. SelPE achieves peak performance with a small number of evolution rounds ( 𝑇 ≈ 4–5) and moderate candidate mul-tiplicity ( 𝐾 ≈ 3–4). Increasing 𝑇 or 𝐾 beyond this range does not consistently improve utility and may even degrade performance, suggesting diminishing returns once high-confidence selections have sufficiently shaped the generation space. This behavior sup-ports SelPE’s design choice of compact, selection-driven evolution rather than deep or overly exploratory private generation. 
+
+Obs. 8. Selection stability is sensitive to batch granular-ity and sampling temperature. Performance remains stable for small to moderate batch counts ( 𝑏 ≤ 10 ), while overly large batches weaken selection signals by averaging heterogeneous private evi-dence. Similarly, intermediate temperatures ( 𝜏 ≈ 1.0–1.2) provide the best balance between diversity and fidelity, whereas excessive ran-domness degrades structural and semantic alignment. These trends highlight that SelPE benefits from controlled diversity, but relies on stable, high-signal selection to guide evolution effectively. Together, these results indicate that SelPE’s performance is governed by the quality of selection signals rather than excessive exploration. 
+
+## 5.6 Ablation Study 
+
+We conduct ablation studies on the MIMIC dataset under 𝜀 = 2 to assess the contribution of each key component in SelPE. Table 3 reports downstream utility evaluated with RoBERTa and TabSTAR, where each variant removes exactly one design component while keeping all other settings and privacy budgets fixed. 
+
+Table 3: Ablation study on different components of our method. Bold indicates the best performance. Variant RoBERTa TabSTAR Ours (Full) 62.44 59.65 
+
+w/o Contrastive Example 59.19 51.93 w/o Progressive Quota 61.36 54.22 w/o Schema-aware Generation 60.32 51.27 w/o Kernel 𝑔 (·) 62.38 55.13 
+
+Obs. 9. Each component of SelPE contributes to utility, with the largest gains on structured-text evaluation. Removing any major component leads to a consistent performance drop, partic-ularly on TabSTAR, indicating that SelPE’s improvements are not driven by a single design choice. Eliminating contrastive bad-case examples causes the largest degradation, highlighting the impor-tance of non-private contrastive signals for maintaining diversity and avoiding mode collapse. Removing progressive quota schedul-ing or two-stage generation also degrades performance, suggesting that both selection accumulation and context–schema decoupling are critical for stable evolution. Finally, removing the multi-channel distance kernel 𝑔 (·) has limited impact on RoBERTa but substan-tially harms TabSTAR utility, confirming that field-aware distance modeling is essential for preserving cross-field structure rather than merely improving surface-level text quality. 
+
+## 6 Conclusion 
+
+This work introduces SelPE, a selection-guided framework for dif-ferentially private structured text synthesis tailored to the small-sample setting. By shifting from noise-based statistical aggregation to structure-aware private selection, SelPE better preserves both semantic utility and cross-field consistency under strict privacy constraints. SelPE combines context–schema decoupled generation with multi-channel, structure-aware selection to reliably guide the synthesis process. Across datasets with increasing schema com-plexity, SelPE achieves stable performance on both holistic-text and structure-aware downstream evaluations, while maintaining high structural validity and conservative empirical privacy behav-ior. Overall, our results demonstrate that concentrating the privacy budget on structured selection, together with explicitly designing structure-aware mechanisms, is an effective and principled design choice for private structured text synthesis, and represents a promis-ing direction for DP structured text synthesis. 
+
+## Acknowledgments 
+
+This work was supported by the Beijing Natural Science Founda-tion Program (Grant No. L232002), the Guangxi Key Research and Development Program (Grant No. FN2504240005), the National Nat-ural Science Foundation of China (Grant No. 62471064), and the Fundamental Research Funds for the Beijing University of Posts and Telecommunications (Grant No. 2025AI4S02). SelPE: Progressive Selection for Private Structured Text Synthesis KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+## References 
+
+[1] Martin Abadi, Andy Chu, Ian Goodfellow, H Brendan McMahan, Ilya Mironov, Kunal Talwar, and Li Zhang. 2016. Deep learning with differential privacy. In 
+
+Proceedings of the 2016 ACM SIGSAC conference on computer and communications security . 308–318. [2] Gergely Acs, Luca Melis, Claude Castelluccia, and Emiliano De Cristofaro. 2018. Differentially private mixture of generative neural networks. IEEE Transactions on Knowledge and Data Engineering 31, 6 (2018), 1109–1121. [3] Alan Arazi, Eilam Shapira, and Roi Reichart. 2025. TabSTAR: A Tabular Foun-dation Model for Tabular Data with Text Fields. In The Thirty-ninth Annual Conference on Neural Information Processing Systems .[4] Hassan Jameel Asghar, Ming Ding, Thierry Rakotoarivelo, Sirine Mrabet, and Dali Kaafar. 2020. Differentially private release of datasets using Gaussian copula. 
+
+Journal of Privacy and Confidentiality 10, 2 (2020). [5] Debangshu Banerjee, Tarun Suresh, Shubham Ugare, Sasa Misailovic, and Gagan-deep Singh. 2025. CRANE: Reasoning with constrained LLM generation. In 
+
+Forty-second International Conference on Machine Learning .[6] Vadim Borisov, Tobias Leemann, Kathrin Seßler, Johannes Haug, Martin Pawel-czyk, and Gjergji Kasneci. 2022. Deep neural networks and tabular data: A survey. 
+
+IEEE transactions on neural networks and learning systems 35, 6 (2022), 7499–7519. [7] Qingrong Chen, Chong Xiang, Minhui Xue, Bo Li, Nikita Borisov, Dali Kaarfar, and Haojin Zhu. 2018. Differentially private data generative models. arXiv preprint arXiv:1812.02274 (2018). [8] Graham Cormode, Samuel Maddock, Enayat Ullah, and Shripad Gade. 2025. Synthetic Tabular Data: Methods, Attacks and Defenses. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (Toronto ON, Canada) (KDD ’25) . Association for Computing Machinery, New York, NY, USA, 5989–5998. doi:10.1145/3711896.3736562 [9] Jinshuo Dong, David Durfee, and Ryan Rogers. 2020. Optimal differential privacy composition for exponential mechanisms. In International Conference on Machine Learning . PMLR, 2597–2606. [10] Enjun Du, Xunkai Li, Tian Jin, Zhihan Zhang, Rong-Hua Li, and Guoren Wang. 2025. GraphMaster: Automated Graph Synthesis via LLM Agents in Data-Limited Environments. In The Thirty-ninth Annual Conference on Neural Information Processing Systems . https://openreview.net/forum?id=h3dbocj7po [11] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al. 2024. The llama 3 herd of models. arXiv e-prints (2024), arXiv–2407. [12] David Durfee and Ryan Rogers. 2021. One-shot DP Top-k mechanisms. Differen-tialPrivacy.org. https://differentialprivacy.org/one-shot-top-k/. [13] Cynthia Dwork, Krishnaram Kenthapadi, Frank McSherry, Ilya Mironov, and Moni Naor. 2006. Our data, ourselves: Privacy via distributed noise generation. In Annual international conference on the theory and applications of cryptographic techniques . Springer, 486–503. [14] Cynthia Dwork, Frank McSherry, Kobbi Nissim, and Adam Smith. 2006. Cali-brating noise to sensitivity in private data analysis. In Theory of cryptography conference . Springer, 265–284. [15] Cynthia Dwork and Aaron Roth. 2014. The algorithmic foundations of differential privacy. Foundations and trends ® in theoretical computer science 9, 3-4 (2014), 211–487. [16] Muhammad Hasan Ferdous, Emam Hossain, and Md Osman Gani. 2025. Time-Graph: Synthetic Benchmark Datasets for Robust Time-Series Causal Discovery. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (Toronto ON, Canada) (KDD ’25) . Association for Computing Machinery, New York, NY, USA, 5425–5435. doi:10.1145/3711896.3737439 [17] Lorenzo Frigerio, Anderson Santana de Oliveira, Laurent Gomez, and Patrick Duverger. 2019. Differentially private generative adversarial networks for time series, continuous, and discrete open data. In IFIP International Conference on ICT Systems Security and Privacy Protection . Springer, 151–164. [18] Yuqian Fu, Yuanheng Zhu, Jian Zhao, Jiajun Chai, and Dongbin Zhao. 2025. INS: Interaction-aware Synthesis to Enhance Offline Multi-agent Reinforcement Learning. In The Thirteenth International Conference on Learning Representations .https://openreview.net/forum?id=kxD2LlPr40 [19] Zeyu Gan and Yong Liu. 2025. Towards a Theoretical Understanding of Synthetic Data in LLM Post-Training: A Reverse-Bottleneck Perspective. In The Thirteenth International Conference on Learning Representations . https://openreview.net/ forum?id=UxkznlcnHf [20] Fengyu Gao, Ruida Zhou, Tianhao Wang, Cong Shen, and Jing Yang. 2025. Data-adaptive Differentially Private Prompt Synthesis for In-Context Learning. In 
+
+The Thirteenth International Conference on Learning Representations . https: //openreview.net/forum?id=sVNfWhtaJC [21] Quan Geng and Pramod Viswanath. 2015. The optimal noise-adding mechanism in differential privacy. IEEE Transactions on Information Theory 62, 2 (2015), 925–951. [22] Saibo Geng, Hudson Cooper, Michal Moskal, Samuel Jenkins, Julian Berman, Nathan Ranchin, Robert West, Eric Horvitz, and Harsha Nori. 2025. JSON-SchemaBench: Evaluating Constrained Decoding with LLMs on Efficiency, Cov-erage and Quality. In ES-FoMo III: 3rd Workshop on Efficient Systems for Foundation Models . https://openreview.net/forum?id=FKOaJqKoio [23] Emmanuel Anaya Gonzalez, Sairam Vaidya, Kanghee Park, Ruyi Ji, Taylor Berg-Kirkpatrick, and Loris D’Antoni. 2025. Constrained Sampling for Language Models Should Be Easy: An MCMC Perspective. arXiv preprint arXiv:2506.05754 
+
+(2025). [24] Tomás González, Giulia Fanti, and Aaditya Ramdas. 2025. Private Evolution Converges. arXiv preprint arXiv:2506.08312 (2025). [25] Yury Gorishniy, Ivan Rubachev, Valentin Khrulkov, and Artem Babenko. 2021. Revisiting deep learning models for tabular data. Advances in neural information processing systems 34 (2021), 18932–18943. [26] Jonathan Herzig, Pawel Krzysztof Nowak, Thomas Müller, Francesco Piccinno, and Julian Eisenschlos. 2020. TaPas: Weakly Supervised Table Parsing via Pre-training. In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics , Dan Jurafsky, Joyce Chai, Natalie Schluter, and Joel Tetreault (Eds.). Association for Computational Linguistics, Online, 4320–4333. doi:10.18653/v1/2020.acl-main.398 [27] Yuzheng Hu, Fan Wu, Qinbin Li, Yunhui Long, Gonzalo Munilla Garrido, Chang Ge, Bolin Ding, David Forsyth, Bo Li, and Dawn Song. 2024. Sok: Privacy-preserving data synthesis. In 2024 IEEE Symposium on Security and Privacy (SP) .IEEE, 4696–4713. [28] Albert Q. Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, De-vendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, Lélio Renard Lavaud, Marie-Anne Lachaux, Pierre Stock, Teven Le Scao, Thibaut Lavril, Thomas Wang, Timothée Lacroix, and William El Sayed. 2023. Mistral 7B. arXiv:2310.06825 [cs.CL] https: //arxiv.org/abs/2310.06825 [29] Alistair Johnson, Lucas Bulgarelli, Tom Pollard, Leo Anthony Celi, Roger Mark, and Steven Horng. 2023. MIMIC-IV-ED. PhysioNet (Jan. 2023). doi:10.13026/5ntk-km72 Version 2.2. [30] Peter Kairouz, Sewoong Oh, and Pramod Viswanath. 2015. The Composi-tion Theorem for Differential Privacy. In Proceedings of the 32nd International Conference on Machine Learning (Proceedings of Machine Learning Research, Vol. 37) , Francis Bach and David Blei (Eds.). PMLR, Lille, France, 1376–1385. https://proceedings.mlr.press/v37/kairouz15.html [31] Haoran Li, Li Xiong, and Xiaoqian Jiang. 2014. Differentially private synthesiza-tion of multi-dimensional data using copula functions. In Advances in database technology: proceedings. International conference on extending database technology ,Vol. 2014. 475. [32] Qintong Li, Jiahui Gao, Sheng Wang, Renjie Pi, Xueliang Zhao, Chuan Wu, Xin Jiang, Zhenguo Li, and Lingpeng Kong. 2025. Forewarned is Forearmed: Harness-ing LLMs for Data Synthesis via Failure-induced Exploration. In The Thirteenth International Conference on Learning Representations . https://openreview.net/ forum?id=yitH9xAHQs [33] Xuechen Li, Florian Tramer, Percy Liang, and Tatsunori Hashimoto. 2022. Large Language Models Can Be Strong Differentially Private Learners. In International Conference on Learning Representations .[34] Junyong Lin, Lu Dai, Ruiqian Han, Yijie Sui, Ruilin Wang, Xingliang Sun, Qinglin Wu, Min Feng, Hao Liu, and Hui Xiong. 2025. ScIRGen: Synthesize Realistic and Large-Scale RAG Dataset for Scientific Research. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (Toronto ON, Canada) (KDD ’25) . Association for Computing Machinery, New York, NY, USA, 5619–5630. doi:10.1145/3711896.3737432 [35] Zinan Lin, Sivakanth Gopi, Janardhan Kulkarni, Harsha Nori, and Sergey Yekhanin. 2024. Differentially Private Synthetic Data via Foundation Model APIs 1: Images. In The Twelfth International Conference on Learning Representa-tions .[36] Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. 2019. Roberta: A robustly optimized bert pretraining approach. arXiv preprint arXiv:1907.11692 
+
+(2019). [37] Yaxi Lu, Haolun Li, Xin Cong, Zhong Zhang, Yesai Wu, Yankai Lin, Zhiyuan Liu, Fangming Liu, and Maosong Sun. 2025. Learning to Generate Structured Output with Schema Reinforcement Learning. arXiv preprint arXiv:2502.18878 (2025). [38] Xuebin Ma, Xuejian Qi, Yulei Meng, and Tao Yang. 2023. Improved Bayesian network differential privacy data-releasing method based on junction tree. In 2023 IEEE 47th Annual Computers, Software, and Applications Conference (COMPSAC) .IEEE, 759–764. [39] Frank McSherry and Kunal Talwar. 2007. Mechanism design via differential privacy. In 48th Annual IEEE Symposium on Foundations of Computer Science (FOCS’07) . IEEE, 94–103. [40] Michał Moskal, Harsha Nori, Hudson Cooper, and Loc Huynh. 2025. LLGuidance: Making Structured Outputs Go Brrrr. https://guidance-ai.github.io/llguidance/llg-go-brrr. blog, Guidance-AI. KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. 
+
+[41] OpenAI. 2024. GPT-4o Mini: Efficient Multimodal Language Model. https: //platform.openai.com/docs/models. Model used: gpt-4o-mini. [42] Clément Pierquin, Aurélien Bellet, Marc Tommasi, and Matthieu Boussard. 2025. Privacy Amplification Through Synthetic Data: Insights from Linear Regression. In Forty-second International Conference on Machine Learning . https://openreview. net/forum?id=TOn1rhgdeD [43] Ulyana Piterbarg, Lerrel Pinto, and Rob Fergus. 2025. Training Language Models on Synthetic Edit Sequences Improves Code Synthesis. In The Thirteenth Interna-tional Conference on Learning Representations . https://openreview.net/forum?id= AqfUa08PCH [44] Gang Qiao, Weijie Su, and Li Zhang. 2021. Oneshot differentially private top-k selection. In International Conference on Machine Learning . PMLR, 8672–8681. [45] Chuan Qin, Xin Chen, Chengrui Wang, Pengmin Wu, Xi Chen, Yihang Cheng, Jingyi Zhao, Meng Xiao, Xiangchao Dong, Qingqing Long, Boya Pan, Han Wu, Chengzan Li, Yuanchun Zhou, Hui Xiong, and Hengshu Zhu. 2025. SciHorizon: Benchmarking AI-for-Science Readiness from Scientific Data to Large Language Models. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discov-ery and Data Mining V.2 (Toronto ON, Canada) (KDD ’25) . Association for Com-puting Machinery, New York, NY, USA, 5754–5765. doi:10.1145/3711896.3737403 [46] Federico Raspanti, Tanir Ozcelebi, and Mike Holenderski. 2025. Grammar-constrained decoding makes large language models better logical parsers. In 
+
+Proceedings of the 63rd Annual Meeting of the Association for Computational Lin-guistics (Volume 6: Industry Track) . 485–499. [47] saurabh13nov. 2017. Lending Club Loan Data. https://www.kaggle.com/datasets/ saurabh13nov/lending-club-loan-data. Accessed: 2026-02. [48] Reza Shokri, Marco Stronati, Congzheng Song, and Vitaly Shmatikov. 2017. Mem-bership inference attacks against machine learning models. In 2017 IEEE sympo-sium on security and privacy (SP) . IEEE, 3–18. [49] MAYNARA DONATO DE SOUZA and Cleber Zanchettin. 2025. Breaking the Barrier of Hard Samples: A Data-Centric Approach to Synthetic Data for Medical Tasks. In Forty-second International Conference on Machine Learning . https: //openreview.net/forum?id=SJkpCMeIxu [50] Shun Takagi, Tsubasa Takahashi, Yang Cao, and Masatoshi Yoshikawa. 2021. P3gm: Private high-dimensional data release via privacy preserving phased generative model. In 2021 IEEE 37th international conference on data engineering (ICDE) . IEEE, 169–180. [51] Bowen Tan, Zheng Xu, Eric P. Xing, Zhiting Hu, and Shanshan Wu. 2025. Syn-thesizing Privacy-Preserving Text Data via Finetuning *without* Finetuning Billion-Scale LLMs. In Forty-second International Conference on Machine Learning .https://openreview.net/forum?id=FCm4laCLiH [52] Bowen Tan, Zheng Xu, Eric P Xing, Zhiting Hu, and Shanshan Wu. 2025. Syn-thesizing Privacy-Preserving Text Data via Finetuning* without* Finetuning Billion-Scale LLMs. In Forty-second International Conference on Machine Learn-ing .[53] Gemma Team, Morgane Riviere, Shreya Pathak, Pier Giuseppe Sessa, Cassidy Hardin, Surya Bhupatiraju, Léonard Hussenot, Thomas Mesnard, Bobak Shahriari, Alexandre Ramé, et al . 2024. Gemma 2: Improving open language models at a practical size. arXiv preprint arXiv:2408.00118 (2024). [54] Qwen Team. 2024. Qwen2.5: A Party of Foundation Models. https://qwenlm. github.io/blog/qwen2.5/ [55] M. S. S. Tharun. 2023. Water Bottle Dataset from Flipkart. https://www.kaggle. com/datasets/tharunmss/water-bottle-dataset-flipkart. Accessed: 2025-02. [56] Shuaiqi Wang, Vikas Raunak, Arturs Backurs, Victor Reis, Pei Zhou, Sihao Chen, Longqi Yang, Zinan Lin, Sergey Yekhanin, and Giulia Fanti. 2025. Struct-Bench: A Benchmark for Differentially Private Structured Text Generation. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track .[57] Shuaiqi Wang, Vikas Raunak, Arturs Backurs, Victor Reis, Pei Zhou, Sihao Chen, Longqi Yang, Zinan Lin, Sergey Yekhanin, and Giulia Fanti. 2025. Struct-Bench: A Benchmark for Differentially Private Structured Text Generation. In The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track . https://openreview.net/forum?id=59vXWteYuh [58] Yuxin Wang, Duanyu Feng, Yongfu Dai, Zhengyu Chen, Jimin Huang, Sophia Ananiadou, Qianqian Xie, and Hao Wang. 2024. HARMONIC: Harnessing LLMs for tabular data synthesis and privacy protection. Advances in Neural Information Processing Systems 37 (2024), 100196–100212. [59] Justin Whitehouse, Aaditya Ramdas, Ryan Rogers, and Steven Wu. 2023. Fully-adaptive composition in differential privacy. In International conference on ma-chine learning . PMLR, 36990–37007. [60] Chulin Xie, Zinan Lin, Arturs Backurs, Sivakanth Gopi, Da Yu, Huseyin A Inan, Harsha Nori, Haotian Jiang, Huishuai Zhang, Yin Tat Lee, et al . 2024. Differen-tially Private Synthetic Data via Foundation Model APIs 2: Text. In Forty-first International Conference on Machine Learning .[61] Liyang Xie, Kaixiang Lin, Shu Wang, Fei Wang, and Jiayu Zhou. 2018. Differ-entially private generative adversarial network. arXiv preprint arXiv:1802.06739 
+
+(2018). [62] Yichen Xie, Chenfeng Xu, Chensheng Peng, Shuqi Zhao, Nhat Ho, Alexan-der T. Pham, Mingyu Ding, Masayoshi Tomizuka, and Wei Zhan. 2025. X-Drive: Cross-modality Consistent Multi-Sensor Data Synthesis for Driving Sce-narios. In The Thirteenth International Conference on Learning Representations .https://openreview.net/forum?id=IEMmEd5Jgm [63] Lei Xu, Maria Skoularidou, Alfredo Cuesta-Infante, and Kalyan Veeramachaneni. 2019. Modeling tabular data using conditional gan. Advances in neural information processing systems 32 (2019). [64] Jialin Yang, Dongfu Jiang, Lipeng He, Sherman Siu, Yuxuan Zhang, Disen Liao, Zhuofeng Li, Huaye Zeng, Yiming Jia, Haozhe Wang, et al . 2025. StructEval: Benchmarking LLMs’ Capabilities to Generate Structural Outputs. arXiv preprint arXiv:2505.20139 (2025). [65] Mengmeng Yang, Chi-Hung Chi, Kwok-Yan Lam, Jie Feng, Taolin Guo, and Wei Ni. 2024. Tabular Data Synthesis with Differential Privacy: A Survey. arXiv:2411.03351 [cs.CR] https://arxiv.org/abs/2411.03351 [66] Yu Yao, Yang Zhou, Bo Han, Mingming Gong, Kun Zhang, and Tongliang Liu. 2025. A Robust Method to Discover Causal or Anticausal Relation. In The Thirteenth International Conference on Learning Representations . https://openreview.net/ forum?id=Q0s6kgrUMr [67] Samuel Yeom, Irene Giacomelli, Matt Fredrikson, and Somesh Jha. 2018. Privacy risk in machine learning: Analyzing the connection to overfitting. In 2018 IEEE 31st computer security foundations symposium (CSF) . IEEE, 268–282. [68] Pengcheng Yin, Graham Neubig, Wen-tau Yih, and Sebastian Riedel. 2020. TaBERT: Pretraining for Joint Understanding of Textual and Tabular Data. In Pro-ceedings of the 58th Annual Meeting of the Association for Computational Linguis-tics , Dan Jurafsky, Joyce Chai, Natalie Schluter, and Joel Tetreault (Eds.). Associa-tion for Computational Linguistics, Online, 8413–8426. doi:10.18653/v1/2020.acl-main.745 [69] Da Yu, Saurabh Naik, Arturs Backurs, Sivakanth Gopi, Huseyin A Inan, Gautam Kamath, Janardhan Kulkarni, Yin Tat Lee, Andre Manoel, Lukas Wutschitz, et al .2022. Differentially Private Fine-tuning of Language Models. In International Conference on Learning Representations .[70] Xiang Yue, Huseyin Inan, Xuechen Li, Girish Kumar, Julia McAnallen, Hoda Shajari, Huan Sun, David Levitan, and Robert Sim. 2023. Synthetic text generation with differential privacy: A simple and practical recipe. In Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) . 1321–1342. [71] Jun Zhang, Graham Cormode, Cecilia M Procopiuc, Divesh Srivastava, and Xi-aokui Xiao. 2017. Privbayes: Private data release via bayesian networks. ACM Transactions on Database Systems (TODS) 42, 4 (2017), 1–41. [72] Jianqing Zhang, Yang Liu, JIE FU, Yang Hua, Tianyuan Zou, Jian Cao, and Qiang Yang. 2025. PCEvolve: Private Contrastive Evolution for Synthetic Dataset Gener-ation via Few-Shot Private Data and Generative APIs. In Forty-second International Conference on Machine Learning .[73] Zhikun Zhang, Tianhao Wang, Ninghui Li, Jean Honorio, Michael Backes, Shibo He, Jiming Chen, and Yang Zhang. 2021. {PrivSyn }: Differentially private data synthesis. In 30th USENIX Security Symposium (USENIX Security 21) . 929–946. [74] Lianmin Zheng, Liangsheng Yin, Zhiqiang Xie, Chuyue Sun, Jeff Huang, Cody Hao Yu, Shiyi Cao, Christos Kozyrakis, Ion Stoica, Joseph E Gonzalez, et al . 2024. SGLang: Efficient Execution of Structured Language Model Programs. In The Thirty-eighth Annual Conference on Neural Information Processing Systems .[75] Yiyang Zhou, Zhaoyang Wang, Tianle Wang, Shangyu Xing, Peng Xia, Bo Li, Kaiyuan Zheng, Zijian Zhang, Zhaorun Chen, Wenhao Zheng, Xuchao Zhang, Chetan Bansal, Weitong Zhang, Ying Wei, Mohit Bansal, and Huaxiu Yao. 2025. Anyprefer: An Agentic Framework for Preference Data Synthesis. In 
+
+The Thirteenth International Conference on Learning Representations . https: //openreview.net/forum?id=WpZyPk79Fu [76] Chengzhang Zhu, Longbing Cao, Qiang Liu, Jianping Yin, and Vipin Kumar. 2018. Heterogeneous metric learning of categorical data with hierarchical couplings. 
+
+IEEE Transactions on Knowledge and Data Engineering 30, 7 (2018), 1254–1267. [77] Tianyuan Zou, Yang Liu, Peng Li, Yufei Xiong, Jianqing Zhang, Jingjing Liu, Xiaozhou Ye, Ye Ouyang, and Ya-Qin Zhang. 2025. Contrastive Private Data Syn-thesis via Weighted Multi-PLM Fusion. In Forty-second International Conference on Machine Learning . https://openreview.net/forum?id=oRdfFS7xO5 [78] Tianyuan Zou, Yang Liu, Peng Li, Yufei Xiong, Jianqing Zhang, Jingjing Liu, Xiaozhou Ye, Ye Ouyang, and Ya-Qin Zhang. 2025. Contrastive Private Data Syn-thesis via Weighted Multi-PLM Fusion. In Forty-second International Conference on Machine Learning .
+
+## A Algorithmic Details 
+
+The core algorithm of the proposed SelPE is described in Sec. 4. We include the full pseudocode here to make the procedure precise and fully reproducible. SelPE: Progressive Selection for Private Structured Text Synthesis KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. 
+
+Algorithm 1 SelPE : Selection-Guided Progressive Evolution 
+
+Require: 𝑃, S, M𝜃 , 𝑔, Φ, 𝑇 , 𝑁 , 𝑑, 𝐾, 𝑏, {𝜀 𝑡 }𝑇 𝑡 =1
+
+Ensure: Synthetic dataset 𝑆 syn  
+
+> 1:
+
+𝑆 syn ← ∅ ; E ← ∅ // evolution context (Sec. 4.3)  
+
+> 2:
+
+for 𝑡 = 1 to 𝑇 do  
+
+> 3:
+
+𝑚 𝑡 ← ⌈ 𝑡 · 𝑑 ⌉ // progressive quota, Eq. (9) 4: H𝑡 ← Gen (M 𝜃 , S; E, 𝐾𝑚 𝑡 ) // conditional generation (Sec. 4.1)  
+
+> 5:
+
+Partition 𝑃 into 𝑏 disjoint batches {𝐵 𝑖 }𝑏 𝑖 =1 
+
+> 6:
+
+for 𝑖 = 1 to 𝑏 do  
+
+> 7:
+
+𝜇 𝑖 ← Proto (𝐵 𝑖 ; Φ) // batch prototype, Eq. (11) 8: for all 𝑠 ∈ H 𝑡 do  
+
+> 9:
+
+𝑢 𝑖 (𝑠 ) ← − 𝑔 (𝜇 𝑖 , 𝑠 ) // utility via distance kernel, Eq. (12) 10: end for  
+
+> 11:
+
+˜𝑠 𝑡,𝑖 ∼ ExpMech (H 𝑡 , 𝑢 𝑖 , 𝜀 𝑡 ) // batch-wise top-1 selection, Eq. (13) 12: ˆ𝑠 𝑡,𝑖 ← arg max 𝑠 ∈ H 𝑡 𝑔 (𝑠, ˜𝑠 𝑡,𝑖 ) // non-private, Eq. (14) 13: end for  
+
+> 14:
+
+˜𝑆 𝑡 ← { ˜𝑠 𝑡,𝑖 }𝑏 𝑖 =1; ˆ𝑆 𝑡 ← { ˆ𝑠 𝑡,𝑖 }𝑏 𝑖 =1 
+
+> // progressive inclusion and selection-conditioned evolution (Sec. 4.3)
+> 15:
+
+𝑆 syn ← 𝑆 syn ∪ SelectTop (H 𝑡 , Agg ( ˜𝑆 1: 𝑡 ))  
+
+> 16:
+
+E ← EvolveCtx ( ˜𝑆 𝑡 , ˆ𝑆 𝑡 , S)  
+
+> 17:
+
+end for  
+
+> 18:
+
+return 𝑆 syn 
+
+## B Detailed Analysis of Noise-Based PE B.1 Limitations of Gaussian Noise–Based PE 
+
+Proof sketch. Consider a private dataset 𝑃 of size 𝑛 and a syn-thetic candidate pool of size 𝑀 , as commonly used in private evo-lution (PE). A representative noise-based PE approach evaluates candidates by releasing a DP histogram over the candidate pool, where each bin corresponds to one synthetic candidate and records its aggregate support from the private data. Formally, let 𝑓 (𝑃 ) ∈ R𝑀 denote a histogram query over the 𝑀 
+
+candidates, where the 𝑖 -th coordinate aggregates evidence from 𝑃 
+
+in favor of candidate 𝑖 . This query has ℓ2-sensitivity Δ𝑓 (typically 
+
+Δ𝑓 = 1). The Gaussian mechanism releases 
+
+˜𝑓 (𝑃 ) = 𝑓 (𝑃 ) + 𝑍, 𝑍 ∼ N ( 0, 𝜎 2𝐼 𝑀 ), (15) where 𝜎 is chosen according to (2) . To characterize the perturbation magnitude, note that 
+
+E[∥ 𝑍 ∥2] = 𝜎 · E
+
+√︃ 
+
+𝜒 2
+
+> 𝑀
+
+
+
+≈ 𝜎 √𝑀, (16) so the typical noise energy grows with the candidate pool size 𝑀 
+
+and is independent of the sample size 𝑛 .In contrast, the signal contained in 𝑓 (𝑃 ) is constrained by the amount of private data. For histograms, ∥𝑓 (𝑃 )∥ 1 = 𝑂 (𝑛 ); for nor-malized histograms, ∥𝑓 (𝑃 )∥ 1 = 𝑂 (1). In either case, the typical per-candidate signal magnitude is at most 𝑂 (𝑛 /𝑀 ). As a heuristic, we define a signal-to-noise ratio (SNR) proxy as 
+
+SNR ≜ ∥𝑓 (𝑃 )∥ 2
+
+E[∥ 𝑍 ∥2] = 𝑂 
+
+ 𝑛 𝜎𝑀 3/2
+
+
+
+. (17) When 𝑛 is small and 𝑀 is large, as in small-sample private data synthesis, this ratio vanishes rapidly, and the DP-released histogram is dominated by noise. By contrast, when 𝑛 > 𝑀 , the private record dominates and histogram-based selection becomes reliable. An analogous limitation holds for multi-output selection mechanisms based on Gumbel perturbations (top-𝑘 ), detailed in App B.2. □
+
+## B.2 Limitations of Top-k Selection via Gumbel Perturbation 
+
+Top-𝑘 Exponential Mechanism. When multiple outputs are re-quired, top-𝑘 selection under the exponential mechanism admits a one-shot implementation via independent Gumbel perturbations [ 12 ]. Specifically, sample i.i.d. 𝑔 𝑟 ∼ Gumbel (0, Δ𝑢 /𝜀 ) for all 𝑟 ∈ R 
+
+and return 
+
+˜M (𝑘 ) (𝐷 ) = Top -𝑘  {𝑢 (𝐷, 𝑟 ) + 𝑔 𝑟 }𝑟 ∈ R 
+
+, (18) This mechanism is distributionally equivalent to 𝑘 sequential ex-ponential mechanism selections and thus admits the same privacy guarantee. 
+
+Proposition B.1 (Small-sample limitation of top-𝑘 selec-tion). In the small-sample regime, top-𝑘 selection via Gumbel per-turbation exhibits degraded utility when applied to private evolution with a large candidate pool. 
+
+Proof sketch. Consider the same private evolution setting as in Lemma 3.1, with a private dataset 𝑃 of size 𝑛 and a candidate pool of size 𝑀 . Let 𝑢 (𝑃, 𝑟 ) denote the utility score of candidate 𝑟 ∈ R ,where R indexes the 𝑀 candidates. Under the top-𝑘 exponential mechanism, selection can be implemented by adding independent Gumbel noise 
+
+𝑔 𝑟 ∼ Gumbel (0, Δ𝑢 /𝜀 )
+
+to each score and returning the 𝑘 largest perturbed values. In private evolution, the utility differences Δ𝑢 𝑟,𝑟 ′ = 𝑢 (𝑃, 𝑟 ) − 
+
+𝑢 (𝑃, 𝑟 ′) between competing candidates are induced by the private data and scale at most linearly with 𝑛 . In the small-sample regime, these differences are small and often comparable across many can-didates. By contrast, the Gumbel perturbation scale Δ𝑢 /𝜀 is fixed by the privacy budget and does not decrease with 𝑛 .As 𝑀 grows, the maximum and order statistics of the Gum-bel noise concentrate around values on the order of (Δ𝑢 /𝜀 ) log 𝑀 .Consequently, for sufficiently large 𝑀 and small 𝑛 , the relative ordering of 𝑢 (𝑃, 𝑟 ) + 𝑔 𝑟 is dominated by noise rather than by the data-dependent utilities. This effect is amplified when selecting multiple outputs ( 𝑘 > 1), since lower-ranked selections correspond to increasingly noise-dominated order statistics. Therefore, in the small-sample regime, top-𝑘 selection via Gum-bel perturbation becomes unreliable for identifying high-utility candidates, leading to degraded selection quality. □
+
+## B.3 Dataset Settings 
+
+We evaluate our method on three datasets: Water , MIMIC, and Loan. The classification tasks involve 5, 5, and 7 classes, respectively. For all datasets, we maintain a consistent split size: 500 for validation, and 1,000 for testing. Table 4 details the class labels and specific sample distributions for the validation and test sets. 
+
+## B.4 Downstream Evaluation Settings 
+
+For multi-class classification tasks, we employ the One-vs-Rest (OvR) strategy combined with macro-averaging to compute the KDD 2026, August 9–13, 2026, Jeju Island, Republic of Korea. Xuancheng Zhu et al. 
+
+Table 4: Detailed Dataset Statistics and Class-wise Distribu-tions Dataset Labels Split Total Class-wise Distribution                   
+
+> Water 1–5 Val 500 [100, 100, 100, 100, 100] Test 1000 [77, 39, 86, 222, 582] MIMIC 1–5 Val 500 [88, 93, 94, 120, 105] Test 1000 [201, 209, 201, 195, 194] Loan 1–7 Val 500 [69, 74, 63, 74, 81, 84, 55] Test 1000 [141, 144, 158, 125, 149, 151, 132]
+
+ROC-AUC score. Specifically, we calculate the AUC for each class against all others and reporting the arithmetic mean across all classes as follows ROC-AUC = 1
+
+|C| ∑︁ 𝑘 ∈ C 
+
+AUC (I(𝑦 = 𝑘 ), ˆ𝑝 𝑘 ), (19) where C is the set of classes, |C| denotes the cardinality of C,
+
+I(𝑦 = 𝑘 ) is the binary indicator function for class 𝑘 (treating class 𝑘 
+
+as positive and the rest as negative), and ˆ𝑝 𝑘 represents the predicted probability for class 𝑘 .
+
+## C Privacy Analysis 
+
+In addition to the formal forward DP guarantees, we empirically evaluate privacy risks from memorization, near-duplicate behav-ior, and membership leakage. Across datasets, SelPE achieves high Nearest Record Similarity (NRS) and competitive Distance to Clos-est Record (DCR), indicating negligible memorization and limited duplication. More importantly, SelPE consistently yields lower TPR at FPR = 1% under membership inference attacks than strong base-lines such as AUG-PE, reflecting a more conservative and reliable privacy–utility trade-off under stringent false-positive constraints. 
+
+Nearest Record Similarity (NRS). NRS measures exact memo-rization by checking whether synthetic records replicate training instances after key-wise normalization. Let 𝑛 syn be the number of synthetic samples and 𝑛 dup the number of exact duplicates. We define NRS = 1 − 𝑛 dup  
+
+> 𝑛 syn
+
+. Higher NRS indicates fewer exact replicas of the training data. 
+
+Distance to Closest Record (DCR). DCR measures near-duplicate behavior by computing the distance from each synthetic record to its nearest training record. Each record is represented by its full text and encoded with TF–IDF. Given the training set Dtr = {𝑥 ( 𝑗 ) 
+
+> tr
+
+}𝑁 𝑗 =1
+
+and the synthetic set Dsyn = {𝑥 (𝑖 ) 
+
+> syn
+
+}𝑀 𝑖 =1, DCR is defined as 
+
+DCR 
+
+
+
+𝑥 (𝑖 )
+
+> syn
+
+
+
+= min     
+
+> 𝑥 (𝑗 )
+> tr ∈ D tr
+
+𝜙 
+
+
+
+𝑥 (𝑖 )
+
+> syn
+
+
+
+− 𝜙 
+
+
+
+𝑥 ( 𝑗 )
+
+> tr
+
+ 
+
+> 1
+
+,
+
+where 𝜙 (·) denotes TF–IDF vectorization. Larger DCR suggests lower near-duplicate risk. 
+
+Membership Inference Attack TPR at FPR = 1% . We evaluate membership leakage using a distance-based membership inference attack. For each queried record, we use its distance to the closest synthetic record as the attack score and report the true positive rate at a fixed false positive rate of 1% . Lower TPR indicates stronger re-sistance to membership inference. Non-members are sampled from held-out records of the same data distribution, with the same size as the member set, to avoid bias from dataset size or distribution. 
+
+Table 5: Privacy evaluation across datasets.                                                  
+
+> Dataset Method NRS ↑DCR ↑TPR ↓
+> Water DP-GEN 1.00 8.16 3.00 AUG-PE 1.00 9.05 8.00 WASP 0.99 8.71 14.00 CTCL 1.00 7.04 7.00 Ours 1.00 7.47 8.00 MIMIC DP-GEN 1.00 10.13 12.00 AUG-PE 1.00 10.03 36.00 WASP 0.99 9.90 16.00 CTCL 1.00 7.92 0.00 Ours 1.00 9.99 10.00 Loan DP-GEN 1.00 16.02 12.86 AUG-PE 1.00 15.51 20.00 WASP 0.99 16.02 41.43 CTCL 1.00 14.04 2.86 Ours 1.00 16.20 11.43
+
+Table 5 reports privacy evaluation results on all three datasets. Across datasets, SelPE consistently achieves NRS values close to 1 and competitive DCR, indicating the absence of exact memorization and limited near-duplicate behavior. More importantly, SelPE yields substantially lower membership inference risk under strict low-FPR attacks, as reflected by lower TPR at FPR = 1% compared to strong baselines. Overall, these results confirm that SelPE provides robust and consistent empirical privacy protection with a more conservative privacy–utility trade-off. 
+
+## D End-to-End Privacy Guarantee 
+
+In SelPE , the only operations that access the private dataset 𝑃 are the round-wise multi-batch top-1 Exponential Mechanism se-lections. At round 𝑡 , the private data are randomly partitioned into 
+
+𝑏 disjoint batches, written as 𝑃 = Ã𝑏 𝑖 =1 𝐵 𝑡,𝑖 . Each batch-wise mecha-nism is then applied to its own subset: 𝑀 𝑡,𝑖 (𝐵 𝑡,𝑖 ) = EM (𝐻 𝑡 , 𝑢 𝑡,𝑖 , 𝜀 𝑡 ),where 𝐻 𝑡 is the candidate pool and 𝑢 𝑡,𝑖 (𝑠 ) = −𝑔 (𝜇 (𝐵 𝑡,𝑖 ), 𝑠 ) is the utility defined from batch 𝐵 𝑡,𝑖 . Since these 𝑏 mechanisms operate on disjoint subsets , by Parallel Composition their joint out-put for round 𝑡 , namely 𝑀 𝑡 (𝑃 ) = (𝑀 𝑡, 1 (𝐵 𝑡, 1), . . . , 𝑀 𝑡,𝑏 (𝐵 𝑡,𝑏 )) , is still 
+
+𝜀 𝑡 -DP. Across the 𝑇 rounds, the private data are accessed repeat-edly, so by Sequential Composition the full pipeline 𝑀 1: 𝑇 (𝑃 ) =
+
+(𝑀 1 (𝑃 ), . . . , 𝑀 𝑇 (𝑃 )) satisfies total privacy 𝜀 tot = Í𝑇 𝑡 =1 𝜀 𝑡 . Under the current design, we use uniform allocation, i.e., 𝜀 𝑡 = 𝜀 tot /𝑇 . All later steps, including cumulative winner aggregation, final inclu-sion/ranking, and contrastive expansion, depend only on these privatized outputs, i.e., 𝑆 final = 𝐹 (𝑀 1: 𝑇 (𝑃 )) for some deterministic or randomized post-processing map 𝐹 . Therefore, by the post-processing property of DP, these steps incur no additional pri-vacy cost .
+
+## E Additional Implementation Details 
+
+Due to the page limit, additional implementation details are pro-vided in this repository: https://github.com/ZhuXuanCH/SelPE.

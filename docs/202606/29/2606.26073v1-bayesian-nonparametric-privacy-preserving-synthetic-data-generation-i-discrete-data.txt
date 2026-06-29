@@ -1,0 +1,2939 @@
+Title: Bayesian Nonparametric Privacy-Preserving Synthetic Data Generation: I. Discrete Data
+
+URL Source: https://arxiv.org/pdf/2606.26073v1
+
+Published Time: Thu, 25 Jun 2026 01:18:36 GMT
+
+Number of Pages: 48
+
+Markdown Content:
+# Bayesian Nonparametric Privacy-Preserving Synthetic Data Generation: I. Discrete Data 
+
+## Maria Chiara Menicucci 1, Mario Beraha 2, Stefano Favaro 1, and Riccardo Lazzarini 31Department of Economics and Statistics, University of Torino and Collegio Carlo Alberto, 10134 Torino, Italy 
+
+2Department of Economics, Management, and Statistics, University of Milano–Bicocca, 20126 Milano, Italy 
+
+3Department of Decision Sciences, Bocconi University, 20136 Milano, Italy 
+
+Abstract 
+
+Synthetic data generation is a powerful approach to privacy-preserving statistical anal-ysis, where data-release mechanisms are governed by a privacy-utility tradeoff: they should provide privacy guarantees while preserving the statistical utility of confidential data. We develop a Bayesian nonparametric framework for private synthetic data generation tailored to discrete data. Specifically, the confidential data are modeled as a random sample from an unknown discrete distribution endowed with a Pitman-Yor process prior, and synthetic data are generated from the corresponding posterior-predictive distribution. Since the Pitman-Yor process defines an almost surely discrete random probability measure, the re-sulting mechanism is naturally suited to data with ties and settings involving a potentially large, unknown, or growing number of categories. We study differential privacy guarantees of the Pitman-Yor posterior-predictive mechanism across the three regimes of the discount parameter σ ∈ (−∞ , 1) . For σ ∈ (0 , 1) , we establish an instance-level (ε, δ )-differential pri-vacy guarantee. For σ = 0 and σ < 0, corresponding respectively to the Dirichlet process prior and to a parametric Dirichlet-Multinomial model, stronger guarantees are obtained, under suitable conditions on the released sample size. We also investigate statistical utility, 
+
+1        
+
+> arXiv:2606.26073v1 [math.ST] 24 Jun 2026 or informativity, of the released data via the expected 1-Wasserstein distance between the empirical distribution of the synthetic data and the "true" data-generating distribution. For σ < 0and σ= 0 , we prove consistency of the empirical distribution in this metric and derive explicit convergence rates, making precise the privacy-utility tradeoff: stronger privacy guarantees impose more restrictive choices of the released sample size, slowing down convergence to the "true" data-generating distribution.
+> Keywords: Bayesian nonparametrics; differential privacy; Dirichlet process prior; mechanism informativity, Pitman–Yor process prior; synthetic data generation; 1-Wasserstein posterior contraction rates
+
+# 1 Introduction 
+
+## 1.1 Background and motivation 
+
+Over the past three decades, synthetic data generation has become a powerful approach to privacy-preserving statistical analysis, aiming to reconcile data accessibility with the protec-tion of sensitive information (Rubin, 1993; Drechsler and Haensch, 2024). In this framework, a statistical model is fitted to the original confidential data and then used to draw new obser-vations. These simulated or synthetic observations are released in place of the original data, which remain confidential. The effectiveness of such a synthetic data-generating mechanism is governed by a privacy–utility tradeoff: synthetic data should protect sensitive information from disclosure, while preserving enough of the statistical information in the original data to support downstream analyses. On the privacy side, differential privacy (DP) has become the standard framework for pro-viding formal guarantees of data-release mechanisms. Introduced by Dwork et al. (2006), DP is now widely adopted in both academia and industry (Erlingsson et al., 2014; Apple’s Differential Privacy Team, 2017; Ding et al., 2017; Abowd et al., 2022). At a high level, a mechanism is differentially private if changing a single database record has only a limited effect on its output. On the utility side, once a data-release mechanism has been shown to satisfy DP, it remains essential to assess whether the privatization process preserves enough statistical information from the original data. In this sense, utility requires that the released data remain informative for inference on the confidential data. A general notion of statistical utility for data-release mechanism was proposed by Wasserman and Zhou (2010), under the name of informativity or consistency. This notion adopts the frequentist perspective that the confidential data are 2generated from an underlying “true” distribution, and measures utility through the rate at which the expected distance between the empirical measure of the released data and the true data-generating distribution converges to zero. Such a convergence rate provides a natural measure of the quality of the mechanism, quantifying how quickly the released data recover the underlying distribution. Many private synthetic data-generating mechanisms have been proposed in the literature, ranging from histogram-based methods and exponential-mechanism to more recent approaches based on private-measure release and optimal transport (Machanavajjhala et al., 2008; Wasser-man and Zhou, 2010; McSherry and Talwar, 2007; Boedihardjo et al., 2024; He et al., 2024, 2023). Within the Bayesian framework, a natural strategy is to release synthetic observations drawn from a posterior or posterior-predictive distribution (Dimitrakakis et al., 2017; Hu et al., 2022; Bernstein and Sheldon, 2019; Jewson et al., 2023; Savitsky et al., 2022; Machanavajjhala et al., 2008). This is attractive because the data-release mechanism is directly linked to the statistical model used for inference. Specifically, suppose that n ≥ 1 confidential observations are modeled through a Bayesian model with sampling distribution p(· | θ) and prior distribution 
+
+π:
+
+X1, . . . , X n | θ iid 
+
+∼ p(· | θ), θ ∼ π, (1) and that m ≥ 1 observations Z1, . . . , Z m are drawn from the induced posterior-predictive dis-tribution 
+
+Qn(d z1, . . . , dz m | X1, . . . , X n) = 
+
+Z
+
+p⊗m(d z1, . . . , dz m | θ) π(d θ | X1, . . . , X n).
+
+Under the model (1), the random variables (X1, . . . , X n, Z 1, . . . , Z m) are jointly exchangeable, which means that the analyst who receive the synthetic data (Z1, . . . , Z m) can analyze it as-suming 
+
+Z1, . . . , Z m | θ iid 
+
+∼ p(· | θ), θ ∼ π, 
+
+without worrying about the privatization step. This contrasts with generic, externally specified DP data-release mechanisms, typically involving a perturbation of the confidential data. As emphasized by Beraha et al. (2025), valid likelihood-based or Bayesian inference from such released data typically requires integrating over the unobserved confidential sample, leading to intractable likelihoods. Most existing Bayesian approaches to private synthetic data generation have been developed within parametric models. Such models may be appropriate when the released dataset is designed for a specific inferential task, but they are less satisfactory for general downstream 3use and, in particular, when the analyses to be performed are not known in advance. Indeed model misspecification may translate directly into a loss of statistical utility: features of the confidential data that are not represented by the chosen parametric family cannot be recovered from the released data. Bayesian nonparametric methods provide a natural alternative. By placing a prior directly on an infinite-dimensional space of probability distributions, they allow the effective complexity of the model to adapt to the data and grow with the sample size, while preserving the posterior and posterior-predictive structure that makes model-aligned release attractive. 
+
+## 1.2 Preview of our contributions 
+
+We develop a Bayesian nonparametric framework for private synthetic data generation tai-lored to discrete data. By discrete data, we mean observations that may exhibit ties and whose support may contain a large, unknown, or growing number of categories. We model 
+
+n ≥ 1 confidential observations as a random sample from an unknown discrete distribution, which is endowed with a Pitman–Yor (PY) process prior (Perman et al., 1992; Pitman and Yor, 1997) with discount parameter σ ∈ (−∞ , 1) and strength parameter θ > −σ. The PY process is particularly natural for discrete data, since it defines a random probability measure with almost surely discrete realizations; consequently, samples from the PY process contain repeated observations with positive probability, while the posterior-predictive distribution al-lows for the emergence of new categories. Given the n ≥ 1 confidential observations modeled as described above, we generate m ≥ 1 synthetic observations by sampling from the m-step posterior-predictive distribution induced by the PY process prior; we refer to this synthetic data-generating mechanism as the PY posterior-predictive mechanism. The PY process prior includes two important subcases or regimes: for σ = 0 it reduces to the Dirichlet process prior (Ferguson, 1973), while for σ < 0 it corresponds, at the sampling level, to a parametric Dirichlet–Multinomial model. The PY posterior-predictive mechanism is straightforward to implement, owing to the tractability of the PY posterior-predictive distribution (Pitman, 1995; Pitman and Yor, 1997). Moreover, the joint exchangeability of confidential data and synthetic data generated by the mechanism allows standard Markov chain Monte Carlo algorithms to be used for Bayesian inference. We study DP guarantees of the PY posterior-predictive mechanism. The differentially private behaviour of the mechanism is governed by the discount parameter σ, which controls the prevalence of low-frequency categories in the confidential data. Since rare categories are more 4easily attributable to individual records, low-frequency categories, and singletons in particular, are the main source of privacy risk: if a value appears only once, then releasing that value in the synthetic sample may reveal the contribution of a single individual. In the regime σ ∈ [0 , 1) , we prove that the PY posterior-predictive mechanism satisfies an instance-level (ε, δ )-DP guarantee in the sense of Soria-Comas et al. (2017); this privacy guarantee should be viewed as a data-dependent relaxation of the (ε, δ )-DP of Dwork et al. (2006). In the regime σ = 0 , we establish a (ε, δ )-DP bound for the PY posterior-predictive mechanism, with δ controlled explicitly by the ratio m/n between the synthetic and confidential sample sizes. Finally, in the regime σ < 0,we prove that the PY posterior-predictive mechanism satisfies instance-level ε-DP and, under suitable assumptions on the confidential sample size m, it satisfies ε-DP (Machanavajjhala et al., 2008). We also investigate the informativity of the PY posterior-predictive mechanism. We quan-tify informativity of the mechanism through the 1-Wasserstein distance, in line with recent works on differentially private synthetic data-generating mechanisms (Boedihardjo et al., 2024; Donhauser et al., 2024b,a; He et al., 2023, 2024, 2025). The 1-Wasserstein distance is well suited to our setting: it applies naturally to discrete probability measures, allows compari-son between empirical and population distributions, and remains computationally tractable beyond the univariate case, thereby enabling empirical validation of the proposed data-release mechanism. Moreover, by means of its dual formulation, convergence in 1-Wasserstein distance ensures the preservation of all Lipschitz statistics. For the regimes σ = 0 and σ < 0, we prove that PY posterior-predictive mechanism is consistent in 1-Wasserstein distance, with respect to a “true" data-generating distribution, and we derive explicit convergence rates. These rates make precise the privacy–utility tradeoff originally described by Wasserman and Zhou (2010): stronger privacy guarantees impose more restrictive choices of the released sample size, which in turn slow down convergence to the “true" data-generating distribution. For σ = 0 , a key step in our analysis consists in bounding the expected 1-Wasserstein distance between a posterior Dirichlet process and its posterior mean. We derive a convergence rate for this expectation, which can be interpreted as a variance term for the posterior Dirichlet process and may be of independent interest. 
+
+## 1.3 Organization of the paper 
+
+Section 2 reviews the background and notation on DP and the PY process prior. Section 3 in-troduces the PY posterior-predictive mechanism and establishes its main properties, including 5DP guarantees and 1-Wasserstein consistency results. Section 4 illustrates the methodology with an application to two real datasets. Section 5 discusses limitations of the proposed ap-proach and outlines directions for future research. Proofs and auxiliary technical results are deferred to the appendix. 
+
+# 2 Background and notation 
+
+## 2.1 Differential privacy 
+
+We first recall the definition of DP (Dwork et al., 2006). We work in the global DP setting: a trusted curator observes the confidential dataset and then releases a randomized output. This should be distinguished from local DP setting, where each individual randomizes her own record before it is observed by the curator. For n ≥ 1, let X1, . . . , X n be the confidential data, defined on a probability space (Ω , A, P) and taking values in a Polish space X with Borel σ-algebra X .For k ≥ 1, write Xk = Qki=1 X, and let X k be the corresponding product Borel σ-algebra. The space X is often assumed to be bounded; for example, Wasserman and Zhou (2010) consider 
+
+X = [0 , 1] r, r ≥ 1.In privacy-preserving statistical analysis, the goal is to construct a data-release mechanism that takes the confidential dataset X := ( X1, . . . , X n) as input and releases a dataset Z := (Z1, . . . , Z m), with each Zi taking values in X, in such a way that individual privacy is protected. In the global DP setting, the dataset Z is generated from the entire dataset X. Formally, the data-release mechanism is a probability kernel Qn( · | · ) : X m × Xn → [0 , 1] , which gives the conditional distribution of Z given X. The number m of released observations is a tuning parameter and plays an important role in our results, often characterizing the privacy–utility tradeoff: increasing m typically improves the utility of the released data, but weakens the privacy guarantees. DP can be formulated as a stability requirement on the data-release mechanism: changing one record in the confidential dataset should not substantially change the distribution of the released data. Throughout the paper, we use replacement adjacency. In particular, for two datasets x, y ∈ Xn, let 
+
+h(x, y) = |{ i ∈ { 1, . . . , n } : xi̸ = yi}| 
+
+6be their Hamming distance. We say that x and y are neighbouring, or adjacent, datasets if 
+
+h(x, y) = 1 . In the global DP setting, Dwork et al. (2006) introduced the following notion of DP. 
+
+Definition 1 ((ε, δ )-DP) . Let ε > 0 and δ ∈ [0 , 1) . We say that a data-release mechanism Qn
+
+satisfies (ε, δ )-DP if for all B ∈ X m and any x, y ∈ Xn such that h(x, y) = 1 , we have 
+
+Qn(B | X = x) ≤ eεQn(B | X = y) + δ, (2) From Definition 1, the parameter ε > 0 measures the strength of the privacy guarantee: smaller values impose stronger privacy, while larger values allow the output distribution to depend more strongly on any single record. The parameter δ ∈ [0 , 1) controls the probability of privacy losses beyond eε. When Definition 1 holds with δ = 0 , the data-release mechanism is said to satisfy ε-DP. This notion of privacy admits a clear statistical interpretation: as shown by Wasserman and Zhou (2010), under ε-DP, any level-γ test of Xi = s versus Xi = t has power at most γe ε.Definition 1 provides a worst-case privacy guarantee: the same values of ε and δ must work uniformly over all possible neighbouring datasets, which might be too stringent in some case. We therefore also use a data-dependent relaxation of (ε, δ )-DP, in which the privacy requirement is imposed only at the observed dataset. Specifically, condition (2) is required to hold only for 
+
+x and its neighbouring datasets, leading to the following notion, introduced by Soria-Comas et al. (2017). 
+
+Definition 2 (Instance-level (ε, δ )-DP) . Let x ∈ Xn, ε > 0 and δ ∈ [0 , 1) . We say that a data-release mechanism Qn satisfies instance-level (ε, δ )-DP if for all B ∈ X m and any y ∈ Xn
+
+such that h(x, y) = 1 , inequality (2) is satisfied. For instance-level (ε, δ )-DP, the values of ε and δ may depend on x. This relaxation still admits an interpretation in terms of hypothesis testing. Suppose that, for a given x ∈ Xn, the data-release mechanism satisfies (2) for every B ∈ X m and every y ∈ Xn such that h(x, y) = 1 .Consider an attacker who observes the released data and knows the whole confidential dataset 
+
+X = x, except for the value of one entry Xi. Then any level-γ test of H0 : Xi = s versus 
+
+H1 : Xi = t has power at most eεγ + δ. In practice, (ε, δ )-DP can be proved using the notion of (ε, δ )-probabilistic DP. 
+
+Definition 3 ((ε, δ )-probabilistic DP) . Let ε > 0 and δ ∈ [0 , 1) . We say that a data-release mechanism Qn satisfies (ε, δ )-probabilistic DP if, given qn(· | x) density of Qn(·| X = x), it holds 7Qn(Ax,y | X = x) > 1 − δ for all x, y such that h(x, y) = 1 , where Ax,y := {z ∈ Xm :
+
+qn(z | x) ≤ eεqn(z | y)}.If the Definition (3) holds for a fixed x ∈ Xn and all y such that h(x, y) = 1 , then the data-release mechanism Qn satisfies instance-level (ε, δ )-probabilistic DP. Gotz et al. (2011) prove that (ε, δ )-probabilistic DP implies (ε, δ )-DP. Similar arguments show the same for instance-level DP guarantees. 
+
+## 2.2 Pitman–Yor process prior 
+
+We next recall the definition of the PY process prior (Perman et al., 1992; Pitman and Yor, 1997) and the sampling properties used throughout the paper (Pitman, 1995). A comprehensive account of the PY process can be found in Pitman (2006, Chapters 3 and 4) and the references therein. Let P(X) be the set of probability measures on X, and let H ∈ P (X) be a non-atomic probability measure. We write ˜p ∼ PY (σ, θ, H ) for a PY process with discount parameter σ,strength parameter θ, and base measure H. The admissible parameter space is given either by 
+
+σ ∈ [0 , 1) and θ > −σ, or by σ < 0 and θ = z|σ| for some z ∈ N. The definition of the PYP depends on the sign of σ:(i) if σ ∈ [0 , 1) , then 
+
+˜p =
+
+> ∞
+
+X
+
+> i=1
+
+WiδYi , (3) where Wi = Vi
+
+Qi−1
+
+> ℓ=1
+
+(1 − Vℓ), Vi
+
+> ind
+
+∼ Beta(1 − σ, θ + iσ ) and Yi
+
+> iid
+
+∼ H, independently of 
+
+(Vi)i≥1;(ii) if σ < 0, then 
+
+˜p =
+
+> z
+
+X
+
+> i=1
+
+θiδYi , (4) for z ∈ N, where (θ1, . . . , θ z ) ∼ Dirichlet( |σ|, . . . , |σ|) and Yi
+
+> iid
+
+∼ H, independently of 
+
+(θ1, . . . , θ z ).For every admissible value of σ ∈ (−∞ , 1) , the PY process (3)–(4) defines a discrete random probability measure on X; that is, its realizations of the PY process are almost surely discrete probability measures. The structure of its support depends on the sign of σ. When σ ∈ [0 , 1) ,the random measure has countably many atoms, with weights given by (3). The special case 8σ = 0 , denoted by D(θ, H ), is the Dirichlet process with strength parameter θ > 0 and base measure H (Ferguson, 1973). When σ < 0 and θ = z|σ| for some z ∈ N, the PY process has exactly z atoms, as in (4); at the sampling level, this corresponds to a parametric Dirichlet– Multinomial model. Because of the discreteness of ˜p ∼ PY (σ, θ, H ), a random sample X1, . . . , X n | ˜p iid 
+
+∼ ˜p
+
+contains ties with positive probability. Accordingly, the sample induces a random partition of {1, . . . , n } whose blocks are the classes induced by the equivalence relation i ∼ j ⇐⇒ 
+
+Xi = Xj . We denote by {X∗ 
+
+> 1
+
+, . . . , X ∗ 
+
+> Kn
+
+} the Kn = kn ≤ n distinct values in the sample, and by (N1, . . . , N Kn ) = ( n1, . . . , n kn ), with Pkn 
+
+> i=1
+
+ni = n, their corresponding frequencies. The random partition induced by a PY process admits a simple sequential construction through the posterior-predictive distribution of ˜p. More precisely, if X1, . . . , X n is a random sample from 
+
+˜p ∼ PY (σ, θ, H ), and P[X1 ∈ · ] = H(·), then for n ≥ 1 the posterior-predictive distribution of ˜p is 
+
+P[Xn+1 ∈ · | X1, . . . , X n] = θ + σk n
+
+θ + n H(·) + 
+
+> kn
+
+X
+
+> j=1
+
+nj − σθ + n δX∗ 
+
+> j
+
+(·). (5) Thus, Xn+1 is either a new value, i.e. not observed in (X1, . . . , X n), drawn from H, with probability 
+
+θ + σk n
+
+θ + n ,
+
+or it coincides with a previously observed value, say X∗ 
+
+> j
+
+observed in (X1, . . . , X n), with proba-bility 
+
+nj − σθ + n , j = 1 , . . . , k n.
+
+Since H is non-atomic, a draw from H generates a new value with probability one. In the finite-atom case σ < 0, the probability of generating a new value becomes zero when Kn = z,consistently with (4). The posterior-predictive distribution (5), known as the Chinese restaurant process (Pitman, 1995), gives an interpretation of σ and θ. The strength parameter θ controls the baseline ten-dency to generate new values: larger values of θ increase the probability of sampling previously unseen categories, especially at small and moderate sample sizes. The discount parameter σ
+
+controls the reinforcement mechanism and the growth of the number of distinct values. When 
+
+σ = 0 , the predictive probability of an old value is proportional to its frequency, and the prob-ability of a new value is θ/ (θ + n), as in the Dirichlet process. When σ > 0, the mass assigned to each observed value is discounted from nj to nj − σ, and the total discounted mass σk n is transferred to the probability of generating a new value. Thus larger values of σ favour the 9appearance of new categories and lead to heavier-tailed random discrete distributions. In fact, for σ ∈ (0 , 1) , the number of distinct values grows polynomially, of order nσ, whereas under the Dirichlet process it grows logarithmically. When σ < 0, instead, the model has a finite number of possible atoms. 
+
+# 3 Pitman–Yor posterior-predictive mechanism 
+
+For n ≥ 1, let X = ( X1, . . . , X n) be the confidential dataset, and assume that X is modeled as a random sample from an unknown discrete distribution ˜p endowed with a PY process prior, namely 
+
+X1, . . . , X n | ˜p iid 
+
+∼ ˜p, 
+
+˜p ∼ PY (σ, θ, H ).
+
+(6) This model is suited to discrete data, since the PY process is a discrete random probability measure and therefore accommodates ties, repeated values, and a potentially large or unknown number of categories. Conditional on X, we generate a synthetic dataset Z = ( Z1, . . . , Z m) by sampling sequentially from the posterior-predictive distribution induced by (6). The procedure relies on the one-step predictive distribution in (5), iterated m times, and it is described in Algorithm 1. We refer to Algorithm 1 as the PY posterior-predictive mechanism. This synthetic data-generating mechanism is straightforward to implement: it only requires sequentially sampling from the PY posterior-predictive distribution (5). Thus, no dedicated sampling or optimization routine is needed to obtain synthetic data, in contrast with alternative approaches, such as the exponential mechanism of McSherry and Talwar (2007), which often require problem-specific implementation. Before studying the DP guarantees of the PY posterior-predictive mechanism, we clarify the role of the non-atomic base measure H and the meaning of categories, or distinct values. The data-release mechanism covers two common situations. In the first, the confidential data are real-valued, but the recorded observations exhibit ties because of rounding, finite measurement precision, discretization, or other preprocessing steps. In this case, the categories are simply the distinct recorded values. Since the posterior-predictive distribution may generate previously unseen values, a fixed post-processing map can be applied after sampling if the released data are required to lie on the same recorded scale as the confidential data. This map may merge some of the new categories, possibly with categories already observed in the recorded data, but 10 Algorithm 1 PYP posterior-predictive mechanism                                                                        
+
+> Require: Dataset X= ( X1, . . . , X n), synthetic sample size m, and PYP parameters (σ, θ, H ).Ensure: Synthetic dataset Z= ( Z1, . . . , Z m).1: Let X∗
+> 1, . . . , X ∗
+> kdenote the distinct values in X, with frequencies n1, . . . , n k.2: Set N=n.3: for j= 1 , . . . , m do 4: Sample
+> Cj∼Categorical
+> n1−σθ+N , . . . , nk−σθ+N , θ+σk θ+N
+> 
+> .
+> 5: if Cj≤kthen 6: Set Zj←X∗
+> Cjand update nCj←nCj+ 1 .7: else 8: Sample Zj∼H.9: Set k←k+ 1 ,X∗
+> k←Zj, and nk←1.10: end if 11: Set N←N+ 1 .12: end for 13: Return Z.
+
+it does not affect the DP guarantees, provided that it is chosen independently of the confidential data. In the second situation, the confidential data are categorical, with recorded observations taking values in a set of labels, such as occupations, products, locations, or species names. In this case, each observed label can be encoded by a distinct identifier in X. The non-atomicity of 
+
+H then ensures that, whenever the posterior-predictive distribution selects the H-component, it generates a new identifier that almost surely does not coincide with any previously observed one. A post-processing step is then needed to map the X-valued identifiers back to labels. Iden-tifiers corresponding to observed categories are mapped back to their original labels, whereas new identifiers sampled from H may be assigned synthetic labels, such as new_category_1 ,
+
+new_category_2 , and so on. 
+
+## 3.1 DP guarantees 
+
+The three regimes determined by the sign of the discount parameter σ ∈ (−∞ , 1) , namely 
+
+σ ∈ (0 , 1) , σ = 0 and σ < 0, lead to markedly different DP guarantees for the PY posterior-predictive mechanism. We begin with σ ∈ [0 , 1) , for which we establish sufficient conditions for instance-level (ε, δ )-DP. This weaker notion of privacy is the natural one for σ ∈ [0 , 1) , where 11 the flexibility of the PY process prior, in terms of σ and θ, makes uniform control over all datasets too stringent. Fix a confidential dataset x = ( x1, . . . , x n) with Kn = j distinct values x∗
+
+> 1
+
+, . . . , x ∗ 
+
+> j
+
+and frequencies n = ( n1, . . . , n j ), where ni ≥ 1, and denote by K(n) 
+
+> m
+
+the number of new distinct values in the synthetic dataset Z = ( Z1, . . . , Z m) to be released. In particular, denote by 
+
+Si := P 
+
+> 1≤r≤m
+
+1{x∗ 
+
+> i}
+
+(Zr), for i = 1 , . . . , j , the number of times x∗ 
+
+> i
+
+appears in Z. If Qx denotes the conditional distribution of Z given x, then proving that the PY posterior-predictive mech-anism satisfies instance-level (ε, δ )-DP requires to control the privacy loss between the output distribution Qx, with density function qn(· | x), and the output distribution corresponding to a neighbouring dataset ex, with density function qn(· | ex). Namely, we bound the likelihood ratio 
+
+qn(z | x)/q n(z | ex) by eε, except on a set z having Qx-probability at most δ. This exceptional set is the bad privacy event : on this event, Z is too much more likely under x than under ex, and therefore may distinguish the contribution of one individual beyond the allowed privacy level. Every neighbouring dataset is obtained by replacing one occurrence of an old value x∗ 
+
+> l
+
+in x by a value b̸ = x∗ 
+
+> l
+
+. There are two cases: i) old-to-old replacement, namely b is another old value, say b = x∗ 
+
+> t
+
+with t̸ = l; ii) old-to-new replacement, namely b is a new value, not present among 
+
+x∗
+
+> 1
+
+, . . . , x ∗ 
+
+> j
+
+.First consider an old-to-old replacement, in which one occurrence of x∗ 
+
+> l
+
+is replaced by x∗ 
+
+> t
+
+,with t̸ = l. In the proof of Theorem 1, we show that the corresponding bad event can be written as 
+
+Eold  
+
+> l,t
+
+(ε) := 
+
+ nt − σnt + St − σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+
+
+, nl ≥ 2,
+
+{Sl ≥ 1} ∪ {Sl = 0 } ∩ 
+
+(
+
+θ + ( j + K(n) 
+
+> m
+
+− 1) σθ + ( j − 1) σnt − σnt + St − σ > e ε
+
+)! 
+
+, nl = 1 .
+
+In the case nl = 1 , the replacement deletes x∗ 
+
+> l
+
+from ex. Since Z is generated from Qx, the value 
+
+x∗ 
+
+> l
+
+may still appear in Z. Thus the event {Sl ≥ 1} has positive Qx-probability but, because 
+
+H is non-atomic, has Qex-probability zero; it is therefore automatically a bad event. On the complementary event {Sl = 0 }, the deleted singleton is not released, so there is no singularity. However, the two posterior-predictive distributions still differ: under x, there is one more old distinct value, while under ex the count of distinct values x∗ 
+
+> t
+
+has been increased by one. The residual likelihood ratio is therefore affected by K(n) 
+
+> m
+
+and by St; if many new distinct values are generated, or if few copies of x∗ 
+
+> t
+
+are released, the output is relatively more compatible with 
+
+x than with ex, and the privacy loss may exceed ε. In the case nl ≥ 2, the label x∗ 
+
+> l
+
+remains 12 present after the replacement, so there is no singular event. The privacy loss is instead driven by how the probability mass is allocated between two affected values, say x∗ 
+
+> l
+
+and x∗ 
+
+> t
+
+. Under x,the counts of x∗ 
+
+> l
+
+and x∗ 
+
+> t
+
+are nl and nt, respectively, whereas under ex they are nl − 1 and nt + 1 .Hence, 
+
+nt − σnt + St − σnl + Sl − 1 − σnl − 1 − σ .
+
+captures the fact that releases with many copies of x∗ 
+
+> l
+
+and few copies of x∗ 
+
+> t
+
+favour x over ex.Next consider an old-to-new replacement, in which one occurrence of x∗ 
+
+> l
+
+is replaced by a value b / ∈ { x∗
+
+> 1
+
+, . . . , x ∗ 
+
+> j
+
+}. In the proof of Theorem 1, we show that the corresponding bad event can be written as 
+
+Enew  
+
+> l
+
+(ε) := 
+
+(
+
+θ + jσ θ + ( j + K(n) 
+
+> m
+
+)σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+)
+
+, nl ≥ 2,
+
+{Sl ≥ 1}, nl = 1 ,
+
+whose interpretation is analogous to the one of Eold  
+
+> l,t
+
+(ε). The two families of events Eold  
+
+> l,t
+
+(ε) and 
+
+Enew  
+
+> l
+
+(ε) enumerate the releases for which a one-record replacement makes Z too likely under x
+
+relative to a neighbour. Controlling their Qx-probabilities controls the instance-level privacy loss. 
+
+Theorem 1 (Instance-level (ε, δ )-DP, σ ∈ [0 , 1) ). Assume Qx is induced by the m-step posterior-predictive distribution of PY (σ, θ, H ), where σ ∈ [0 , 1) , θ > −σ, and H is a nonatomic prob-ability measure. Let ε > 0. With the convention that the maximum over an empty set is zero, define 
+
+δ♯(ε, x) := max 
+
+max  
+
+> 1≤l≤j
+
+Qx (Enew  
+
+> l
+
+(ε)) , max 
+
+> 1≤l,t ≤jt̸=l
+
+Qx
+
+ Eold  
+
+> l,t
+
+(ε) . (7) 
+
+Then the PY posterior-predictive mechanism satisfies instance-level (ε, δ )-DP at x for every 
+
+δ ∈ [0 , 1) such that δ > δ ♯(ε, x).
+
+The quantity δ♯ can be approximated by Monte Carlo simulation, since (5) provides a di-rect sampling rule from the PY posterior-predictive distribution. The PY posterior-predictive mechanism can therefore be calibrated as follows. For a prescribed value of ε and fixed pa-rameters (σ, θ ), one estimates the probabilities in (7) by means of Monte Carlo simulation, thereby obtaining a lower bound on the admissible value of δ. If this value is acceptable for the application at hand, the synthetic dataset Z is released according to Algorithm 1; otherwise, the procedure can be repeated with different choices of (σ, θ ). If no choice of parameters yields 13 an acceptable δ, the mechanism cannot provide the desired DP guarantee for the prescribed 
+
+ε. In the special case σ = 0 , the expression for δ♯ can be made explicit, leading to the next corollary. 
+
+Corollary 1 (Instance-level (ε, δ )-DP, σ = 0 ). Assume Qx is induced by the m-step posterior-predictive distribution of D(θ, H ), where θ > 0 and H is a nonatomic probability measure. Let 
+
+ε > 0. For i = 1 , . . . , j , set 
+
+k(r, ε ) := 
+
+
+
+1, r = 1 ,
+
+⌊(eε − 1)( r − 1) ⌋ + 1 , r ≥ 2.
+
+(8) 
+
+Define 
+
+δ♯
+
+> 0
+
+(ε, x) = max 
+
+> 1≤i≤jm
+
+X
+
+> s=ki(ε)
+
+ms
+
+(ni)s(θ + n − ni)m−s
+
+(θ + n)m
+
+,
+
+with ki(ε) := k(ni, ε ) and the convention that the sum is zero if ki(ε) > m . Then the PY posterior-predictive mechanism satisfies instance-level (ε, δ )-DP at x for every 
+
+δ ∈ [0 , 1) such that δ > δ ♯
+
+> 0
+
+(ε, x).
+
+The regime σ = 0 is expected to provide stronger DP guarantees. The reason is that σ gov-erns the growth of the number of distinct values: larger values of σ lead to more low-frequency categories, which are more vulnerable to disclosure and hence weaken privacy protection. The next theorem shows that, under the Dirichlet process prior, the proposed mechanism satisfies 
+
+(ε, δ )-DP. 
+
+Theorem 2 ((ε, δ )-DP, σ = 0 ). Assume Qx is induced by the m-step posterior-predictive dis-tribution of D(θ, H ), where θ > 0 and H is nonatomic. Let ε > 0, and define 
+
+¯δn,m (ε) := max 
+
+ mθ + n + m − 1, 2m
+
+(θ + n)( eε − 1) 
+
+
+
+.
+
+Then the PY posterior-predictive mechanism satisfies (ε, δ )-DP for every 
+
+δ ∈ [0 , 1) such that δ > ¯δn,m (ε).
+
+In particular, for fixed θ and ε,
+
+¯δn,m (ε) = O
+
+mn
+
+
+
+.
+
+14 This result brings to light a structural limit of the PY posterior-predictive mechanism. The lower bound ¯δn,m (ε) in Theorem 2 is defined as the maximum of two terms. The second term, 
+
+2m/ (( θ + n)( eε − 1)) , as expected in standard DP mechanisms, decays as ε increases; however, the first term, the singleton contribution m/ (θ + n + m − 1) , is independent of ε. Therefore, increasing ε beyond a certain value does not lead to a decrease in ¯δ, which plateaus at the value 
+
+m/ (θ + n + m − 1) . This means that accounting for singletons leads to disruption of the classic differential privacy trade-off between ε and δ: accepting a larger ε does not allow to obtain δ
+
+arbitrarily close to zero. It is also impossible to arbitrarily increase the released sample size m
+
+by increasing ε.We finally turn to the regime σ ∈ (−∞ , 0) . Here the model (6) corresponds to a parametric Dirichlet–Multinomial model with at most z = θ/ |σ| distinct atoms. This structural constraint improves the DP guarantees of the PY posterior-predictive mechanism, as formalized in the next corollary. 
+
+Corollary 2 (Instance-level ε-DP, σ < 0). Assume Qx is induced by the m-step posterior-predictive distribution of PY (σ, θ, H ), where θ = z|σ| with z = j and σ < 0. Let ε > 0. If m
+
+satisfies 
+
+m ≤ (|σ| + ni − 1)( eε − 1) for all i = 1 , ..., j, (9) 
+
+then the PY posterior-predictive mechanism satisfies instance-level ε-DP. 
+
+Under the parameter specification of Corollary 2, the PY posterior-predictive mechanism reduces to the Dirichlet-Multinomial data-release mechanism of Machanavajjhala et al. (2008); see also Wasserman and Zhou (2010); see Appendix A.2. Taking the infimum in (9) over all datasets (corresponding to the worst-case scenario of a singleton), we obtain global ε-DP, recovering the condition m ≤ | σ|(eε − 1) from Machanavajjhala et al. (2008). In the regime 
+
+σ ∈ (−∞ , 0) , the condition 9 is closely related to the condition used by Wasserman and Zhou (2010), namely 
+
+αi + Ci ≥ meε − 1,
+
+where Ci is the count in the ith histogram bin for the confidential dataset X, and αi is the i-th parameter of the Dirichlet distribution, i = 1 , . . . , j . Overall, our DP guarantees highlight a privacy–flexibility tradeoff for the PY posterior-predictive mechanism, with respect to the values of the discount parameter σ ∈ (−∞ , 1) : moving from σ < 0 to σ = 0 and then to σ ∈ (0 , 1) 
+
+the model becomes increasingly flexible, but the associated privacy guarantees progressively weaken. 15 3.2 Mechanism informativity 
+
+Having established DP guarantees for the PY posterior-predictive mechanism, we now turn to the utility of the synthetic data to be released. We adopt the frequentist notion of mechanism informativity introduced in Wasserman and Zhou (2010). Assuming that X1, . . . , X n
+
+> iid
+
+∼ p0,for some “true" data-generating distribution p0, and that the user has access to the synthetic dataset Z = ( Z1, . . . , Z m) but not to the original confidential data X = ( X1, . . . , X n), we explore how inference based on Z is informative about aspects of p0. This distinction is important in practice: a mechanism that releases data with negligible statistical information may provide strong DP guarantees, but it is of little inferential value. We therefore ask whether the empirical distribution of synthetic data converges to the “true" data-generating distribution as the sample size m grows. Under the frequentist setup, the marginal distribution of Z is then the probability measure 
+
+νn,m (A) := 
+
+Z
+
+> Xn
+
+Qn(A | X = x) p0(dx 1) · · · p0(dx n), (10) for all A ∈ X m. We allow the number of synthetic observations to depend on the size n of the confidential dataset, writing m = m(n). Accordingly, asymptotic statements as n → ∞ 
+
+implicitly involve the corresponding sequence of sample sizes m(n). Once a relationship between 
+
+m and n has been specified, we write νn in place of νn,m for the marginal distribution in (10). Let 
+
+e(Z) 
+
+> m
+
+:= 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+δZi
+
+denote the empirical measure of the synthetic data Z. Wasserman and Zhou (2010) give the following definition of mechanism informativity, which provides a natural measure of the quality of the mechanism. 
+
+Definition 4 (Mechanism informativity) . We say that a data-release mechanism Qn is infor-mative, or consistent, with respect to the distance d if d(e(Z) 
+
+> m
+
+, p0) → 0 in νn-probability as 
+
+n → +∞. Qn is εn-informative if Eνn [d(e(Z) 
+
+> m
+
+, p0)] = O(εn), where (εn)n≥1 is a sequence of positive numbers such that εn → 0 as n → ∞ .Definition 4 is formulated for a generic distance between probability measures. In this work, we specialize it to the 1-Wasserstein distance. We recall the general definition of the 
+
+p-Wasserstein distance; see, e.g., Ambrosio and Gigli (2013) and Villani (2008). Let (X, d X) be a complete separable metric space. For p ≥ 1 and γ1, γ 2 ∈ P p(X), the p-Wasserstein distance is defined as 
+
+WPp(X) 
+
+> p
+
+(γ1, γ 2) := inf 
+
+> ξ∈Π( γ1,γ 2)
+
+Z 
+
+> X2
+
+dX(x, y )p ξ(dx, dy )
+
+1/p 
+
+, (11) 16 where 
+
+Pp(X) := 
+
+
+
+γ ∈ P (X) : 
+
+Z
+
+> X
+
+dX(x, x 0)p γ(dx ) < ∞ for some x0 ∈ X
+
+
+
+.
+
+Here, Π( γ1, γ 2) denotes the set of couplings of the probability measures γ1 and γ2, that is, the set of probability measures on (X2, X 2) with marginals γ1 and γ2. Throughout the paper we assume that X is totally bounded, so that Pp(X) = P(X) holds for every p ≥ 1. When the underlying space is clear from the context, we omit the superscript Pp(X) in WPp(X) 
+
+> p
+
+and simply write Wp.For X ⊆ Rd, rates for εn, 1(X, p0) := Epn 
+
+> 0
+
+[W1(e(X) 
+
+> m
+
+, p0)] are already available from Fournier and Guillin (2015); see Appendix A.3. In our setting, the additional difficulty in verifying Definition 4 is that the empirical measure is computed from the synthetic data Z, rather than from the original confidential data X. It is also important to ensure that the DP guarantees of a data-release mechanism are preserved as n → ∞ . This imposes constraints on the growth of 
+
+m = m(n) relative to n, and these constraints play a crucial role in the mechanism informativity. We therefore establish 1-Wasserstein consistency for the two regimes in which the PY posterior-predictive mechanism provides satisfactory DP guarantees, namely σ ∈ (−∞ , 0) and σ = 0 .Although the PY posterior-predictive mechanism for σ ∈ (−∞ , 0) has already appeared in the literature (Machanavajjhala et al., 2008), its consistency in the sense of Definition 4 has not been established. 
+
+Theorem 3 (σ < 0). Let X ⊆ Rd. If Z1, ..., Z m are synthetic from the PY posterior-predictive mechanism with σ < 0 and αi ≥ 2 for all i = 1 , ..., z and z ≥ 2, then 
+
+Eνn,m 
+
+W1(e(Z) 
+
+> m
+
+, p0) = O(n−1/2) + 
+
+
+
+O(m−1/2) if d < 2,O(m−1/2 log(1 + m)) if d = 2 ,O(m−1/d ) if d > 2.
+
+Now consider the setting of Theorem 3 and assume further that m ≍ n. It turns out that the condition 
+
+αi + Ci ≥ m/ (eε − 1) for all i = 1 , ..., z 
+
+required in the Dirichlet–Multinomial regime to satisfy instance-level ε-DP is met asymptoti-cally. Indeed, as n → ∞ , the bin counts Ci, i = 1 , . . . , z , diverge. To see this, assume that 
+
+p0 = T (θ0), where T : Θ → P (X) is a bijective parametrization map and θ0 = ( θ0,1, . . . , θ 0,z ).Then (C1, . . . , C z ) ∼ Multinomial( n, θ 0), so that each Ci is marginally distributed as a binomial 17 random variable with parameters (n, θ 0,i ). Therefore, by Chebyshev’s inequality, 
+
+P (|Ci/n − θ0,i | > ε ) ≤ θ0,i (1 − θ0,i )
+
+nε 2 → 0.
+
+Thus, provided θ0,i > 0, each Ci grows linearly with n, at least in probability. Therefore, when 
+
+m ≍ n, Theorem 3 yields 
+
+Eνn
+
+W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ =
+
+
+
+O(n−1/2), d < 2,O(n−1/2 log(1 + n)) , d = 2 ,O(n−1/d ), d > 2.
+
+This result shows that, under the Dirichlet–Multinomial regime, the PY posterior-predictive mechanism is informative with the same rate as that obtained by Fournier and Guillin (2015). In this regime, replacing the confidential data by synthetic data therefore entails no loss in the consistency rate. We next extend Theorem 3 from the regime σ ∈ (−∞ , 0) to the regime σ = 0 . For σ = 0 ,the Dirichlet process prior is no longer supported on a fixed finite set of atoms, but allows for countably many possible categories and for the appearance of new values in the synthetic sample. This additional flexibility requires a separate argument to establish 1-Wasserstein consistency. 
+
+Theorem 4 (σ = 0 ). Let X ⊆ Rd be bounded. If Z1, ..., Z m are synthetic from the PY posterior-predictive mechanism with σ = 0 then 
+
+Eνn,m 
+
+ W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ = εm, 1 (X) + 
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2.
+
+where εm, 1 is the rate of convergence for the mean of the 1-Wasserstein distance between e(Z)
+
+> m
+
+and P |X1, ..., X n ∼ πn(·| X1, ..., X n), with πn being the distribution of a posterior Dirichlet process. 
+
+We now consider the problem of specifying the asymptotic relation between the private sample size n and the synthetic sample size m = m(n). Since the term ˜δ in Theorem 2 is of order 
+
+O(m/n ), the asymptotic validity of the assumptions ensuring (ε, δ )-DP imposes restrictions on the growth of m relative to n. One possibility is to fix a target privacy level δ ∈ (0 , 1) and let 18 m ≍ n, with a sufficiently small proportionality constant. Indeed, if m = ⌊αn ⌋, then it holds that 
+
+lim sup 
+
+> n→∞
+
+¯δn,m (ε) ≤ max 
+
+ α
+
+1 + α , 2αeε − 1
+
+
+
+.
+
+Therefore, any choice of α < min {δ/ (1 − δ), δ (eε − 1) /2} ensures (ε, δ )-DP for all sufficiently large n.
+
+Corollary 3 (σ = 0 ). Let X ⊆ Rd be bounded. If Z1, ..., Z m are synthetic data from the PY posterior-predictive mechanism with σ = 0 and m ≍ n, then 
+
+Eνn
+
+ W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ =
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2.
+
+(12) 
+
+which is minimax optimal. 
+
+If we make the stronger requirement ¯δn,m → 0 as n → +∞, so that ε-DP holds asymptoti-cally, then we need to assume m = o(n). In particular if m ≍ n  
+
+> log n
+
+, then we have the following corollary 
+
+Corollary 4 (σ = 0 ). Let X ⊆ Rd be bounded. If Z1, ..., Z m are synthetic data from the PY posterior-predictive mechanism with σ = 0 and m ≍ n  
+
+> log n
+
+, then 
+
+Eνn
+
+ W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ =
+
+
+
+O(n−1/2√log n) if d < 2,O(n−1/2(log n)3/2) if d = 2 ,O(n−1/d (log n)1/d ) if d > 2.
+
+(13) In the regime σ = 0 , the PY posterior-predictive mechanism is informative with respect to the 1-Wasserstein metric. More precisely, it is informative with rate of convergence (12) when regarded as an (ε, δ )-DP mechanism, and with rate of convergence (13) when regarded as an asymptotically ε-DP mechanism. In the former case, the weaker DP requirement leads to a faster convergence rate, which is minimax optimal. Thus, under (ε, δ )-DP, replacing the confi-dential data by synthetic data entails no loss in the rate of convergence of the empirical measure to the data-generating distribution. This behaviour illustrates the general phenomenon, em-phasized by Wasserman and Zhou (2010), that DP constraints may slow down convergence rates. At the same time, our results address their question on whether minimax rates can be 19 obtained under DP constraints, showing that they can be achieved by assuming the weaker 
+
+(ε, δ )-DP. Theorems 3 and 4 also imply corresponding bounds for the expected distance between the synthetic empirical measure and the empirical measure of the confidential data. Indeed, by the triangle inequality, 
+
+E W1
+
+ e(Z) 
+
+> m
+
+, e (X)
+
+> n
+
+ ≤ E W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ + E W1
+
+ e(X) 
+
+> n
+
+, p0
+
+ .
+
+This empirical-to-empirical target is considered by Boedihardjo et al. (2024). Their mechanism satisfies pure ε-DP for every n and obtains a Wasserstein error of order n−1/d , up to logarithmic factors. By contrast, in Corollary 4 we establish the same rates, but under the weaker finite-sample guarantee (ε, δ n)-DP with δn → 0. The improvement in Boedihardjo et al. (2024) comes at the price of a more involved construction based on superregular random walks, whereas the PYP posterior-predictive mechanism retains the the structure of the Bayesian nonparametric model. The proof of Theorem 4 relies on a concentration bound for the posterior distribution of a Dirichlet process, which may be of independent interest. The key quantity is the expected 
+
+1-Wasserstein distance between a posterior Dirichlet process and its corresponding posterior mean measure. This term can be interpreted as a Wasserstein analogue of a posterior variance of the Dirichlet process, measuring how tightly the posterior random measure concentrates around its mean. 
+
+Lemma 1. Let ˜p ∼ D (θ, H ) and let X1, ..., X n be a random sample from ˜p, for n ≥ 1, such that ˜p|X1, ..., X n ∼ πn (·| X1, ..., X n) = D (θ + n, H n), where Hn = θθ+n H + nθ+n
+
+Pni=1 δXi . If 
+
+X1, ..., X n
+
+> iid
+
+∼ p0, then 
+
+Epn
+
+> 0
+
+ E˜p|X1,..,X n (W1 (P, H n))  =
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2.
+
+(14) Interestingly, Lemma 1 implies, by means of triangle inequality, that the same rate is achieved by 
+
+Epn
+
+> 0
+
+
+
+WP(P(X)) 1 (πn (·| X1, ..., X n) , δ p0 )
+
+
+
+(15) which is a posterior contraction rate at p0 for the Dirichlet process prior. Rates of the form in (15) have been studied by Camerlenghi et al. (2026), though their techniques yield a slower rate than (14). 20 4 Numerical illustrations 
+
+We report three numerical experiments. The first one illustrates the main computational ad-vantage of posterior-predictive release for downstream Bayesian inference. The second one validates the Wasserstein informativity rates of Theorem 4 in a controlled simulation. The third one compares distributional utility on a large real dataset from the American Community Survey. 
+
+## 4.1 Downstream Bayesian inference 
+
+Recall that under the Dirichlet-process posterior-predictive mechanism, the released data can be analyzed with the ordinary Dirichlet-process posterior. Indeed, if Z1, . . . , Z m are the released observations, then the downstream posterior is available in closed form: 
+
+˜p | Z1, . . . , Z m = z1, . . . , z m ∼ D
+
+
+
+θ + m, θH + Pmℓ=1 δzℓ
+
+θ + m
+
+
+
+.
+
+Thus posterior summaries can be computed by direct posterior simulation from a standard Dirichlet-process posterior. This is in sharp contrast with generic synthetic-data mechanisms. Consider, for instance, the perturbed histogram mechanism reviewed in Appendix A.2. Let B1, . . . , B k be the histogram partition, let Cj = Pni=1 1[Xi ∈ Bj ], and let ˜f be the perturbed histogram density obtained from the noisy counts. If Z1, . . . , Z m are then sampled from ˜f , the correct Bayesian posterior is not the ordinary posterior given Z1, . . . , Z m. Rather, it is the mechanism-aware posterior associated with the hierarchical model 
+
+˜p ∼ D(θ, H ), X1, . . . , X n | ˜p iid 
+
+∼ ˜p, Cj =
+
+> n
+
+X
+
+> i=1
+
+1[Xi ∈ Bj ], Z1, . . . , Z m | ˜f iid 
+
+∼ ˜f . 
+
+Consequently, posterior computation requires augmenting the Markov chain with the unob-served confidential sample X1: n, and then updating the Dirichlet process conditionally on the imputed confidential data: 
+
+˜p | X1, . . . , X n ∼ D
+
+
+
+θ + n, θH + Pni=1 δXi
+
+θ + n
+
+
+
+.
+
+The latent state therefore scales with the confidential sample size n, not with the released sample size m. This makes the exact mechanism-aware posterior computation rapidly infeasible. In our reference implementation, for n = 10 4 and m = 10 2, obtaining 1000 posterior samples from the full X1: n-augmented MCMC takes about six minutes, making it unfeasible in the intended large-scale regime, where n may be 10 6 or larger. 21 For this reason, in the repeated simulation below we do not use the full X1: n-augmented pos-terior for the histogram sample-release mechanisms. Instead, we use a computational fallback that is deliberately favorable to the histogram mechanisms: we replace the synthetic sample from the histogram by a direct release of the histogram output. This reduces the latent state from the full confidential sample X1: n to the confidential bin counts. For the perturbed his-togram, a direct release of noisy counts is a valid differentially private release when the noise is calibrated to the sensitivity of the count vector. For the smoothed histogram, however, directly releasing the smoothed histogram is not differentially private, except in the degenerate case of complete smoothing, which has no utility. The direct smoothed histogram should therefore be understood only as a non-private computational diagnostic. We run the fallback simulation on n = 2000 confidential observations generated from a dis-crete distribution on a regular grid in [0 , 1] . The grid probabilities are generated from a mixture of beta-shaped weights, as described in Appendix C. We compare the downstream posterior summaries obtained from three workflows: the Dirichlet-process posterior-predictive mecha-nism, the direct perturbed histogram, and the direct smoothed histogram. Posterior samples are used to estimate the mean, the quartiles, and the right-tail probability ˜p((0 .75 , 1]) . We report empirical bias, root mean square error, average credible-interval length, frequentist coverage, wall-clock time, and effective sample size per second. Complete results are given in Appendix C. The statistical accuracy of the three methods is comparable in this simplified experiment, but the computational workflows are not: the proposed posterior-predictive mechanism requires only the standard Dirichlet-process posterior update, whereas the histogram-based workflows require mechanism-aware inference even in the reduced direct-histogram formulation. 
+
+## 4.2 Convergence analysis for a simulated dataset 
+
+We now validate empirically the Wasserstein informativity rates proved in Theorem 4. The confidential data are generated from an explicitly discrete distribution on [0 , 1] , constructed as follows. Let G have a geometric distribution on {1, 2, . . . } with success probability p = 0 .05 .For k ≥ 1, set r(k) = ⌊log 2 k⌋ + 1 , and define 
+
+T (k) = 2( k − 2r(k)−1) + 1 2r(k) .
+
+Thus T (1) = 1 /2, T (2) = 1 /4, T (3) = 3 /4, T (4) = 1 /8, and so on. We generate N = 1000000 
+
+iid observations G1, . . . , G N , and set Xi = T (Gi). The resulting population sample takes values in the dyadic points of [0 , 1] , contains ties by construction, and has a large but sparse support. 22 The dataset of size N is treated as the confidential population. For each value of n in a grid between 10000 and N , we draw a random subsample X1, . . . , X n and generate a syn-thetic dataset Z1, . . . , Z m using the Dirichlet-process posterior-predictive mechanism with base measure H = Unif[0 , 1] and strength parameter θ. Throughout this section we consider the Pitman–Yor posterior-predictive mechanism in the special case σ = 0 , and refer to it as the 
+
+Dirichlet-process posterior-predictive mechanism .The synthetic sample size m is chosen according to the privacy regime under consideration. For (ε, δ )-differential privacy, we set ε = 2 and consider δ ∈ { 10 −2, 10 −3, 10 −4}; for each n, m is chosen as the largest value satisfying the finite-sample bound of Theorem 2. We also consider the asymptotic ε-differential privacy regime of Corollary 13, using a sequence m = m(n) with 
+
+m/n → 0. For each configuration, we compute the 1-Wasserstein distance between the synthetic empirical measure and the empirical measure of the confidential subsample, 
+
+W1
+
+ e(Z) 
+
+> m
+
+, e (X)
+
+> n
+
+ ,
+
+and average the result over 100 independent runs of the synthetic-data generation process. Figure 1 displays the results for θ ∈ { 1, 10 , 100 }. In the three (ε, δ )-differentially private scenarios, the decay is close to the n−1/2 benchmark on the log-log scale, in agreement with Corollary 3. In the asymptotic ε-differential privacy regime, the convergence is slower, consis-tently with Corollary 13. Although the asymptotic ε-DP curve can lie below some of the finite-δ
+
+curves for the sample sizes considered here, this does not contradict the theory: pure ε-DP is only obtained asymptotically in this regime, and the finite-sample value of the corresponding 
+
+δ is larger than 10 −2.
+
+Figure 1: Average W1
+
+
+
+e(Z) 
+
+> m
+
+, e (X)
+
+> n
+
+
+
+as a function of n, with a 99% confidence band, on a log-log scale, for θ = 1 , 10 , 100 . Solid curves correspond to computed distances; dashed lines have slope 
+
+−0.5.23 4.3 Real data: California census dataset 
+
+We finally assess distributional utility on a large real dataset. We consider the 2024 5 -Year Public Use Microdata Sample from the American Community Survey, conducted by the U.S. Census Bureau (U.S. Census Bureau, 2021), and focus on the PINCP variable, which records personal annual income. Observations with missing or non-positive income are removed. The remaining values are transformed logarithmically and then rescaled to [0 , 1] . The resulting dataset contains 11918162 observations and 32393 distinct recorded values, of which 7689 are singletons. We compare the Dirichlet-process posterior-predictive mechanism with the perturbed his-togram and smoothed histogram mechanisms reviewed in Appendix A.2. The confidential data are modeled with a Dirichlet process prior with base measure H = Unif[0 , 1] and θ = 1 . We set 
+
+ε = 2 and δ = 10 −5. Under Theorem 2, the largest admissible released sample size is m = 119 .This is a stringent privacy regime: the number of released observations is tiny compared with the confidential sample size. For the histogram mechanisms, we use the same number m = 119 of released synthetic observations and 300 histogram bins. To match the (ε, δ )-privacy target, the perturbed his-togram uses Gaussian perturbations of the histogram counts calibrated to the sensitivity of the count vector. For the smoothed histogram, we compose the smoothing step with an (ε, δ )-differentially private Gaussian perturbation of the counts. We then generate synthetic datasets from the resulting private histograms. We evaluate distributional utility in three ways. First, we compare standard summary statistics of the confidential and synthetic datasets: mean, standard deviation, and quartiles. Second, we compare kernel density estimates computed from the confidential and synthetic samples. Third, over 100 independent runs of each mechanism, we compute the 1-Wasserstein distance between the synthetic empirical measure and the empirical measure of the confidential data. Table 1 shows that all three mechanisms preserve the main one-dimensional summaries reasonably well, despite the small value of m. The large confidential sample size makes the histogram mechanisms particularly favorable in this example: most bin counts are large, so the perturbation added to the counts has a limited effect, and the smoothed histogram does not need to over-smooth the distribution. The Dirichlet-process posterior-predictive mechanism nevertheless remains competitive, without requiring a fixed histogram partition. 24 Mean SD Q1 (25%) Median Q3 (75%) Confidential 0.698 0.093 0.651 0.711 0.759               
+
+> Perturbed 0.697 0.096 0.652 0.710 0.757
+> Smoothed 0.693 0.087 0.639 0.704 0.748
+> Dirichlet-process posterior-predictive
+> 0.691 0.091 0.632 0.707 0.759
+
+Table 1: Summary statistics of confidential data and synthetic data generated with three different mechanisms. Figures 2 and 3 give a similar picture. The kernel density estimates obtained from the three synthetic samples are close to the estimate based on the confidential data, and the average 
+
+1-Wasserstein distance is below 0.0125 for all mechanisms. Thus, on this large real dataset, the proposed mechanism achieves distributional utility comparable to the histogram-based methods under the same released sample size. 
+
+Figure 2: Kernel density estimates based on confidential and synthetic datasets. 
+
+Figure 3: Boxplots of the 1-Wasserstein dis-tance between synthetic and confidential em-pirical measures, over 100 independent runs. 
+
+# 5 Discussion 
+
+We have proposed a Bayesian nonparametric framework for private synthetic data generation tailored to discrete data. The mechanism is model-aligned: synthetic observations are drawn directly from the posterior-predictive distribution of the Bayesian nonparametric model. Hence, under the model, confidential and synthetic data are jointly exchangeable, allowing standard 25 Bayesian inference to be carried out from the released data. This contrasts with generic exter-nally specified privatization mechanisms, for which likelihood-based or Bayesian inference may require integrating over the unobserved confidential sample and can become computationally intractable. The proposed mechanism is also simple to implement, since sampling from the PY posterior-predictive distribution is straightforward. At the same time, because the PY process is naturally suited to discrete data with ties and possibly many categories, extensions to data without ties or to mixed discrete-continuous settings remain important directions for future work. The DP guarantees of the PY posterior-predictive mechanism depend on the discount pa-rameter σ ∈ (−∞ , 1) , which controls the prevalence of low-frequency categories and hence the main source of privacy risk. In the regime σ ∈ (0 , 1) , the mechanism satisfies instance-level 
+
+(ε, δ )-DP. Stronger guarantees are obtained in the two special regimes: for σ < 0, correspond-ing to a parametric Dirichlet–Multinomial model, the mechanism satisfies instance-level ε-DP and, under suitable conditions on the released sample size, global ε-DP (Machanavajjhala et al., 2008); for σ = 0 , corresponding to the Dirichlet process prior, it satisfies global (ε, δ )-DP, with δ
+
+controlled by the ratio between the synthetic and confidential sample sizes. These results show that DP guarantees are strongly tied to the predictive structure induced by the prior, suggest-ing the study of alternative priors and privacy notions better adapted to posterior-predictive mechanisms. The utility results provide a frequentist validation of the PY posterior-predictive mechanism. Following the notion of informativity in Wasserman and Zhou (2010), we measure utility by the expected 1-Wasserstein distance between the synthetic empirical distribution and the “true” data-generating distribution. In the regimes σ = 0 and σ < 0, we prove consistency in this metric and derive explicit convergence rates. These rates quantify the privacy–utility tradeoff: stronger privacy requirements may restrict the released sample size and slow convergence to the “true” distribution. When (ε, δ )-DP is imposed only asymptotically, however, synthetic data achieve the same consistency rate as the confidential data. As a byproduct, we obtain a concentration bound for the posterior Dirichlet process around its posterior mean in expected 
+
+1-Wasserstein distance, leaving analogous results for other Bayesian nonparametric priors as an open question. 26 References 
+
+Abowd, J. M., Ashmead, R., Cumings-Menon, R., Garfinkel, S., Heineck, M., Heiss, C., Johns, R., Kifer, D., Leclerc, P., Machanavajjhala, A., et al. (2022). The 2020 census disclosure avoidance system topdown algorithm. arXiv , 2204.08986. Ambrosio, L. and Gigli, N. (2013). A User’s Guide to Optimal Transport , pages 1–155. Springer Berlin Heidelberg, Berlin, Heidelberg. Apple’s Differential Privacy Team (2017). Learning with privacy at scale. Apple Machine Learning Journal , 1. Beraha, M., Favaro, S., and Rao, V. (2025). Mcmc for bayesian nonparametric mixture modeling under differential privacy. Journal of Computational and Graphical Statistics , 34(3):837–847. Bernstein, G. and Sheldon, D. R. (2019). Differentially private bayesian linear regression. In 
+
+Advances in Neural Information Processing Systems , volume 32. Boedihardjo, M., Strohmer, T., and Vershynin, R. (2024). Private measures, random walks, and synthetic data. Probability theory and related fields , 189(1):569–611. Camerlenghi, F., Dolera, E., Favaro, S., and Mainini, E. (2026). Wasserstein posterior contrac-tion rates in non-dominated bayesian nonparametric models. In Annales de l’Institut Henri Poincare (B) Probabilites et statistiques , volume 62, pages 582–606. Institut Henri Poincaré. Dimitrakakis, C., Nelson, B., Zhang, Z., Mitrokotsa, A., and Rubinstein, B. I. P. (2017). Differential privacy for bayesian inference through posterior sampling. J. Mach. Learn. Res. ,18(1):343–381. Ding, B., Kulkarni, J., and Yekhanin, S. (2017). Collecting telemetry data privately. In Advances in Neural Information Processing Systems , pages 3571–3580. Dolera, E., Favaro, S., and Mainini, E. (2024). Strong posterior contraction rates via wasserstein dynamics. Probability Theory and Related Fields , 189(1):659–720. Donhauser, K., Abad, J., Hulkund, N., and Yang, F. (2024a). Privacy-preserving data re-lease leveraging optimal transport and particle gradient descent. In Proceedings of the 41st International Conference on Machine Learning , ICML’24. JMLR.org. 27 Donhauser, K., Lokna, J., Sanyal, A., Boedihardjo, M., Hönig, R., and Yang, F. (2024b). Certified private data release for sparse lipschitz functions. In International Conference on Artificial Intelligence and Statistics , pages 1396–1404. PMLR. Drechsler, J. and Haensch, A.-C. (2024). 30 years of synthetic data. Statistical Science , 39:221– 242. Dwork, C., McSherry, F., Nissim, K., and Smith, A. (2006). Calibrating noise to sensitivity in private data analysis. In Theory of cryptography conference , pages 265–284. Springer. Erlingsson, Ú., Pihur, V., and Korolova, A. (2014). Rappor: Randomized aggregatable privacy-preserving ordinal response. In Proceedings of the 2014 ACM SIGSAC Conference on Com-puter and Communications Security .Ferguson, T. S. (1973). A Bayesian Analysis of Some Nonparametric Problems. The Annals of Statistics , 1(2):209 – 230. Fournier, N. and Guillin, A. (2015). On the rate of convergence in wasserstein distance of the empirical measure. Probability Theory and Related Fields , 162:707–738. Ghosal, S. and van der Vaart, A. (2017). Fundamentals of Nonparametric Bayesian Inference .Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press. Gotz, M., Machanavajjhala, A., Wang, G., Xiao, X., and Gehrke, J. (2011). Publishing search logs—a comparative study of privacy guarantees. IEEE transactions on knowledge and data engineering , 24(3):520–532. He, Y., Strohmer, T., Vershynin, R., and Zhu, Y. (2025). Differentially private low-dimensional synthetic data from high-dimensional datasets. Information and Inference: A Journal of the IMA , 14(1):iaae034. He, Y., Vershynin, R., and Zhu, Y. (2023). Algorithmically effective differentially private synthetic data. In The Thirty Sixth Annual Conference on Learning Theory , pages 3941– 3968. PMLR. He, Y., Vershynin, R., and Zhu, Y. (2024). Online differentially private synthetic data genera-tion. IEEE Transactions on Privacy , 1:19–30. 28 Hu, J., Williams, M. R., and Savitsky, T. D. (2022). Mechanisms for global differential privacy under bayesian data synthesis. Statistica Sinica .Jewson, J. E., Ghalebikesabi, S., and Holmes, C. C. (2023). Differentially private statisti-cal inference through \beta-divergence one posterior sampling. In Oh, A., Neumann, T., Globerson, A., Saenko, K., Hardt, M., and Levine, S., editors, Advances in Neural Informa-tion Processing Systems , volume 36, pages 76974–77001. Curran Associates, Inc. Machanavajjhala, A., Kifer, D., Abowd, J., Gehrke, J., and Vilhuber, L. (2008). Privacy: Theory meets practice on the map. In 2008 IEEE 24th international conference on data engineering , pages 277–286. IEEE. McSherry, F. and Talwar, K. (2007). Mechanism design via differential privacy. In Annual IEEE Symposium on Foundations of Computer Science (FOCS) . IEEE. Perman, M., Pitman, J., and Yor, M. (1992). Size-biased sampling of Poisson point processes and excursions. Probability Theory and Related Fields , 92:21–39. Pitman, J. (1995). Exchangeable and partially exchangeable random partitions. Probability Theory and Related Fields , 102:145–158. Pitman, J. (1996). Some developments of the blackwell-macqueen urn scheme. Lecture Notes-Monograph Series , 30:245–267. Pitman, J. (2006). Combinatorial stochastic processes , volume 1875 of Lecture Notes in Math-ematics . Springer-Verlag. Pitman, J. and Yor, M. (1997). The two-parameter Poisson-Dirichlet distribution derived from a stable subordinator. The Annals of Probability , 25(2):855 – 900. Roch, S. (2024). Modern Discrete Probability: An Essential Toolkit . Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press. Rubin, D. B. (1993). Statistical disclosure limitation. Journal of official Statistics , 9(2):461–468. Savitsky, T. D., Williams, M. R., and Hu, J. (2022). Bayesian pseudo posterior mechanism under asymptotic differential privacy. J. Mach. Learn. Res. , 23(1). 29 Soria-Comas, J., Domingo-Ferrer, J., Sanchez, D., and Megias, D. (2017). Individual differ-ential privacy: A utility-preserving formulation of differential privacy guarantees. IEEE Transactions on Information Forensics and Security , 12(6):1418–1429. U.S. Census Bureau (2021). American community survey 1-year estimates public use microdata sample (pums). https://www.census.gov/programs-surveys/acs/data/ experimental-data/2020-1-year-pums.html .Villani, C. (2008). Optimal Transport . Grundlehren der mathematischen Wissenschaften. Springer Berlin, Heidelberg, 1 edition. Hardcover ISBN: 978-3-540-71049-3, Softcover ISBN: 978-3-662-50180-1, eBook ISBN: 978-3-540-71050-9. Wasserman, L. and Zhou, S. (2010). A statistical framework for differential privacy. Journal of the American Statistical Association , 105(489):375–389. Weed, J. and Bach, F. (2019). Sharp asymptotic and finite-sample rates of convergence of empirical measures in wasserstein distance. Bernoulli , 25(4A):2620–2648. 30 Supplementary material to: Bayesian Nonparametric Privacy-Preserving Synthetic Data Generation A Additional theory 
+
+## A.1 Additional background material on Pitman–Yor process 
+
+The update rule of the Pitman–Yor process is given by the following proposition (Pitman (1996)): 
+
+Proposition 1. Let (X1, ..., X n) be a sample from a random probability measure ˜p ∼ PY (σ, θ, H ).Then, conditionally on X featuring k distinct values X∗ 
+
+> i
+
+with frequencies ni for i = 1 , ..., k ,
+
+˜p | X d
+
+=
+
+> k
+
+X
+
+> j=1
+
+˜Pj δX∗ 
+
+> j
+
++ ˜RkFk,
+
+where ( ˜P1, ..., ˜Pk, ˜Rk) has Dirichlet (n1 − σ, ..., n k − σ, θ + kσ ) distribution, independently of the random probability measure Fk, which has PY (σ, θ + kσ, H )-distribution. 
+
+## A.2 Other privacy mechanisms 
+
+We describe three privacy mechanisms known in the literature. They all rely on generating synthetic data by sampling from a histogram. We consider X = [0 , 1] r for some integer r ≥ 1 and partition X into k bins B1, ..., B k, where each bin Bj is a cube with sides of length h ∈ (0 , 1) such that k = 1 /h r is an integer. We denote by ˆfk(x) the histogram estimator for the confidential data X, defined as 
+
+ˆfk(x) := 
+
+> k
+
+X
+
+> j=1
+
+ˆpj
+
+hr 1Bj (x),
+
+where ˆpj = Cj /n and Cj = Pni=1 1Bj (Xi).
+
+(1) Smoothed estimator mechanism, Wasserman and Zhou (2010) The histogram estimator can be smoothed in the following way: 
+
+ˆfk,σ (x) = (1 − σ) ˆfk(x) + σ, 
+
+where σ ∈ (0 , 1) . Sampling from the smoothed histogram satisfies ε-differential privacy if 
+
+m log 
+
+(1 − σ)knσ + 1 
+
+
+
+≤ ε. (A.1) 1(2) Perturbed histogram estimator, Wasserman and Zhou (2010) One can instead perturb the set of counts by adding noise, build a new histogram estimator based on the perturbed counts and then release data sampling from it. Formally, let Dj = Cj + νj , where 
+
+ν1, ..., ν m
+
+> iid
+
+∼ Laplace (0 , 2/ε ). Let ˜Dj = max {Dj , 0}, ˆqj = ˜Dj / Pks=1 ˜Ds for j = 1 , ..., k and define 
+
+˜f (x) := 
+
+> k
+
+X
+
+> j=1
+
+ˆqj
+
+hr 1Bj (x).
+
+Any sample from ˜f (x) preserves ε-differential privacy for any k.
+
+(3) Dirichlet-Multinomial mechanism, Machanavajjhala et al. (2008) Let p := (p1, ..., p k) be the vector of probabilities pj := P[Xi ∈ Bj ] for j = 1 , ..., k , and (C1, ..., C k) the bin counts. The mechanism relies on the following Bayesian parametric model: 
+
+p ∼ Dirichlet (α1, ..., α k)
+
+C1, ..., C k|p ∼ Multinomial (n, p).
+
+The mechanism involves drawing a vector of probabilities q := ( q1, ..., q k) from the posterior of the model, which is still a Dirichlet with updated parameters (α1 + C1, ..., α k + Ck), and gen-erating a synthetic vector of bin counts D := ( D1, ..., D k) sampling from a Multinomial (m, q).Such mechanism satisfies ε-differential privacy if 
+
+αj ≥ m/ (eε − 1) for all j = 1 , ..., k. (A.2) 
+
+## A.3 Rate of convergence in Wasserstein distance of the empirical measure 
+
+We assume X1, ..., X n
+
+> iid
+
+∼ p0. p-Wasserstein convergence of the empirical measure e(X) 
+
+> n
+
+to p0 can be quantified by providing a non-asymptotic estimate of the type 
+
+εn,p (X, p0) := E⊗np0 [WP(X) 
+
+> p
+
+(e(X) 
+
+> n
+
+, p0)] ≤ g(n) (A.3) for all n ≥ 1, where g is a suitable function. The following theorem provides such an estimate in the case X ⊆ Rd.
+
+Theorem A.1 (Fournier and Guillin (2015)) . Let p0 a probability measure on Rd and let p ≥ 1.Assume that 
+
+Mq(p0) := 
+
+Z
+
+> X
+
+|x|q p0(dx ) < ∞
+
+2for some q > p . Then there exists a constant C depending only on p, d, q such that for all n ≥ 1,
+
+εn,p (X, p0) ≤ C M p/q q (p0) ×
+
+
+
+n−1/2 + n−(q−p)/q , if p > d/ 2 and q̸ = 2 pn−1/2 log(1 + n) + n−(q−p)/q , if p = d/ 2 and q̸ = 2 pn−p/d + n−(q−p)/q , if p ∈ [1 , d/ 2) and q̸ = d/ (d − p)
+
+If p0 ha sufficiently many moments, then the term n−(q−p)/q is small and can be neglected. We need this result when proving Theorems 3 and 4, where we have to provide rates for the expected 1-Wasserstein distance between the empirical measure of the synthetic data and the data generating distribution. 
+
+## A.4 Bayesian consistency 
+
+To prove consistency in the Dirichlet-Multinomial subcase we need the following result, arising from the theory of Bayesian consistency and posterior contraction rates (Ghosal and van der Vaart (2017)). Being in the case of Bayesian parametric models, consider the metric space 
+
+(Θ , d Θ), where Θ is the parameter space. We denote WP(Θ)  
+
+> p
+
+(·, ·) the p-Wasserstein distance defined in (Θ , d θ), assuming it is a complete and separable metric space. Let X1, ..., X n be a sequence of categorical random variables taking values in the finite set 
+
+{a1, ..., a k} ⊂ X. The parameter space Θ, in this case, coincides with the interior of the k − 1
+
+dimensional simplex 
+
+S k−1 = {(θ1, ..., θ k−1) ∈ [0 , 1] k−1 :
+
+> k−1
+
+X
+
+> i=1
+
+θi ≤ 1}.
+
+Proposition 2 (Dolera et al. (2024)) . Let k ≥ 2. Let ϕ a prior on S k−1. If ϕ has a Lebesgue density q such that q ∈ C1(S k−1) and q(θ) = 0 for any θ ∈ ∂S k−1, then as n → ∞ 
+
+E⊗np0
+
+h
+
+WP(Θ) 2 (ψn( · | X), δ θ0 )
+
+i
+
+= O(n−1/2),
+
+which is the optimal rate. 
+
+Notice that the above proposition holds assuming a Dirichlet prior with parameters (α1, ..., α k)
+
+such that αi ≥ 2 for all i = 1 , ..., k .3A.5 Lipschitz continuity of the Dirichlet-Multinomial operator 
+
+We state and prove a result, needed in the proof of Theorem 3, concerning a property of the operator T : (Θ , d Θ) → (P(X), WP(X)1 ), which for a Dirichlet-Multinomial model is defined as 
+
+T (θ) = 
+
+> k
+
+X
+
+> i=1
+
+θiδai
+
+for all θ ∈ Θ ≡ S k−1, where θk := 1 − θ1 − · · · − θk−1. We assume dΘ equal to the metric induced by the l2 norm in Rk−1.
+
+Lemma A.1. The map T : (Θ , d Θ) → (P(X), WP(X)1 ) defined above is Lipschitz continuous, with Lipschitz constant less or equal to √k − 1D, with D := diam (X).Proof. For any θ, ϕ ∈ Θ, by Villani (2008) (Theorem 6.15), we have 
+
+WP(X)1 (T (θ), T (ϕ)) ≤ D ∥T (θ) − T (ϕ)∥TV .
+
+By Roch (2024) (Lemma 4.1.9), we can say 
+
+∥T (θ) − T (ϕ)∥TV = 12
+
+> k
+
+X
+
+> i=1
+
+|θi − ϕi|,
+
+where kX
+
+> i=1
+
+|θi − ϕi| =
+
+> k−1
+
+X
+
+> i=1
+
+|θi − ϕi| + |θk − ϕk| =
+
+> k−1
+
+X
+
+> i=1
+
+|θi − ϕi| + | − θk−1 + ϕk−1 + ... − θ1 + ϕ1| ≤ 
+
+2
+
+> k−1
+
+X
+
+> i=1
+
+|θi − ϕi| ≤ 2√k − 1 ∥θ − ϕ∥l2
+
+by triangular inequality and Cauchy-Schwarz inequality. 
+
+# B Proofs 
+
+## B.1 Proof of Theorem 1 
+
+By Proposition 2, it is enough to prove instance-level (ε, δ )-probabilistic differential privacy. Work under the fixed-dataset notation introduced above. For ease of notation let K = K(n) 
+
+> m
+
+.4Fix a neighbouring dataset ˜x such that h(x, ˜x) = 1 . By exchangeability, assume that the datasets differ only in the first coordinate: 
+
+x1 = x∗ 
+
+> l
+
+, ˜x1 = b̸ = x∗ 
+
+> l
+
+, xi = ˜ xi, i = 2 , . . . , n. 
+
+We write qx and q˜x for densities of Qx and Q˜x with respect to a common dominating measure. Define 
+
+Ax,˜x := {z ∈ Xm : qx(z) ≤ eεq˜x(z)} .
+
+We now control 
+
+Qx(Ac
+
+> x,˜x
+
+)
+
+for the two possible types of value b.
+
+Case 1: b is already present in x. Assume 
+
+b = x∗ 
+
+> t
+
+for some t̸ = l. 
+
+First suppose that nl ≥ 2. Then x∗ 
+
+> l
+
+remains an old species under ˜x, with frequency nl − 1,while x∗ 
+
+> t
+
+has frequency nt + 1 . The number of old species is the same under x and ˜x. Using the posterior-predictive density induced by the Pitman–Yor EPPF, we obtain 
+
+qx(z)
+
+q˜x(z) = (nt − σ)St
+
+(nt + 1 − σ)St
+
+(nl − σ)Sl
+
+(nl − 1 − σ)Sl
+
+.
+
+Equivalently, 
+
+qx(z)
+
+q˜x(z) = nt − σnt + St − σnl + Sl − 1 − σnl − 1 − σ .
+
+Therefore, in this subcase, 
+
+Ac 
+
+> x,˜x
+
+⊆
+
+ nt − σnt + St − σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+
+
+.
+
+Now suppose instead that nl = 1 . Then the value x∗ 
+
+> l
+
+disappears from ˜x. Hence, under Q˜x,the fixed value x∗ 
+
+> l
+
+is not an old atom. Since H is nonatomic, 
+
+Q˜x (∃r ≤ m : Zr = x∗ 
+
+> l
+
+) = 0 .
+
+Thus the event 
+
+{Sl ≥ 1}
+
+is singular for Qx with respect to Q˜x, and it must be included in the bad privacy event. 5On the complementary event {Sl = 0 }, the value x∗ 
+
+> l
+
+is not released. Then the released sample contains the same new species under both x and ˜x, but ˜x has one fewer old species. The likelihood ratio becomes 
+
+qx(z)
+
+q˜x(z) = θ + ( j + K − 1) σθ + ( j − 1) σnt − σnt + St − σ .
+
+Consequently, when nl = 1 ,
+
+Ac 
+
+> x,˜x
+
+⊆ { Sl ≥ 1} ∪ 
+
+
+
+{Sl = 0 } ∩ 
+
+θ + ( j + K − 1) σθ + ( j − 1) σnt − σnt + St − σ > e ε
+
+ 
+
+.
+
+Case 2: b is not present in x. Assume 
+
+b / ∈ { x∗
+
+> 1
+
+, . . . , x ∗ 
+
+> j
+
+}.
+
+Let 
+
+Eb := {∃ r ≤ m : Zr = b}.
+
+Since b is fixed before generating Z, and since H is nonatomic, 
+
+Qx(Eb) = 0 .
+
+Thus we may work on Ecb , up to a Qx-null event. First suppose that nl ≥ 2. Then x∗ 
+
+> l
+
+remains an old species under ˜x, with frequency nl − 1,and b is an old singleton under ˜x with released count zero on Ecb . The likelihood ratio is 
+
+qx(z)
+
+q˜x(z) = θ + jσ θ + ( j + K)σ
+
+(nl − σ)Sl
+
+(nl − 1 − σ)Sl
+
+.
+
+Equivalently, 
+
+qx(z)
+
+q˜x(z) = θ + jσ θ + ( j + K)σnl + Sl − 1 − σnl − 1 − σ .
+
+Hence, since Qx(Eb) = 0 ,
+
+Qx(Ac
+
+> x,˜x
+
+) ≤ Qx
+
+ θ + jσ θ + ( j + K)σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+
+
+.
+
+Now suppose that nl = 1 . Then ˜x is obtained by replacing the singleton old species x∗ 
+
+> l
+
+by the singleton old species b. On the event {Sl ≥ 1}, the released sample contains x∗ 
+
+> l
+
+, which is not an old atom under ˜x. Since H is nonatomic, 
+
+Q˜x(Sl ≥ 1) = 0 .
+
+Thus {Sl ≥ 1} is again singular. 6On the event 
+
+{Sl = 0 } ∩ Ecb ,
+
+neither x∗ 
+
+> l
+
+nor b appears in the released sample. The two datasets then differ only by the label of an old singleton with released count zero. The old-species contribution is 
+
+(1 − σ)0 = (1 − σ)0 = 1 ,
+
+the number of old species is j for both datasets, and the new synthetic species are the same under both descriptions. Therefore 
+
+qx(z)
+
+q˜x(z) = 1 on {Sl = 0 } ∩ Ecb .
+
+Since Qx(Eb) = 0 , we conclude that, in this subcase, 
+
+Qx(Ac
+
+> x,˜x
+
+) ≤ Qx(Sl ≥ 1) .
+
+Then, the exact pairwise bad events are: 
+
+Eold  
+
+> l,t
+
+(ε) := 
+
+ nt − σnt + St − σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+
+
+, nl ≥ 2,
+
+{Sl ≥ 1} ∪ 
+
+
+
+{Sl = 0 } ∩ 
+
+θ + ( j + K − 1) σθ + ( j − 1) σnt − σnt + St − σ > e ε
+
+ 
+
+, nl = 1 ,
+
+for neighbors changing x∗ 
+
+> l
+
+into an already observed x∗ 
+
+> t
+
+, and 
+
+Enew  
+
+> l
+
+(ε) := 
+
+ θ + jσ θ + ( j + K)σnl + Sl − 1 − σnl − 1 − σ > e ε
+
+
+
+, nl ≥ 2,
+
+{Sl ≥ 1}, nl = 1 ,
+
+for neighbors changing x∗ 
+
+> l
+
+into a value not already present in x.Thus, 
+
+˜δ(ε, x) := max 
+
+max  
+
+> 1≤l≤j
+
+Qx (Enew  
+
+> l
+
+(ε)) , max 
+
+> 1≤l,t ≤jt̸=l
+
+Qx
+
+ Eold  
+
+> l,t
+
+(ε) ,
+
+## B.2 Proof of Corollary 1 
+
+Set σ = 0 in Theorem 1. If nl ≥ 2, the bad event for changing x∗ 
+
+> l
+
+into a new value is 
+
+nl + Sl − 1
+
+nl − 1 > e ε
+
+
+
+= {Sl > (eε − 1)( nl − 1) } = {Sl ≥ kl(ε)} .
+
+7The bad event for changing x∗ 
+
+> l
+
+into an old value is contained in the same event, since nt/(nt +
+
+St) ≤ 1. If nl = 1 , both old-value and new-value changes reduce to the singular event {Sl ≥
+
+1} = {Sl ≥ kl(ε)}, because the remaining likelihood-ratio condition in the old-value case is bounded by 1 < e ε. Hence Theorem 1 applies with 
+
+max  
+
+> 1≤i≤j
+
+Qx (Si ≥ ki(ε)) 
+
+in place of δ♯(ε, x). Under the Dirichlet posterior-predictive distribution, conditionally on 
+
+Kn = j and Nn = n,
+
+Si ∼ BetaBin ( m, n i, θ + n − ni) .
+
+Therefore 
+
+Qx (Si ≥ ki(ε)) = 
+
+> m
+
+X
+
+> s=ki(ε)
+
+ms
+
+(ni)s(θ + n − ni)m−s
+
+(θ + n)m
+
+,
+
+which gives the stated δ♯
+
+> 0
+
+(ε, x).
+
+## B.3 Proof of Theorem 2 
+
+By the proof of Corollary 1, for the fixed dataset x, the mechanism satisfies instance-level 
+
+(ε, δ )-differential privacy for every 
+
+δ > δ ♯
+
+> 0
+
+(ε, x) = max  
+
+> 1≤i≤j
+
+Qx (Si ≥ ki(ε)) ,
+
+Moreover, conditionally on Kn = j and Nn = n,
+
+Si ∼ BetaBin ( m, n i, θ + n − ni) .
+
+Therefore the instance-level privacy parameter depends on x only through the multiplicities 
+
+ni. For r = 1 , . . . , n , let 
+
+Yr,n,m ∼ BetaBin ( m, r, θ + n − r) ,
+
+and set 
+
+δG
+
+> n,m
+
+(ε) := max  
+
+> 1≤r≤n
+
+P (Yr,n,m ≥ k(r, ε )) ,
+
+where k(r, ε ) is as in (8). Then, for every dataset x, δ♯
+
+> 0
+
+(ε, x) ≤ δG
+
+> n,m
+
+(ε). Since x was arbitrary, the instance-level guarantee holds uniformly over all datasets. Hence, for every pair x, ˜x ∈ X n
+
+with h(x, ˜x) = 1 , and every measurable B ∈ X m,
+
+Qx(B) ≤ eεQ˜x(B) + δ
+
+8for every 
+
+δ > δ G
+
+> n,m
+
+(ε).
+
+Thus the mechanism satisfies global (ε, δ )-differential privacy for every 
+
+δ ∈ [0 , 1) such that δ > δ G
+
+> n,m
+
+(ε).
+
+It remains to express and upper bound δG
+
+> n,m
+
+(ε). Since the beta-binomial probability mass function is 
+
+P(Yr,n,m = s) = 
+
+ms
+
+(r)s(θ + n − r)m−s
+
+(θ + n)m
+
+, s = 0 , . . . , m, 
+
+we have 
+
+δG
+
+> n,m
+
+(ε) = max 
+
+> 1≤r≤nm
+
+X 
+
+> s=kr(ε)
+
+ms
+
+(r)s(θ + n − r)m−s
+
+(θ + n)m
+
+,
+
+with the convention that the sum is zero whenever kr(ε) > m .We now prove the simpler global upper bound. First consider r = 1 . Then 
+
+P(Y1,n,m ≥ 1) = 1 − P(Y1,n,m = 0) = 1 − (θ + n − 1) m
+
+(θ + n)m
+
+= 1 − θ + n − 1
+
+θ + n + m − 1= mθ + n + m − 1.
+
+This is the singular singleton contribution. Now consider r ≥ 2. Put 
+
+aε := eε − 1.
+
+By definition, 
+
+kr(ε) = ⌊aε(r − 1) ⌋ + 1 .
+
+Since Yr,n,m is integer-valued, 
+
+{Yr,n,m ≥ kr(ε)} = {Yr,n,m > a ε(r − 1) }.
+
+Moreover, 
+
+E[Yr,n,m ] = mr θ + n.
+
+9Therefore, by Markov’s inequality, 
+
+P (Yr,n,m ≥ kr(ε)) = P (Yr,n,m > a ε(r − 1)) 
+
+≤ E[Yr,n,m ]
+
+aε(r − 1) = mr 
+
+(θ + n)( eε − 1)( r − 1) 
+
+≤ 2m
+
+(θ + n)( eε − 1) ,
+
+where the last inequality uses r/ (r − 1) ≤ 2 for r ≥ 2.Combining the cases r = 1 and r ≥ 2, we obtain 
+
+δG
+
+> n,m
+
+(ε) ≤ max 
+
+ mθ + n + m − 1, 2m
+
+(θ + n)( eε − 1) 
+
+
+
+.
+
+Thus δG
+
+> n,m
+
+(ε) ≤ ¯δn,m (ε), and every δ > ¯δn,m (ε) is admissible. Hence, for fixed θ and ε,
+
+¯δn,m (ε) = O
+
+mn
+
+
+
+.
+
+This completes the proof. 
+
+## B.4 Proof of Corollary 2 
+
+In this case, the mechanism cannot generate new unique values, because z = j and θ = z|σ|,with σ < 0. Therefore the proof goes as that of Theorem 1, but only Case 1 can occur. Moreover, no singularity for Qx with respect to Q˜x happens. It follows that to satisfy instance-level (ε, δ )-differential privacy it is enough to require 
+
+nt + |σ|
+
+nt + St + |σ|
+
+nl + Sl − 1 + |σ|
+
+nl − 1 + |σ| ≤ eε (B.1) for all t, l = 1 , ..., j such that t̸ = l. Since σ can take any negative value, we require ni +|σ|− 1 ≥
+
+m/ (eε − 1) for all i = 1 , ..., j and (B.1) is satisfied with probability 1, i.e. δ = 0 . Thus if 
+
+m ≤ (|σ| + ni − 1)( eε − 1) (B.2) holds for all i = 1 , ..., j , then we have instance-level ε-differential privacy. 
+
+## B.5 Proof of Theorem 3 
+
+The mechanism Qn has the following density with respect to the counting measure: 
+
+qn(z | X = x) = 
+
+Z
+
+> Θ
+
+" mY
+
+> j=1
+
+fθ(zj )
+
+#
+
+ψn(dθ | X = x),
+
+10 where fθ(z) = 
+
+Qki=1 θ1{ai}(z)
+
+> i
+
+
+
+1{a1,...,a k }(z) is the density of a Multinomial with support {a1, ..., a k},and ψn is the posterior. Hence, by Fubini-Tonelli’s theorem, we have 
+
+Eνn,m 
+
+h
+
+WP(X)1 (e(Z) 
+
+> m
+
+, p0)
+
+i
+
+=
+
+Z
+
+> Xm×Xn
+
+WP(X)1 (e(z) 
+
+> m
+
+, p0) qn(z | X = x) dz pn 
+
+> 0
+
+(dx) = 
+
+Z
+
+> Xm×Xn
+
+Z
+
+> Θ
+
+WP(X)1 (e(z) 
+
+> m
+
+, p0)
+
+" mY
+
+> j=1
+
+fθ(zj )
+
+#
+
+ψn(dθ | X = x)
+
+!
+
+dz pn 
+
+> 0
+
+(dx) = 
+
+Z
+
+> Θ×Xn
+
+Z
+
+> Xm
+
+WP(X)1 (e(z) 
+
+> m
+
+, p0)
+
+" mY
+
+> j=1
+
+fθ(zj )
+
+#
+
+dz
+
+!
+
+ψn(dθ | X = x) pn 
+
+> 0
+
+(dx) = 
+
+Eψn⊗pn
+
+> 0
+
+h
+
+E
+
+h
+
+WP(X)1 (e(Z) 
+
+> m
+
+, p0) | θ
+
+ii 
+
+.
+
+By triangular inequality, we have 
+
+Eψn⊗pn
+
+> 0
+
+h
+
+E
+
+h
+
+WP(X)1 (e(Z) 
+
+> m
+
+, p0) | θ
+
+ii 
+
+≤ Eψn⊗pn
+
+> 0
+
+h
+
+E
+
+h
+
+WP(X)1 (e(Z) 
+
+> m
+
+, T (θ)) | θ
+
+ii 
+
++Eψn⊗pn
+
+> 0
+
+h
+
+E
+
+h
+
+WP(X)1 (T (θ), p0) | θ
+
+ii 
+
+.
+
+By the property of the conditional expectation 
+
+Eψn⊗pn
+
+> 0
+
+h
+
+E
+
+h
+
+WP(X)1 (T (θ), p0) | θ
+
+ii 
+
+= Eψn⊗pn
+
+> 0
+
+h
+
+WP(X)1 (T (θ), p0)
+
+i
+
+.
+
+We can write 
+
+Eψn⊗pn
+
+> 0
+
+h
+
+WP(X)1 (T (θ), p0)
+
+i
+
+= Epn
+
+> 0
+
+Z 
+
+> Θ2
+
+WP(X)1 (T (θ), T (ϕ)) ψn(dθ |X = x) δθ0 (dϕ )
+
+
+
+.
+
+By Lemma A.1 and Hölder’s inequality, we obtain 
+
+E⊗np0
+
+Z 
+
+> Θ2
+
+WP(X)1 (T (θ), T (ϕ)) ψn(dθ | X = x) δθ0 (dϕ )
+
+
+
+≤
+
+D√k − 1 E⊗np0
+
+Z 
+
+> Θ2
+
+∥θ − ϕ∥l2 ψn(dθ |X = x) δθ0 (dϕ )
+
+
+
+≤
+
+D√k − 1 E⊗np0
+
+"Z 
+
+> Θ2
+
+∥θ − ϕ∥2 
+
+> l2
+
+ψn(dθ |X = x) δθ0 (dϕ )
+
+1/2#
+
+=
+
+D√k − 1E⊗np0
+
+h
+
+WP(Θ) 2 (ψn( · | X), δ θ0 )
+
+i
+
+= O(n−1/2),
+
+where the last equality is due to Proposition 2. Moreover, by Theorem A.1, we have 
+
+Eψn⊗pn
+
+> 0
+
+h
+
+EWP(X)1 (e(Z) 
+
+> m
+
+, T (θ)) | θi
+
+=
+
+
+
+O(m−1/2) if d < 2,O(m−1/2 log(1 + m)) if d = 2 ,O(m−1/d ) if d > 2.
+
+since Z1, ..., Z m | θ iid 
+
+∼ T (θ) and a discrete measure with finite support has q-moments finite for all q ≥ 1.11 B.6 Proof of Lemma 1 
+
+We use a dyadic transport technique as in Weed and Bach (2019), which allows to compute the order of E˜p|X(n) (W1 (P, H n)) , where X(n) = ( X1, . . . , X n) and P is a random measure distributed as ˜p|X(n), which has distribution πn
+
+ ·| X(n) = D (θ + n, H n).. Consider a dyadic partition Qk k∗ 
+
+> k=1
+
+of X with parameter δ < 1: then Proposition 1 from Weed and Bach (2019) gives the inequality 
+
+W1 (P, H n) ≤ δk∗
+
++
+
+> k∗
+
+X
+
+> k=1
+
+δk−1 X 
+
+> Qki∈Q k
+
+P  Qki
+
+ − Hn
+
+ Qki
+
+ ,
+
+and notice we have P  
+
+> Qki∈Q k
+
+P  Qki
+
+ − Hn
+
+ Qki
+
+ = Pk − Hkn 1, where Pk =  P  Qk
+
+> 1
+
+ , ..., P  Qkmk
+
+ ,
+
+Hkn =  Hn
+
+ Qk
+
+> 1
+
+ , ..., H n
+
+ Qkmk
+
+ and mk is the cardinality of the partition Qk. Hence 
+
+W1 (P, H n) ≤ δk∗
+
++
+
+> k∗
+
+X
+
+> k=1
+
+δk−1 Pk − Hkn 1 . (B.3) 
+
+Pk is known to be, conditionally on X(n), a random vector with Dirichlet distribution, whose mean is the vector Hkn .If one considers a random vector Y ∼ Dirichlet (β1, ..., β n), defining μi = βiP βi = βi 
+
+> β·
+
+for 
+
+i = 1 , ...n , then 
+
+E (|| Y − μ|| 1) ≤ √n
+
+q
+
+E  || Y − μ|| 22
+
+ = √n
+
+vuut nX
+
+> i=1
+
+var (Yi)= √n
+
+vuut nX
+
+> i=1
+
+μi (1 − μi)
+
+β· + 1 = √n
+
+r 1
+
+β· + 1 
+
+
+
+1 − X μ2
+
+> i
+
+
+
+≤ √n 1
+
+√β· + 1 .
+
+So in our case E˜p|Xn
+
+  Pk − Hkn 1
+
+ ≤
+
+q mk 
+
+> θ+n+1
+
+, and then taking the expectation of both sides in (B.3) yields 
+
+E˜p|Xn (W1 (P, H n)) ≤ δk∗
+
++
+
+> k∗
+
+X
+
+> k=1
+
+δk−1E˜p|Xn
+
+  Pk − Hkn 1
+
+ ≤ δk∗
+
++ 1
+
+√θ + n + 1 
+
+> k∗−1
+
+X
+
+> k=0
+
+δk√mk.
+
+Since we have that if Q ∈ Q k then diam (Q) ≤ δk, it holds mk = O  δ−kd . Then the previous inequality reads 
+
+E˜p|Xn (W1 (P, H n)) ≲ δk∗
+
++ 1
+
+√θ + n + 1 
+
+> k∗−1
+
+X
+
+> k=0
+
+δkδ− kd  
+
+> 2
+
+= δk∗
+
++ 1
+
+√θ + n + 1 
+
+> k∗−1
+
+X
+
+> k=0
+
+δk(1− d 
+
+> 2
+
+).
+
+12 If d > 2, using Pk∗−1
+
+> k=0
+
+ δ1−d/ 2k = (δ1−d/ 2)k∗ 
+
+> −1
+> δ1−d/ 2−1
+
+yields the inequality 
+
+E˜p|Xn (W1 (P, H n)) ≲ δk∗
+
++ 1
+
+√θ + n + 1 
+
+ δ1−d/ 2k∗
+
+− 1
+
+δ1−d/ 2 − 1 .
+
+This holds for any integer k∗ and δ > 0, so we can optimize the bound. If we take δ fixed and optimize in t := δk∗
+
+, then 
+
+E˜p|Xn (W1 (P, H n)) ≲ t + 1
+
+√θ + nt1−d/ 2
+
+and the optimization yields td 
+
+> 2
+
+= C′ 1√θ+n , i.e. t = C′ (θ + n)− 1 
+
+> d
+
+. This entails that E˜p|Xn (W1 (P, H n)) = 
+
+O
+
+
+
+n− 1
+
+> d
+
+
+
+.If d = 2 ,
+
+E˜p|Xn (W1 (P, H n)) ≲ δk∗
+
++ k∗
+
+√θ + n + 1 .
+
+Optimization in k∗ gives δk∗
+
+log δ + 1√θ+n+1 = 0 , i.e. δk∗
+
+= − 1log δ 
+
+> 1√θ+n+1
+
+, so that k∗ =
+
+O (log n) and E˜p|Xn (W1 (P, H n)) = O
+
+log n√n
+
+
+
+.If d < 2,
+
+E˜p|Xn (W1 (P, H n)) ≲ δk∗
+
++ 1
+
+√θ + n + 1 
+
+ δ1−d/ 2k∗
+
+− 1
+
+δ1−d/ 2 − 1 ≤ δk∗
+
++ c 1
+
+√θ + n + 1 ,
+
+so the optimal order is obtained for δk∗
+
+= O
+
+ 1√n
+
+
+
+.In all three optimization procedures, ensuring that k∗ is integer by taking the ceiling or floor function does not affect the order of convergence. 
+
+## B.7 Proof of Theorem 4 
+
+If f : Xm → [0 , +∞) is measurable, then, by definition of νn,m ,
+
+Eνn,m (f (Z)) = 
+
+Z
+
+> Xm×Xn
+
+f (z1, ..., z m) Qn (dz 1, ..., dz m|X = x) pn 
+
+> 0
+
+(dx)=
+
+Z
+
+> Xm×Xn
+
+f (z1, ..., z m)
+
+Z
+
+> P(X)
+> m
+
+Y
+
+> j=1
+
+˜p (dz j ) πn (d˜p|x)
+
+!
+
+pn 
+
+> 0
+
+(dx)=
+
+Z
+
+> P(X)×Xn
+
+Z
+
+> Xm
+
+f (z1, ..., z m)
+
+> m
+
+Y
+
+> j=1
+
+˜p (dz j )
+
+!
+
+πn (d˜p|x) pn 
+
+> 0
+
+(dx)=
+
+Z
+
+> P(X)×Xn
+
+E (f (Z) |˜p) πn (d˜p|x) pn 
+
+> 0
+
+(dx) ,
+
+(B.4) 13 where the third equality follows from Fubini-Tonelli’s theorem. Now, applying the equality (B.4) to f (Z) = W1
+
+
+
+e(Z) 
+
+> m
+
+, p0
+
+
+
+and using the triangle inequality on ˜p, we get 
+
+Eνn,m 
+
+ W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ ≤
+
+Z
+
+> P(X)×Xn
+
+E  W1
+
+ e(Z) 
+
+> m
+
+, ˜p | ˜p πn (d˜p | x) pn 
+
+> 0
+
+(dx)
+
+| {z }
+
+> A
+
++
+
+Z
+
+> P(X)×Xn
+
+E (W1 (˜ p, p0) | ˜p) πn (d˜p | x) pn 
+
+> 0
+
+(dx)
+
+| {z }
+
+> B
+
+.
+
+(B.5) We bound separately A and B.
+
+A, which we define as εm, 1 (X), is the rate of convergence for the mean of the 1-Wasserstein distance between e(Z) 
+
+> m
+
+and a random probability measure with law πn, posterior of a sample from the Dirichlet prior (up to the integral with respect to pn 
+
+> 0
+
+(dx), which does not change the rate). If we show that a random probability measure distributed as the posterior of a Bayesian model with Dirichlet process prior has q-moments finite for some integer q > 1, at least πn-almost surely, applying Theorem A.1 under the assumption X ⊆ Rd we get the second part of the thesis. By Proposition 1, ˜p ∼ πn( · | X1, . . . , X n) implies 
+
+˜p d
+
+=
+
+> j
+
+X
+
+> i=1
+
+WiδX∗ 
+
+> i
+
++ Rj Fj ,
+
+where (W1, ..., W j , R j ) ∼ Dirichlet (n1, ..., n j , θ ), independently of the random distribution Fj ,which has D(θ, H ) distribution. Moreover, by stick-breaking construction of the DP (definition of Pitman–Yor process with σ = 0 ), we have 
+
+Fj =
+
+> ∞
+
+X
+
+> i=1
+
+YiδΦi ,
+
+where Φi
+
+> iid
+
+∼ H, and 
+
+Y1 = V1, Yl = Vll−1Y
+
+> j=1
+
+(1 − Vj ), l ≥ 2,
+
+with {Vi}i≥1 sequence of independent random variables taking values in [0 , 1] and distributed as a Beta (1 , θ ). The following holds: 
+
+Z
+
+> X
+
+|x|q ˜p(dx ) = 
+
+> j
+
+X
+
+> i=1
+
+Wi|X∗ 
+
+> i
+
+|q + Rj
+
+> ∞
+
+X
+
+> i=1
+
+Yi|Φi|q ≤ 2Rq, πn-a.s. where R > 0 is the radius of the ball that contains the space X, which exists because X is totally bounded. Since we have finite moments for any q > 1, we can neglect the terms involving q in the bounds of εm, 1(X).14 Let us turn to B. Since E (W1 (˜ p, p0) |˜p) = W1 (˜ p, p0) by conditional determinism, we have 
+
+Z
+
+> P(X)×Xn
+
+E (W1 (˜ p, p0) |˜p) πn (d˜p|x) pn 
+
+> 0
+
+(dx) = 
+
+Z
+
+> P(X)×Xn
+
+W1 (˜ p, p0) πn (d˜p|x) pn 
+
+> 0
+
+(dx)= Epn
+
+> 0
+
+ E˜p|X(n) (W1 (P, p0))  ,
+
+where P distributed as ˜p|X(n) ∼ πn
+
+ ·| X(n) = D (θ + n, H n). We have 
+
+Epn
+
+> 0
+
+ E˜p|X(n) (W1 (P, p0))  ≤ Epn 
+
+> 0
+
+(W1 (p0, H n)) + Epn
+
+> 0
+
+ E˜p|X(n) (W1 (P, H n))  . (B.6) Concerning the first term on the right hand side of (B.6), convexity of W1 yields 
+
+W1 (Hn, p0) = W1
+
+ θθ + nH + nθ + ne(X) 
+
+> n
+
+, p0
+
+
+
+≤ θθ + nW1 (H, p0) + nθ + nW1
+
+ e(X) 
+
+> n
+
+, p0
+
+ .
+
+W1 (H, p0) is a constant independent on n, and θθ+n = O   1
+
+> n
+
+. Moreover, Theorem A.1 states that 
+
+Epn
+
+> 0
+
+
+
+W1
+
+ e(X) 
+
+> n
+
+, p0
+
+
+
+=
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2.
+
+It follows that 
+
+Epn
+
+> 0
+
+
+
+W1
+
+ p0, H n
+
+
+
+=
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2
+
+A rate for the second term on the right hand side of (B.6) is given by Lemma 1. Summing the two rates we obtain 
+
+Eνn,m 
+
+W1
+
+ e(Z) 
+
+> m
+
+, p0
+
+ = εm, 1(X) + 
+
+
+
+O(n−1/2) if d < 2,O(n−1/2 log(1 + n)) if d = 2 ,O(n−1/d ) if d > 2,
+
++
+
+
+
+O(n−1/2) if d < 2,O
+
+log n√n
+
+
+
+if d = 2 ,O(n−1/d ) if d > 2.
+
+=
+
+
+
+O(n−1/2) if d < 2,O
+
+log n√n
+
+
+
+if d = 2 ,O(n−1/d ) if d > 2.
+
+This finishes the proof. 15 Notice that we have been computing a rate for a 1-Wasserstein posterior contraction rate for the Dirichlet prior. Indeed, it holds 
+
+Epn
+
+> 0
+
+ E˜p|X(n) (W1 (P, p0))  = Epn
+
+> 0
+
+
+
+WP(P(X)) 1
+
+ πn
+
+ ·| X(n) , δ p0
+
+
+
+because 
+
+WP(P(X)) 1
+
+ πn
+
+ ·| X(n) , δ p0
+
+ = inf 
+
+> η∈Π
+
+(πn(·| X(n)),δ p0 )
+
+Z
+
+> P(X)×P (X)
+
+W1 (p1, p 2) η (dp 1dp 2)=
+
+Z
+
+> P(X)
+
+W1 (p1, p0) πn
+
+ dp 1|X(n) ,
+
+since the only coupling with a delta measure is the independent coupling. Therefore 
+
+Epn
+
+> 0
+
+
+
+WP(P(X)) 1
+
+ πn
+
+ ·| X(n) , δ p0
+
+
+
+=
+
+Z
+
+> Xn
+
+Z  
+
+> P(X)
+
+W1 (p1, p0) πn (dp 1|x)
+
+
+
+pn 
+
+> 0
+
+(dx) .
+
+# C Details on numerical illustrations 
+
+We provide additional details on the experiments in Section 4.1, Section 4.2, and Section 4.3. 
+
+## C.1 Details on downstream Bayesian inference 
+
+The downstream-inference experiment has two components. The first is a timing sanity check for the exact mechanism-aware posterior associated with the perturbed-histogram synthetic-sample release. In this exact formulation, the MCMC state contains the full latent confidential sample X1: n, together with the noisy histogram variables used internally by the perturbed histogram mechanism. At each saved iteration, posterior inference for ˜p is performed from the closed-form conditional posterior 
+
+˜p | X1, . . . , X n ∼ D
+
+
+
+θ + n, θH + Pni=1 δXi
+
+θ + n
+
+
+
+.
+
+For n = 10 4, m = 10 2, and 25 histogram bins, the reference implementation takes about six minutes to obtain 1000 posterior samples. This timing is reported only to document the computational scale of the exact posterior. We do not use this sampler in repeated Monte Carlo experiments or in the real-data analysis. The second component is the repeated fallback experiment reported in Section 4.1. The confidential data are generated from a distribution supported on a regular grid in [0 , 1] . The grid probabilities are obtained by evaluating a two-component beta mixture on the grid and 16 normalizing the resulting weights. This produces a non-uniform discrete distribution with asymmetric shape and non-negligible tail mass. We generate n = 2000 confidential observations and compare three downstream workflows over 20 independent Monte Carlo replicates. For the Dirichlet-process posterior-predictive mechanism, we release m synthetic observa-tions and compute posterior summaries from the ordinary Dirichlet-process posterior given the released sample. For the direct perturbed histogram, the observed object is the noisy histogram output, and the mechanism-aware posterior is explored by MCMC over the latent confidential bin counts. For the direct smoothed histogram, the output is treated as a computational surrogate. As discussed in Section 4.1, this direct smoothed output is not differentially pri-vate, except in the degenerate case of complete smoothing, and is therefore included only as a non-private diagnostic. Table 2 summarizes the downstream-inference results. We report bias, root mean square error, average credible-interval length, and empirical coverage for the posterior mean, quartiles, and right-tail probability ˜p((0 .75 , 1]) . We also report wall-clock time and effective sample size per second when MCMC is used. The main qualitative conclusion is that the Dirichlet-process posterior-predictive mechanism has statistical accuracy comparable to the histogram-based workflows in this simplified setting, while avoiding mechanism-aware latent-data or latent-count MCMC.                                                                                                    
+
+> Method Functional Bias RMSE Coverage CI length Average elapsed seconds ESS/s
+> Dirichlet-process posterior-predictive mechanism mean 0.0018 0.0125 1.00 0.0525 0.021 38238.1 median 0.0017 0.0156 1.00 0.0665 0.021 37809.5 Q1 (25%) 0.0008 0.0110 0.85 0.0389 0.021 37877.7 Q3 (75%) -0.0058 0.0285 1.00 0.1382 0.021 37685.2
+> ˜p((0 .75 ,1]) 0.0004 0.0162 1.00 0.0709 0.021 38237.2 Direct perturbed histogram mechanism mean -0.0010 0.0055 1.00 0.0264 1.271 607.4 median 0.0031 0.0105 1.00 0.0683 1.271 602.7 Q1 (25%) -0.0097 0.0109 1.00 0.0613 1.271 591.0 Q3 (75%) -0.0042 0.0135 1.00 0.0832 1.271 598.8
+> ˜p((0 .75 ,1]) -0.0024 0.0069 1.00 0.0660 1.271 571.7 Direct smoothed histogram mechanism mean -0.0009 0.0054 1.00 0.0254 0.059 13167.7 median 0.0035 0.0104 1.00 0.0678 0.059 13102.8 Q1 (25%) -0.0099 0.0110 1.00 0.0602 0.059 13163.9 Q3 (75%) -0.0040 0.0136 1.00 0.0810 0.059 13131.0
+> ˜p((0 .75 ,1]) -0.0021 0.0071 1.00 0.0663 0.059 12914.6
+
+Table 2: Summary of downstream inference performance 17 C.2 Details on the convergence simulation 
+
+In Section 4.2, the simulated confidential data are generated as follows. Let G ∼ Geometric(0 .05) ,with support {1, 2, . . . }, and define X = T (G), where 
+
+T (k) = 2( k − 2r(k)−1) + 1 2r(k) , r(k) = ⌊log 2 k⌋ + 1 .
+
+This map sends the positive integers to dyadic midpoints in [0 , 1] by increasing dyadic resolution. In particular, 1 7 → 1/2, 2 7 → 1/4, 3 7 → 3/4, 4 7 → 1/8, and so on. The construction yields a discrete distribution on [0 , 1] with repeated values and a long tail of increasingly fine dyadic categories. Figure 1 is obtained from a simulated population of size N = 1000000 . For each n ∈{10000 , 50000 , 75000 , 100000 , 200000 , 250000 , 500000 , 1000000 }, we draw confidential subsam-ples of size n, generate synthetic data using the Dirichlet-process posterior-predictive mech-anism, and compute W1
+
+
+
+e(Z) 
+
+> m
+
+, e (X)
+
+> n
+
+
+
+. The reported values are averages over 100 independent runs, with 99% confidence bands. 
+
+## C.3 Details on the California census dataset 
+
+In Section 4.3, we use the PINCP variable from the 2024 5 -Year Public Use Microdata Sample from the American Community Survey. Observations with missing or non-positive income are removed. The remaining values are transformed by taking logarithms and then applying min-max scaling, so that the final data lie in [0 , 1] . The cleaned and transformed dataset contains 
+
+11918162 observations, 32393 distinct recorded values, and 7689 singletons. The Dirichlet-process posterior-predictive mechanism uses H = Unif[0 , 1] , θ = 1 , ε = 2 , and 
+
+δ = 10 −5. The released sample size is chosen as the largest integer satisfying the privacy bound in Theorem 2, which gives m = 119 . The histogram mechanisms use 300 bins and the same released sample size. The perturbed histogram uses Gaussian noise calibrated to the (ε, δ )-differential privacy target. The smoothed histogram is composed with an (ε, δ )-differentially private Gaussian perturbation of the histogram counts. The Wasserstein boxplots in Figure 3 are based on 100 independent runs of each synthetic-data mechanism. 18

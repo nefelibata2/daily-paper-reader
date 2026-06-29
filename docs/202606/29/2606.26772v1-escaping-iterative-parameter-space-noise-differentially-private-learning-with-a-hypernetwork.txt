@@ -1,0 +1,5781 @@
+Title: Escaping Iterative Parameter-Space Noise: Differentially Private Learning with a Hypernetwork
+
+URL Source: https://arxiv.org/pdf/2606.26772v1
+
+Published Time: Fri, 26 Jun 2026 00:42:21 GMT
+
+Number of Pages: 37
+
+Markdown Content:
+# Escaping Iterative Parameter-Space Noise: Differentially Private Learning with a Hypernetwork 
+
+Naoki Nishikawa 
+
+The University of Tokyo ∗
+
+nishikawa-naoki259@g.ecc.u-tokyo.ac.jp 
+
+Shokichi Takakura 
+
+LY Corporation 
+
+stakakur@lycorp.co.jp 
+
+Satoshi Hasegawa 
+
+LY Corporation 
+
+satoshi.hasegawa@lycorp.co.jp 
+
+## Abstract 
+
+Differentially private (DP) training of neural networks is often hindered by the large amount of noise required by gradient-based methods such as DP-SGD, which repeatedly inject high-dimensional noise in parameter space throughout training. In this paper, we propose a new framework for DP learning that avoids iterative optimization in parameter space. Instead of updating the target model using privatized gradients, we employ a hypernetwork trained on public datasets to map a private dataset to the parameters of the target model. Specifically, each example is embedded into a low-dimensional representation, the embeddings are aggregated and perturbed to obtain a DP dataset embedding, and the hypernetwork generates the target model parameters from this noisy embedding. Because privacy noise is injected only once into a low-dimensional dataset representation, our approach can significantly reduce the adverse effect of noise. We theoretically show in a synthetic setting that, under a fixed privacy budget, models produced by our approach achieve higher utility than those trained with DP-SGD. Moreover, we apply our approach to LoRA fine-tuning of diffusion models and show that it achieves lower FID than LoRA models trained with DP-SGD and other public-data-guided methods. 
+
+## 1 Introduction 
+
+Deep neural networks are often trained on data that include private information. Since training data can sometimes be reconstructed from the parameters of trained models (Carlini et al., 2023; Wu et al., 2022), it is necessary to prevent the privacy of training data from being leaked through the parameters of neural networks. One approach is to ensure that the training algorithm for neural networks satisfies 
+
+differential privacy (DP) , a mathematical framework for quantifying privacy leakage from a dataset. The most widely used approach is DP-SGD (Abadi et al., 2016), which protects the privacy of each training example by adding noise at each step of SGD. Several other gradient-based methods have also been proposed, such as DP-Adam (Zhou et al., 2020) and DP-AdamW (Sun et al., 2025). Training neural networks with these gradient-based DP learning methods can incur a substantial utility loss compared with non-private optimization methods (Tramer and Boneh, 2021). A major source of this degradation is the amount of noise required for privacy. In gradient-based methods, DP noise is repeatedly injected at every optimization step. Moreover, DP noise must be added in the gradient space, whose dimension is equal to the number of model parameters. Even if the gradient norm is fixed, the scale of the required DP noise grows at least on the order of the square root of the 
+
+> ∗This work was done while the author was at LY Corporation. Preprint.
+> arXiv:2606.26772v1 [cs.LG] 25 Jun 2026
+
+Figure 1: Generated samples on CIFAR-10 with (ϵ, δ ) = (2 , 10 −5). Each row corresponds to one k-NN set. 2 2 20 22 24 26 28 210 
+
+> epsilon
+> 100
+> 150
+> 200
+> 250
+> 300
+> 350
+> 400
+> 450
+> 500
+> FID
+> Ours
+> DPSGD
+> Public FT + DPSGD
+> PDA-DPMD
+
+Figure 2: Change in FID with respect to the DP parameter ϵ for each method. dimension and the number of steps. This issue becomes particularly severe in small-data regimes, such as when finetuning a large model on a limited amount of private data. These observations naturally lead to the following question: 
+
+Can we obtain high-utility models under differential privacy without repeatedly injecting parameter-dimensional noise? 
+
+As a positive answer to this question, we propose a new framework that directly generates differentially private parameters using a hypernetwork. Instead of updating parameters using gradients computed from a private dataset, we feed the private dataset into a hypernetwork and obtain parameters adapted to the dataset through a single forward pass. To this end, we propose DP-DeepSets , a hypernetwork architecture for DP learning that takes a dataset as input and outputs parameters with DP guarantees. This architecture first embeds each data point into a low-dimensional representation, then applies mean pooling and adds DP noise to obtain a differentially private dataset embedding. The parameters are generated from this embedding, and the resulting network inherits the DP guarantee. Our method has three key advantages by design. First, DP perturbation occurs only once dur-ing parameter generation . Unlike gradient-based methods, which inject noise at every step, our method adds DP noise only once, to the dataset embedding. Second, DP noise is injected into a low-dimensional dataset embedding . In contrast to gradient-based methods, which add noise to high-dimensional gradients in parameter space, our approach requires a much smaller noise scale. Consequently, the performance of the learned model is less susceptible to degradation caused by DP noise. Third, the hypernetwork itself is trained on public data . Since the hypernetwork is public, the privacy budget is consumed only when constructing the low-dimensional dataset embedding during parameter generation from private data. Moreover, training the hypernetwork incurs no privacy cost, allowing it to learn the relationship between datasets and parameters from a large amount of public data, and thereby acquire a form of “learning to learn.” Our contributions are summarized as follows: 1. We propose a novel framework for DP learning of neural networks using public hypernetworks. Specifically, we develop DP-DeepSets , which takes a dataset as input and returns parameters with a DP guarantee. 2. We theoretically compare DP learning using DP-DeepSets with DP-SGD. We consider a synthetic setting involving linear regression, and show that DP-DeepSets achieves high utility since it learns to capture the low-dimensional structure of tasks during training on public data. 3. We apply our framework to LoRA finetuning of diffusion models. We demonstrate that the model trained by our method outperforms DP-SGD and other public-data-guided DP learning methods. We present results for LoRA finetuning of diffusion models in Figures 1 and 2. The images in Figure 1 are generated by applying LoRA parameters obtained from only 128 private data points via the trained hypernetwork. The generated images capture the characteristics of each CIFAR-10 class. Furthermore, Figure 2 shows that our method outperforms DP-SGD and other public-data-guided methods. See Section 5 for detailed settings and additional observations. 2Related work The concept of hypernetworks was introduced by Ha et al. (2017), who proposed using one RNN to determine the parameters of another. This idea was later extended to neural network parameter generation by Peebles et al. (2022) and Wang et al. (2024). To enable task-conditioned parameter generation, several methods have incorporated task information into prompts for model-parameter generation (Jin et al., 2024; Wang et al., 2025; Khan et al., 2025). Unlike these prompt-based approaches, we explore a dataset-conditioned approach that aims to replace gradient-based DP learning with a hypernetwork. Recent studies have also proposed dataset-conditioned parameter generation (Ruiz et al., 2024; Soro et al., 2025; Liang et al., 2025); building on this line of work, our method introduces an architecture tailored to parameter generation with a DP guarantee. Several prior studies have leveraged public data to improve model performance while preserving privacy. In particular, AdaDPS (Li et al., 2022) and PDA-DPMD (Amid et al., 2022) incorporate public-data information into gradient-based methods such as Adam and mirror descent. They still rely on gradient-based optimization and thus cannot avoid adding noise in a space whose dimension equals the number of model parameters. Another line of work leveraging public data includes PATE (Papernot et al., 2017) and its variants (Papernot et al., 2018). They use private data to train models that label large amounts of unlabeled public data. This line of work differs from our framework in that it focuses on classification tasks and explores the use of unlabeled public data. Among public-data-guided methods, the closest to ours is Räisä et al. (2024), which generates parameters by feeding a private dataset into a network called SetConv trained on simulated data. Although the idea is related, their experiments are limited to regression with one-dimensional inputs, whereas we address high-dimensional tasks. This difference motivates a different hypernetwork design: SetConv applies a fixed kernel function to each data point and aggregates the resulting representations, but such fixed-kernel data encoding does not work well for high-dimensional data. Our method instead uses a DeepSets-based architecture with a learnable feature map to embed data points, allowing the hypernetwork to learn how to efficiently encode high-dimensional data. Several studies, similar to ours, focus on the high dimensionality of gradients and seek to learn in a low-dimensional space. For example, Yu et al. (2021) and Zhou et al. (2021) project gradients onto a subspace using public-data information, while Zheng et al. (2026) use training-trajectory information for subspace projection. In addition, Zhu and Blaschko (2023) sparsify gradients using random masks. While these approaches reduce noise by lowering gradient dimensionality, they still rely on gradient-based optimization and thus cannot avoid repeatedly adding noise during training. 
+
+## 2 Background 
+
+2.1 Differential Privacy 
+
+Differential Privacy (DP) (Dwork et al., 2006) is a mathematical framework for quantifying and limiting the information about any individual data point that can be inferred from the output of an algorithm. Let D∗ denote the space of datasets. Two datasets D, D ′ ∈ D ∗ are said to be adjacent if they differ in a single entry. We say that a randomized algorithm M : D∗ → Y satisfies (ϵ, δ )-DP if, for any pair of adjacent datasets D, D ′ ∈ D ∗ and any measurable set S ⊆ Y , it holds that 
+
+P(M(D) ∈ S) ≤ eϵ · P(M(D′) ∈ S) + δ. 
+
+In other words, (ϵ, δ )-DP requires that the output distribution does not change substantially when a single data point is replaced. For a query that takes a dataset as input and outputs a real-valued quantity, a common way to guarantee differential privacy is to add Gaussian noise to the output. This is called the Gaussian mechanism, and it provides the following differential privacy guarantee. 
+
+Proposition 1 (Gaussian mechanism, Dwork and Roth (2014)) . For a given query q : D∗ → Rd, we define the s2-Gaussian mechanism Mq : D∗ → Rd as Mq (D) := z + q(D) where z ∼ N (0 , s 2Id).Let ∆ := max D∼D′ ∥q(D) − q(D′)∥2. Then, for any ϵ, δ ∈ (0 , 1) , the s2-Gaussian mechanism with 
+
+s2 = 2 log  1.25 δ−1(∆ /ϵ )2 satisfies (ϵ, δ )-differential privacy. 
+
+2.2 Differentially Private SGD (DP-SGD) 
+
+For training a machine learning model on a private dataset, one of the most widely used algorithms for ensuring DP of a trained model is Differentially Private SGD (Abadi et al., 2016). In this 31/22 
+
+> Public dataset
+> p1: N
+
+p1
+
+> Shared
+> MLP
+> Set of
+> data embeddings
+
+ω1
+
+ω1(p1) +    
+
+> Perturbed aggregation
+> ω+1
+> N
+> N∑
+> n=1
+> clip C(ε1(pn)) MLP
+
+ω2
+
+E
+
+> Dataset
+> embedding
+> Transformer
+> Parameter
+
+ω
+
+> Dataset
+
+p1
+
+> Shared
+> MLP
+> Set of
+> data embeddings
+
+ω1
+
+ω1(p1)
+
+ω
+
+> DP noise
+
++    
+
+> Clip &
+> Aggregate
+> ω+1
+> N
+> N∑
+> n=1
+> clip C(ε1(pn)) MLP + Transformer
+
+ω2 Parameter 
+
+ω
+
+> Dataset embedding (Train: public, Test: private)
+
+Figure 3: Overview of DP-DeepSets. First, we obtain embeddings of the data points in the input dataset using an MLP ϕ1, and clip them in L2-norm. Then, we take the element-wise average and perturb it with Gaussian noise. As a result, we obtain a dataset embedding with a DP guarantee, and feed it into the latter network ϕ2 to generate the network parameter. algorithm, Gaussian noise is added when computing the average of the gradients in a minibatch. More specifically, at each step, DP-SGD randomly selects L data points pn1 , . . . , p nL from a private dataset p1: N consisting of N data points, computes the gradients gn1 (ω), . . . , g nL (ω) with respect to the current parameter ω for each selected data point, and then updates the parameters as follows: 
+
+ω ← ω − ηL
+
+> L
+
+X
+
+> i=1
+
+clip C (gni (ω)) + ξ
+
+!
+
+, ξ ∼ N (0 , s 2Idω )
+
+where clip C (x) = min 
+
+n
+
+1, C
+
+> ∥x∥
+
+o
+
+x, η > 0 is a learning rate and dω is the dimension of the parameter 
+
+ω. DP-SGD satisfies the following differential privacy guarantee. 
+
+Proposition 2 (Theorem 1 of Abadi et al. (2016)) . There exist constants c1, c 2 such that, given the number of steps T , for any ϵ < c 1 L2TN 2 , DP-SGD is (ϵ, δ )-differentially private for any δ > 0, if we choose s2 ≥ c2 C2L2T log δ−1  
+
+> ϵ2N2
+
+.
+
+## 3 Framework: Differentially Private Learning with a Public Hypernetwork 
+
+In this section, we formally introduce our framework for learning neural networks with a DP guarantee using a hypernetwork. Consider the setting in which we solve a given task using a neural network 
+
+ψω parameterized by ω ∈ Rdω . We refer to this network as the target network . Let p ∈ Rdp denote a data point, and let u ∈ Rdu denote auxiliary variables used to define the network input and the training loss. For example, in a regression task, p is the pair consisting of an input x and its label y,and u may be omitted. In generative modeling, such as autoregressive language models or diffusion models, p corresponds to the sample itself, whereas u contains the auxiliary inputs needed to evaluate the loss. For instance, in an autoregressive language model, u may specify the prediction position or context prefix, while in a diffusion model, u may include the noise and timestep. Let ℓ : Rdp × Rdu × Rdω → R be a per-data-point loss function that takes a data point, auxiliary variables, and the network parameters as input, and returns the loss associated with that data point. For example, in a regression task with p = ( x, y ), one may write ℓ(p, u ; ω) = 12 (ψω (x) − y)2,where u is absent or trivial, whereas in image generation with diffusion models, ℓ is typically the mean-squared error for noise prediction. Our goal is to obtain a hypernetwork ϕ that takes a dataset p1: N and DP noise ξ as input and generates parameters that satisfy an (ϵ, δ )-DP guarantee and achieves a small test loss Ep,u,ξ [ℓ(p, u ; ϕ(p1: N , ξ ))] .To this end, we develop DP-DeepSets , a hypernetwork architecture that takes the dataset as input and predicts parameters with a DP guarantee. Moreover, we establish a training procedure for DP-DeepSets using a public dataset. 
+
+3.1 DP-DeepSets: A Hypernetwork Architecture for Differentially Private Learning 
+
+Here, we describe the mechanism of DP-DeepSets . Its overview is also shown in Figure 3. DP-DeepSets takes a dataset, i.e., a set of data points p1: N := {pn}Nn=1 as input. It first obtains a set of data embeddings {ϕ1(pn)}Nn=1 ⊂ RD using an MLP ϕ1 : Rdp → RD shared among the data points. Next, each embedding is clipped to ensure that its norm is at most C > 0. This procedure 4❄ 
+
+> Learnable
+> PEs
+> Dataset
+> p1
+> Shared MLP
+
+ω1
+
+> Clip, Perturb
+> & Aggregate
+
+→K
+
+> ⋯
+> weight 1
+> weight 2
+> weight T
+> Shared linear head
+> Parameter
+
+ω  
+
+> query tokens
+> ⋯
+> weight 1
+> weight 2
+> weight T
+> Dataset
+> Embedding
+> E(p1: N,ω)
+> Self-attention
+> Cross-attention
+> Shared MLP
+> Transformer Block
+> context token
+
+Figure 4: The architecture of the transformer-based decoder ϕ2 in DP-DeepSets. The dataset embedding is used as a context token. The parameters are divided into T query tokens, and are initialized with learnable positional encodings. They are fed into the K-layer Transformer consisting of self-attention, cross-attention and shared MLPs. The output tokens are fed into the shared linear head, and are reshaped to integrate into the model parameters. is required to limit privacy leakage from each data point. Then, to aggregate the information in the entire dataset, we take the average of the clipped embeddings. Finally, we add Gaussian noise 
+
+ξ ∼ N (0 , s 2DP ID ) for some sDP and guarantee that the resulting embedding is differentially private. As a result, we obtain the following noisy dataset embedding: 
+
+E(p1: N , ξ ) := ξ + 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ1(pn)) .
+
+Using a dataset embedding E(p1: N , ξ ), we can generate the network parameters as ω =
+
+ϕ2(E(p1: N , ξ )) with some neural network ϕ2 : RD → Rdω . Inspired by Ruiz et al. (2024), we use a Transformer-based architecture for ϕ2 as in Figure 4. Specifically, the dataset embedding is fed into a transformer as a context token. The parameters to be generated are divided into T tokens, and they are initialized as learnable positional encodings. Then, they are iteratively updated through multiple transformer blocks (namely, self-attention among the query tokens, cross-attention between the query tokens and the context token, and token-wise shared MLPs). This allows the hypernetwork not merely to generate the parameters at each position independently of the dataset embedding, but also to model the interactions among parameters in different layers. The architecture above can be seen as a differentially private variant of DeepSets (Zaheer et al., 2017). DeepSets uses operations such as taking the maximum, summation, and average of the embeddings obtained by a neural network to aggregate the information of sets. Building upon this idea, we adopt the average operation, and we further incorporate the clipping and Gaussian perturbation to guarantee DP. This allows us to apply the theoretical guarantee for the Gaussian mechanism for the mean query, and obtain a rigorous DP guarantee as follows: 
+
+Corollary 3. Let ϵ, δ ∈ (0 , 1) . If s2DP ≥ 8C2 log (1.25 δ−1)  
+
+> ϵ2N2
+
+, then DP-DeepSets is (ϵ, δ )-differentially private. 
+
+The proof can be found in Appendix A. 
+
+3.2 Training of a Public Hypernetwork 
+
+Next, we describe how to train DP-DeepSets. The procedure is also described in Figure 5. To use a hypernetwork to generate suitable parameters for private data, we need to train it to learn the correspondence between datasets and the parameters beforehand. For this purpose, we propose to 
+
+train DP-DeepSets using a set of public datasets .Specifically, to train DP-DeepSets, we prepare a collection of public datasets n
+
+(p(1) 1: N , u (1) 1: N ), . . . , (p(M )1: N , u (M )1: N )
+
+o
+
+. We also independently sample noise vectors ξ(1) , . . . , ξ (M ) ∼N (0 , s 2DP ID ). Let ϕθ denote a DP-DeepSets hypernetwork parameterized by θ. We train it using the following loss function LHN (θ):
+
+LHN (θ) := 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+L(m)dataset (θ), where L(m)dataset (θ) := 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ℓ
+
+
+
+p(m) 
+
+> n
+
+, u (m) 
+
+> n
+
+; ϕθ (p(m)1: N , ξ (m))
+
+
+
+. (1) 5Set of Public Datasets    
+
+> p(1)
+> 1p(2)
+> 1p(M)
+> 1
+
+⋯                
+
+> Parameters p(m)
+> 1
+> p(m)
+> n
+> ωωω(m)=εω
+> (
+> p(m)
+> 1: N,ϑ(m))
+> DP-DeepSets
+> ωω(m)
+> Neural Network
+> Input
+> Inject Dataset
+> Data point
+> ω
+> (
+> p(m)
+> n;εω(p(m)
+> 1: N,ϑ(m))
+> )
+> Loss per data point
+> L(ω) = 1
+> M
+> M∑
+> m=1
+> 1
+> N
+> N∑
+> n=1
+> ε
+> (
+> p(m)
+> n;ϑω(p(m)
+> 1: N,ϖ(m))
+> )
+> Avg. over
+> data & datasets
+
+Figure 5: The training procedure for the DP-DeepSets hypernetwork. To train the hypernetwork parameter θ, we prepare a collection of public datasets. The parameter θ is trained by minimizing the average dataset-wise loss over all public datasets. For each dataset p(m)1: N , DP-DeepSets ϕθ generates 
+
+ω(m) := ϕθ (p(m)1: N , ξ (m)). The generated parameter ω(m) is injected into the target network, and the dataset-wise loss is computed as the average per-data-point loss over the data points in the dataset. In short, the hypernetwork is trained end-to-end to minimize the average loss over the M public datasets. For each dataset, the loss L(m)dataset is essentially the standard empirical risk, obtained by averaging the per-sample loss over the N samples. The only difference is that the network parameter ω(m) is not a directly optimized parameter; instead, it is generated by the hypernetwork as 
+
+ω(m) = ϕθ (p(m)1: N , ξ (m)). By minimizing this end-to-end objective over dataset-specific losses, the hypernetwork directly learns what parameters it should generate to reduce the loss for each dataset. 
+
+Remark 4. Since DP-DeepSets is trained using public data, it does not contain any private infor-mation . Therefore, during inference on private data, we do not care about privacy leakage from DP-DeepSets itself. The only thing that matters for privacy leakage is the parameters generated from the private data through DP-DeepSets. Despite this, to avoid distribution shift, we perturb the dataset embedding even during the training phase, which uses public datasets .
+
+## 4 Theoretical Analysis: A Case Study in Linear Regression 
+
+In this section, we theoretically analyze DP-DeepSets and DP-SGD in a synthetic setting. We show that DP-DeepSets effectively encodes datasets in low-dimensional embeddings and has high utility compared to DP-SGD. We consider linear regression. Suppose that the input vector x is drawn from Unif( √d Sd−1). Given a true parameter w ∈ Rd, the observation y ∈ R is given as y = w⊤x + z, where z ∼ N (0 , 1) is observation noise independent of x.We assume that the true parameter is randomly drawn as w ∼ Unif( v | ∥ A−1 
+
+> w
+
+v∥∞ ≤ 1 ), where 
+
+Aw := diag( α1, . . . , α d) for α1, . . . , α d > 0. Let x1, . . . , x N ∼ Unif( √d Sd−1) be i.i.d. inputs, and yn := w⊤xn + zn (n = 1 , . . . , N ) be observations with i.i.d. noise z1, . . . , z N ∼ N (0 , 1) . Our goal is to estimate the true parameter w given a dataset p1: N = {(x1, y 1), . . . , (xN , y N )}.We also make the following assumption on the distribution of w.
+
+Assumption 5. It holds αi −γ ≤ αi ≤ αi −γ for some constants α, α > 0 and γ > 1/2.
+
+This implies that the coordinates with larger indices are progressively less important, in the sense that the allowable magnitude of wi decays polynomially with i. Therefore, the true parameter w has a small effective dimension, and accordingly the information needed to recover w from the dataset 
+
+p1: N is also low-dimensional. If an algorithm can successfully exploit this low-dimensional structure, then it can avoid large DP noise and estimate the parameter efficiently. 
+
+4.1 Upper Bound of Estimation Error for DP-DeepSets 
+
+First, we provide an upper bound on the error in estimating w using DP-DeepSets. For simplicity, we consider DP-DeepSets consisting only of MLPs without Transformers. 6To rigorously define the class of DP-DeepSets, we introduce the class of MLPs. Let η := max {0, ·} 
+
+be the ReLU activation function. Then, an MLP f : Rdin → Rdout with depth L and width W
+
+is defined as f (x) = ( ALη(·) + bL) ◦ · · · ◦ (A2η(·) + b2) ◦ (A1x + b1), where Ai ∈ Rdi+1 ×di ,
+
+bi ∈ Rdi+1 with d1 = din , dL+1 = dout and max i di ≤ W . Then, we define the class of MLPs with input dimension din , output dimension dout , depth L, width W , and norm constraint B as 
+
+Φdin ,d out  
+
+> MLP
+
+(L, W, B ) := 
+
+n
+
+f max  
+
+> i
+
+{∥ Ai∥∞ ∨ ∥ bi∥∞} ≤ B
+
+o
+
+.
+
+Next, we define the class of DP-DeepSets. DP-DeepSets ϕ (using MLPs instead of a Transformer) takes a dataset p1: N and DP noise ξ as inputs, and predicts the parameter as follows: 
+
+ϕ(p1: N , ξ ) := clip F ◦ ϕ2 ξ + 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C ◦ ϕ1(pn),
+
+!
+
+where ϕ1 : Rdp → RD and ϕ2 : RD → Rdω are MLPs, and F > 0 is a fixed constant. Here, we add a clipping operation compared to the architecture introduced in Section 3 to constrain expressivity. Such clipping operations are commonly used in prior work analyzing the estimation error of neural networks (e.g., Suzuki (2019), Schmidt-Hieber (2020)). Then, we define Φ( L, W, B, C, D ) as the class of DP-DeepSets with MLP depth L, width W , norm constraint B, clipping size C, and embedding dimension D:
+
+Φ( L, W, B, C, D ) = 
+
+n
+
+ϕ ϕ1 ∈ Φdp,D 
+
+> MLP
+
+(L, W, B ), ϕ 2 ∈ ΦD,d ω 
+
+> MLP
+
+(L, W, B )
+
+o
+
+.
+
+As described in Section 3.2, we employ public datasets p(1) 1: N , . . . , p (M )1: N and DP noise vectors 
+
+ξ(1) , . . . , ξ (M ) to train the hypernetwork. We analyze the hypernetwork bϕ chosen to minimize the loss LHN defined in (1) after setting ℓ to the mean squared error, i.e., 
+
+bϕ := arg min 
+
+> ϕ∈Φ( L,W,B,C,D )
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+
+
+ϕ(p(m)1: N , ξ (m))⊤x(m) 
+
+> n
+
+− y(m)
+
+> n
+
+2
+
+(2) Then, the parameters generated by the trained DP-DeepSets bϕ for a test (private) dataset satisfy the following theorem. The proof can be found in Appendix B. 
+
+Theorem 6. Let k ∈ { 1, . . . , d }. Let bϕ ∈ Φ( L, W, B, C, D ) be the DP-DeepSets defined in (2) with 
+
+L ≃ log d · ϵN 
+
+log δ−1 , W ≃ d, B ≃ d · ϵN 
+
+log δ−1 , D = k, C ≃ k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+
+
+.
+
+Moreover, suppose that we set the DP noise scale as s2DP ≃ C2 log (δ−1)  
+
+> ϵ2N2
+
+. Then, we have 
+
+E
+
+bϕ(p1: N , ξ ) − w 2
+
+≲
+
+"
+
+d2
+
+√M + dN + k3
+
+ϵ2N 2 +
+
+Z dk
+
+dtt2γ
+
+#
+
+poly log  N, ϵ −1, δ −1,
+
+where the expectation is taken over p(1) 1: N , . . . , p (M )1: N , ξ(1) , . . . , ξ (M ), p1: N , ξ and w.
+
+The first term, d2/√M , corresponds to the generalization gap in hypernetwork learning: learning a map from datasets to parameters using M datasets incurs an error of order O(1 /√M ). The second term, d/N , arises from estimating a d-dimensional variable from N samples. The third term comes from the DP noise, while the final term represents the approximation error due to the low-dimensional representation of the dataset. Here, a trade-off in k appears: increasing k
+
+reduces the error caused by embedding the data into a low-dimensional space, but it also increases the dimension of the DP noise and hence the error induced by that noise. The upper bound can be minimized by balancing these two terms, namely by choosing k = Θ 
+
+
+
+min 
+
+n
+
+d, (ϵN ) 1
+
+> γ+1
+
+o 
+
+. With this choice and sufficiently large M , the resulting error bound becomes eO( dN +   1
+
+> ϵN
+
+ 2γ−1 
+
+> γ+1
+
+).74.2 Lower Bound for DP-SGD 
+
+Next, we present the lower bound on the error in estimating the parameter w using DP-SGD for the target model ψω (x) = ω⊤x. We run DP-SGD on the following empirical loss for linear regression: 
+
+L(ω) := 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+Ln(ω), where Ln(ω) := 12 (ω⊤xn − yn)2.
+
+For simplicity, we consider DP-SGD using the full batch at each step. In other words, we analyze the parameter obtained by the following update: 
+
+ωt = ωt−1 − ηN
+
+( NX
+
+> n=1
+
+clip C (∇L n(ωt−1)) + ξt
+
+)
+
+, ξt ∼ N (0 , s 2Id),
+
+where η > 0 is a learning rate, and ξt is DP noise added to the sum of clipped gradients, as in Section 2.2. After T steps of this update, the resulting parameter satisfies the bound stated in the following theorem. The proof is provided in Appendix C. 
+
+Theorem 7. Let T ∈ Z>0 be the number of steps of DP-SGD. Suppose that the initial point is at the origin, i.e., ω0 = 0 . Moreover, assume that it holds η ∈ (0 , 1) , N ≥ N0 log N0 and C ≳ d
+
+with N0 ≃ dp(T log T )ϵ−2 log( δ−1). Additionally, we set the DP noise scale as s2 ≃ C2T log (δ−1) 
+
+> ϵ2
+
+.Then, it holds 
+
+E
+
+h
+
+∥ωT − w∥2i
+
+≳ dN + min 
+
+( d3 log  δ−1
+
+ϵ2N 2 , 1
+
+)
+
+,
+
+where the expectation is taken over p1: N , ξ1, . . . , ξ T , and w.
+
+The first term, d/N , is the error of estimating a d-dimensional parameter from N data points, as in Theorem 6. The second term is due to DP noise. Unlike DP-DeepSets, DP-SGD necessarily adds 
+
+d-dimensional noise repeatedly, yielding an error term that increases with d.
+
+Comparison in the high-dimensional regime Here, we compare the errors of DP-DeepSets 
+
+EHN and DP-SGD ESGD in the high-dimensional regime where d → ∞ and N → ∞ with 
+
+N/d 1+ ζ = Θ(1) for some ζ > 0. First, DP-DeepSets matches the DP-SGD lower-bound scaling in the worst case. Indeed, if we choose k = d and take M sufficiently large in Theorem 6, then we obtain EHN = O
+
+ dN + d3 
+
+> ϵ2N2
+
+
+
+, which matches the lower-bound rate for ESGD . Moreover, in the regime ζ ∈ (0 , 1/2) , we have 
+
+EHN = eO 1
+
+dζ +
+
+ 1
+
+ϵd 1+ ζ
+
+ 2γ−1
+
+> γ+1
+
+!
+
+= od(1) , ESGD = eΩ
+
+ 1
+
+dζ + min 
+
+ d1−2ζ
+
+ϵ2 , 1
+
+ 
+
+= Ω(1) ,
+
+if we choose k = Θ 
+
+
+
+(ϵN ) 1
+
+> γ+1
+
+
+
+for DP-DeepSets. These observations show that sufficiently trained DP-DeepSets can match DP-SGD in general and, in a nontrivial high-dimensional regime, can substantially outperform it, demonstrating the effectiveness of our proposed method. 
+
+## 5 Experiments: LoRA Finetuning of Diffusion Models 
+
+In this section, we demonstrate the effectiveness of our approach in LoRA finetuning of diffusion models. 
+
+Models and Datasets As the pretrained model, we use the checkpoint for the unconditional diffusion model trained on ImageNet64 ( imagenet64_uncond_100M_1500K.pt ), provided in the codebase 2 of Nichol and Dhariwal (2021). We consider finetuning on small private datasets 
+
+constructed from CIFAR-10 (Krizhevsky et al., 2009). Specifically, we first divide the 60,000 data points (50,000 training and 10,000 test images) into two subsets, treating one subset of 30,000 data 
+
+> 2https://github.com/openai/improved-diffusion
+
+8points as public data and the remaining half as private data. Next, we embed the data into 2,048-dimensional representations using Inception (Szegedy et al., 2016). We then select 100 representative data points from the private chunk and construct a set of 100 private datasets, each containing 128 data points , by taking the k-nearest neighbors of each representative point with k = 128 . Here, the representative points are selected to minimize overlap between the resulting datasets. 
+
+Settings for DP-DeepSets To feed image datasets into DP-DeepSets, we use CLIP (Radford et al., 2021) to embed images into 512-dimensional representations. The base diffusion model is kept fixed, and DP-DeepSets generates only the LoRA parameters. The LoRA parameters are partitioned into 318 tokens, so that each token contains only components of the LoRA parameters corresponding to the same location. When training DP-DeepSets, we employ the public chunk of CIFAR-10 containing 30,000 data points. More concretely, we take the k-nearest neighbors of each data point in the Inception embedding space with k = 128 to obtain 30,000 public datasets with 128 data points. Then, we fit the parameters θ
+
+of DP-DeepSets using the loss function LHN defined in (1) with N = 128 and M = 30 ,000 , where 
+
+p(m)1: N denotes the CLIP embeddings of the k-NN set for the m-th data point in the public chunk. 
+
+Comparison baselines As the most basic baseline, we apply DP-SGD to each private dataset separately. In addition, we consider two types of public-data-guided baselines. First, we consider finetuning the model on public data and then performing DP finetuning on private data. Specifically, we first finetune the model with standard Adam on the public chunk consisting of 30,000 examples, and then fit the model to the private data using DP-SGD. Second, we compare our method with PDA-DPMD (Amid et al., 2022). This method performs mirror descent using the loss on public data as the mirror map. In our experiments, we use the noise prediction loss for denoising on public data as the mirror map. 
+
+Results For each method, we conduct finetuning on 100 datasets, which yields 100 LoRA finetuned models. Then, we generate 1,024 images from each finetuned model, and compute the FID between the generated images and the private dataset corresponding to the model. For the DP cost, we fix 
+
+δ = 10 −5, and conduct experiments with various values of ϵ. We report the average and the standard deviation of FID scores over 100 datasets. The results are shown in Figure 2. We also display the generated samples from the model finetuned by our method with ϵ = 2 in Figure 1. We describe some observations below: • Superiority of DP-DeepSets over DP-SGD: We observe that the FID scores of our method are much lower than those of DP-SGD. In particular, as ϵ decreases, DP-SGD exhibits a substantial increase in FID for ϵ ≤ 16 , whereas the proposed method maintains nearly the same performance down to around ϵ = 1 . This is because, unlike DP-SGD, which repeatedly adds parameter-dimensional noise, the proposed method adds DP noise to a low-dimensional dataset representation, and does so only once. This reduces the scale of the DP noise and mitigates its adverse effects. This effect is particularly pronounced in our setting, where the private dataset is small, containing only 128 samples. • Stronger results than other public-data-guided approaches: We observe that the proposed method outperforms baselines that use public data. This is mainly because the baseline methods rely on gradient-based parameter updates, and thus cannot avoid adding noise multiple times to high-dimensional parameters. This performance gap is also attributable to how public data are exploited. In the two comparison baselines, gradients computed from public and private data are handled separately and are simply used independently for parameter updates 3. In contrast, in our approach, the hypernetwork learns “how to learn” from public datasets. Given private data, it can use the network learned from public data to determine how to generate parameters, enabling more flexible parameter generation than simply using the public and private gradients separately for parameter updates. 
+
+> 3In the exact update of PDA-DPMD, the auxiliary loss augmented with the public loss is minimized at each step, so the private and public data interact nonlinearly. However, because this procedure is inefficient, the original paper (Amid et al., 2022) proposes an approach that linearly approximates the public loss using its gradient. We adopt this approach in our experiments as well.
+
+96 Conclusion 
+
+In this paper, we propose a new framework for DP learning using a public hypernetwork. Specifically, we develop DP-DeepSets, a hypernetwork architecture for differentially private learning. Since it performs DP-noise perturbation on a low-dimensional representation of private datasets only once, it suppresses the scale of DP noise, thereby achieving higher utility than gradient-based methods. We also propose an end-to-end pipeline to train DP-DeepSets using public datasets. In a theoretical analysis in a synthetic setting, we show that the proposed method performs better because it learns how to encode low-dimensional structure into dataset embeddings during training with public datasets. Moreover, we conduct experiments on LoRA finetuning of diffusion models and demonstrate that our approach achieves higher utility than DP-SGD and other public-data-guided methods. 
+
+Limitations and Future Work While our proposed framework is broadly applicable to various modalities and tasks, in this paper, we focused on LoRA finetuning of diffusion models, particularly in the context of data generation. Extending our experiments to other modalities, including language, as well as to tasks beyond data generation, remains an important direction for future work. In addition, our experiments considered a small-data regime, where gradient-based DP learning is often severely hindered by the limited dataset size. A promising future direction is to investigate how the effectiveness of our method scales with dataset size, and to clarify up to what regime it can serve as a practical alternative to gradient-based approaches. 
+
+## References 
+
+M. Abadi, A. Chu, I. Goodfellow, H. B. McMahan, I. Mironov, K. Talwar, and L. Zhang. Deep learning with differential privacy. In Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security , page 308. ACM, 2016. E. Amid, A. Ganesh, R. Mathews, S. Ramaswamy, S. Song, T. Steinke, V. M. Suriyakumar, O. Thakkar, and A. Thakurta. Public data-assisted mirror descent for private model training. In International Conference on Machine Learning , pages 517–535. PMLR, 2022. N. Carlini, J. Hayes, M. Nasr, M. Jagielski, V. Sehwag, F. Tramer, B. Balle, D. Ippolito, and E. Wallace. Extracting training data from diffusion models. In 32nd USENIX security symposium (USENIX Security 23) , pages 5253–5270, 2023. C. Dwork and A. Roth. The algorithmic foundations of differential privacy. Foundations and trends® in theoretical computer science , 9(3-4):211–487, 2014. C. Dwork, F. McSherry, K. Nissim, and A. Smith. Calibrating noise to sensitivity in private data analysis. In Theory of cryptography conference , pages 265–284. Springer, 2006. D. Ha, A. M. Dai, and Q. V. Le. Hypernetworks. In International Conference on Learning Represen-tations , 2017. X. Jin, K. Wang, D. Tang, W. Zhao, Y. Zhou, J. Tang, and Y. You. Conditional lora parameter generation. arXiv preprint arXiv:2408.01415 , 2024. R. M. S. Khan, D. Tang, P. Li, K. Wang, and T. Chen. ORAL: Prompting your large-scale LoRAs via conditional recurrent diffusion. In Findings of the Association for Computational Linguistics: EMNLP 2025 , pages 1357–1370, 2025. A. Krizhevsky, G. Hinton, et al. Learning multiple layers of features from tiny images. 2009. T. Li, M. Zaheer, S. Reddi, and V. Smith. Private adaptive optimization with side information. In 
+
+International Conference on Machine Learning , pages 13086–13105. PMLR, 2022. Z. Liang, D. Tang, Y. Zhou, X. Zhao, M. Shi, W. Zhao, Z. Li, P. Wang, K. Schürholt, D. Borth, et al. Drag-and-drop llms: Zero-shot prompt-to-weights. Advances in Neural Information Processing Systems , 38, 2025. A. Q. Nichol and P. Dhariwal. Improved denoising diffusion probabilistic models. In International conference on machine learning , pages 8162–8171. PMLR, 2021. 10 N. Papernot, M. Abadi, Ú. Erlingsson, I. Goodfellow, and K. Talwar. Semi-supervised knowledge transfer for deep learning from private training data. In International Conference on Learning Representations , 2017. N. Papernot, S. Song, I. Mironov, A. Raghunathan, K. Talwar, and U. Erlingsson. Scalable private learning with PATE. In International Conference on Learning Representations , 2018. W. Peebles, I. Radosavovic, T. Brooks, A. A. Efros, and J. Malik. Learning to learn with generative models of neural network checkpoints. arXiv preprint arXiv:2209.12892 , 2022. A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin, J. Clark, et al. Learning transferable visual models from natural language supervision. In 
+
+International conference on machine learning , pages 8748–8763. PmLR, 2021. O. Räisä, S. Markou, M. Ashman, W. Bruinsma, M. Tobaben, A. Honkela, and R. Turner. Noise-aware differentially private regression via meta-learning. Advances in Neural Information Processing Systems , 37:63873–63907, 2024. N. Ruiz, Y. Li, V. Jampani, W. Wei, T. Hou, Y. Pritch, N. Wadhwa, M. Rubinstein, and K. Aberman. Hyperdreambooth: Hypernetworks for fast personalization of text-to-image models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 6527–6536, 2024. A. J. Schmidt-Hieber. Nonparametric regression using deep neural networks with relu activation function. Annals of statistics , 48(4):1875–1897, 2020. B. Soro, B. Andreis, H. Lee, W. Jeong, S. Chong, F. Hutter, and S. J. Hwang. Diffusion-based neural network weights generation. In The Thirteenth International Conference on Learning Representations , 2025. L. Sun, K. Cong, J. Q. Chooi, and R. Li. Dp-adamw: Investigating decoupled weight decay and bias correction in private deep learning. In ICML 2025 Workshop on Collaborative and Federated Agentic Workflows , 2025. T. Suzuki. Adaptivity of deep relu network for learning in besov and mixed smooth besov spaces: optimal rate and curse of dimensionality. In International Conference on Learning Representations ,2019. C. Szegedy, V. Vanhoucke, S. Ioffe, J. Shlens, and Z. Wojna. Rethinking the inception architecture for computer vision. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 2818–2826, 2016. F. Tramer and D. Boneh. Differentially private learning needs better features (or much more data). In 
+
+International Conference on Learning Representations , 2021. R. Vershynin. High-dimensional probability. University of California, Irvine , 10(11):31, 2020. M. J. Wainwright. High-Dimensional Statistics: A Non-Asymptotic Viewpoint . Cambridge University Press, 2019. K. Wang, D. Tang, B. Zeng, Y. Yin, Z. Xu, Y. Zhou, Z. Zang, T. Darrell, Z. Liu, and Y. You. Neural network diffusion. arXiv preprint arXiv:2402.13144 , 2024. K. Wang, D. Tang, W. Zhao, K. Schürholt, Z. Wang, and Y. You. Scaling up parameter generation: A recurrent diffusion approach. Advances in Neural Information Processing Systems , 38, 2025. Y. Wu, N. Yu, Z. Li, M. Backes, and Y. Zhang. Membership inference attacks against text-to-image generation models. arXiv preprint arXiv:2210.00968 , 2022. D. Yu, H. Zhang, W. Chen, and T.-Y. Liu. Do not let privacy overbill utility: Gradient embedding perturbation for private learning. In International Conference on Learning Representations , 2021. M. Zaheer, S. Kottur, S. Ravanbakhsh, B. Poczos, R. Salakhutdinov, and A. J. Smola. Deep sets. 
+
+Advances in neural information processing systems , 30, 2017. 11 L. Zheng, X. Wang, T. Zhang, Y. Cao, K. Cheng, and Y. Shen. Differentially private subspace fine-tuning for large language models. arXiv preprint arXiv:2601.11113 , 2026. Y. Zhou, X. Chen, M. Hong, Z. S. Wu, and A. Banerjee. Private stochastic non-convex optimization: Adaptive algorithms and tighter generalization bounds. arXiv preprint arXiv:2006.13501 , 2020. Y. Zhou, S. Wu, and A. Banerjee. Bypassing the ambient dimension: Private sgd with gradient subspace identification. In International Conference on Learning Representations , 2021. J. Zhu and M. Blaschko. Improving differentially private sgd via randomly sparsified gradients. 
+
+Transactions on Machine Learning Research , 2023. 12 A Proof of Corollary 3 
+
+Here, we prove Corollary 3. 
+
+Proof. Let p1: N and p′ 
+
+> 1: N
+
+be adjacent datasets. Without loss of generality, we assume that pn = p′
+
+> n
+
+for n = 2 , . . . , N . Then, we have 
+
+∥E(p1: N , ξ ) − E(p′ 
+
+> 1: N
+
+, ξ )∥ ≤ 1
+
+N ∥clip C (ϕ1(p1)) − clip C (ϕ1(p′
+
+> 1
+
+)) ∥ ≤ 2CN .
+
+Proposition 1 implies that the map E is (ϵ, δ )-DP. Since the network ϕ2 does not depend on p1: N , the post-processing property of DP yields the claim. 
+
+## B Proof of Theorem 6 
+
+We define the empirical risk as 
+
+bR(ϕ) := 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+n
+
+ϕ(p(m)1: N , ξ (m))⊤x(m) 
+
+> n
+
+− y(m)
+
+> n
+
+o2
+
+#
+
+.
+
+B.1 Upper Bound of the Empirical Error 
+
+We first prove the following lemma, which upper bounds the empirical parameter estimation error by the expected error. 
+
+Lemma 8. Let bϕ be the empirical minimizer in Φ( L, W, B, C, D ), i.e., 
+
+bϕ := arg min 
+
+> ϕ∈Φ( L,W,B,C,D )
+
+bR(ϕ).
+
+Moreover, let ϕ∗ ∈ Φ( L, W, B, C, D ), and define ∆N as 
+
+∆N := E
+
+h
+
+∥ϕ∗(p1: N , ξ ) − w∥2i
+
+.
+
+Then, for some constant A5, it holds 
+
+E
+
+"
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
+#
+
+≤ A5RN log 2
+
+
+
+e + 4F 2
+
+RN
+
+
+
+,
+
+where 
+
+RN := 1 + 
+
+r log(2 N )
+
+d
+
+!4
+
+·
+
+
+
+∆N + dN + d2
+
+√M
+
+
+
+.
+
+Proof. First, it holds bR( bϕ) ≤ bR(ϕ∗), which implies 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+n bϕ(p(m)1: N , ξ (m))⊤x(m) 
+
+> n
+
+− y(m)
+
+> n
+
+o2
+
+#
+
+≤ 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+n
+
+ϕ∗(p(m)1: N , ξ (m))⊤x(m) 
+
+> n
+
+− y(m)
+
+> n
+
+o2
+
+#
+
+Let h(m) := bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) and ∆(m) := w(m) − ϕ∗(p(m)1: N , ξ (m)). Since it holds 
+
+y(m) 
+
+> n
+
+= ( w(m))⊤x(m) 
+
+> n
+
++ z(m) 
+
+> n
+
+= ( ϕ∗(p(m)1: N , ξ (m)) + ∆ (m))⊤x(m) 
+
+> n
+
++ z(m) 
+
+> n
+
+,
+
+we have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+
+
+h(m)⊤
+
+x(m) 
+
+> n
+
+−
+
+
+
+∆(m)⊤
+
+x(m) 
+
+> n
+
+− z(m)
+
+> n
+
+2#
+
+≤ 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+h
+
+(∆ (m))⊤x(m) 
+
+> n
+
++ z(m)
+
+> n
+
+i2
+
+#
+
+.
+
+13 We have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h
+
+(h(m))⊤Σ(m)h(m) − 2( h(m))⊤Σ(m)∆(m) − 2( g(m))⊤h(m)i
+
+≤ 0,
+
+where Σ(m) := 1
+
+> N
+
+PNn=1 x(m) 
+
+> n
+
+(x(m) 
+
+> n
+
+)⊤ and g(m) := 1
+
+> N
+
+PNn=1 z(m) 
+
+> n
+
+x(m) 
+
+> n
+
+. This implies that 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+n
+
+(h(m))⊤Σ(m)h(m)o
+
+≤ 2
+
+M
+
+> M
+
+X
+
+> m=1
+
+n
+
+(h(m))⊤
+
+Σ(m)∆(m) + g(m)o 
+
+.
+
+We have 
+
+> M
+
+X
+
+> m=1
+
+(h(m))⊤Σ(m)h(m) ≥
+
+> M
+
+X
+
+> m=1
+
+λ(m)min h(m) 2
+
+≥ λmin 
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+,
+
+where λmin := min m=1 ,...,M λ(m)min , and 
+
+> M
+
+X
+
+> m=1
+
+n
+
+(h(m))⊤
+
+Σ(m)∆(m) + g(m)o 
+
+≤
+
+> M
+
+X
+
+> m=1
+
+h(m) Σ(m)∆(m) + g(m)
+
+≤
+
+vuut MX
+
+> m=1
+
+h(m) 2
+
+vuut MX
+
+> m=1
+
+Σ(m)∆(m) + g(m) 2,
+
+Therefore, we have 
+
+λ2min 
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+≤ 4
+
+M
+
+> M
+
+X
+
+> m=1
+
+Σ(m)∆(m) + g(m) 2
+
+.
+
+To bound the right-hand side, we bound its expectation as follows: 
+
+E
+
+
+
+Σ(m)∆(m) + g(m) 2
+
+≤ 2E
+
+
+
+Σ(1) ∆(1) 2
+
++ 2 E
+
+
+
+g(1) 2
+
+≤ 2E
+
+
+
+Σ(1) 2op 
+
+∆(1) 2
+
++ 2 E
+
+
+
+g(1) 2
+
+≤ 4E
+
+
+
+∆(1) 2
+
++ 4 E
+
+
+
+I − Σ(1) 2op 
+
+∆(1) 2
+
++ 2 E
+
+
+
+g(1) 2
+
+≤ 4∆ N + 4 F 2E
+
+
+
+I − Σ(1) 2op 
+
+
+
++ 2 E
+
+
+
+g(1) 2
+
+.
+
+Using Lemma 13, the second term can be upper bounded as 
+
+E
+
+
+
+I − Σ(1) 2op 
+
+
+
+≤ A2dN ,
+
+for some constant A2. Moreover, the third term can be upper-bounded as 
+
+E
+
+
+
+g(1) 2
+
+= 1
+
+N 2
+
+> N
+
+X
+
+> n=1
+
+E
+
+h
+
+∥z(m) 
+
+> n
+
+x(m) 
+
+> n
+
+∥2i
+
+= dN .
+
+Therefore, we have 
+
+E
+
+
+
+Σ(m)∆(m) + g(m) 2
+
+≤ 4∆ N + (1 + A2)dN .
+
+We apply Bernstein’s inequality to the i.i.d. random variables 
+
+Zm := Σ(m)∆(m) + g(m) 2
+
+, m = 1 , . . . , M. 
+
+14 The outputs of the networks are clipped, and w is supported on a bounded set; hence there exists a constant C0 > 0 such that ∆(m) ≤ C0 for all m. Since ∥xn∥ = √d, we have Σ(m) 
+
+> op
+
+≤ d
+
+deterministically, and therefore 
+
+Zm ≤ 2C20 d2 + 2 g(m) 2
+
+.
+
+Conditionally on x(m)1: N , the vector g(m) = N −1 PNn=1 z(m) 
+
+> n
+
+x(m) 
+
+> n
+
+is Gaussian with covariance 
+
+Σ(m)/N . Thus g(m) 2 is sub-exponential, and the preceding display implies that there exists a constant C1 > 0 such that 
+
+∥Zm − EZm∥ψ1 ≤ C1d2,
+
+for all m. Bernstein’s inequality for sub-exponential random variables then implies that, with probability 1 − η/ 2, it holds 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+Σ(m)∆(m) + g(m) 2
+
+≤ E
+
+
+
+Σ(m)∆(m) + g(m) 2
+
++ A3d2
+
+r log(2 /η )
+
+M + log(2 /η )
+
+M
+
+!
+
+≤ 4∆ N + (1 + A2)dN + A3d2
+
+r log(2 /η )
+
+M + log(2 /η )
+
+M
+
+!
+
+.
+
+Hence, we have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+≤ 4
+
+λ2min 
+
+·
+
+(
+
+4∆ N + (1 + A2)dN + A3d2
+
+r log(2 /η )
+
+M + log(2 /η )
+
+M
+
+!) 
+
+,
+
+with probability 1 − η/ 2. Using Lemma 13, if N ≥ 2d and d ≥ 3 (and therefore N ≥ d + 3 ), we have 
+
+P λmin (Σ) ≤√η
+
+2K2
+
+> N,d
+
+!
+
+≤ 2
+
+ η1/4
+
+√2
+
+N −d+1 
+
+≤ 2 ·
+
+ η1/4
+
+√2
+
+4
+
+= η
+
+2 .
+
+This implies that it holds 
+
+1
+
+λmin (Σ) ≤ 2K2
+
+> N,d
+
+√η ≤ 2A22
+
+√ηNd
+
+(√d + p2 log(2 N )) 2
+
+(√N − √d)2
+
+≤ 2A22
+
+√η
+
+
+
+1 + 
+
+q 2 log(2 N )
+
+> d
+
+2
+
+
+
+1 −
+
+q dN
+
+2 ≤
+
+2
+
+
+
+1 − 1√2
+
+−2
+
+A22
+
+√η 1 + 
+
+r 2 log(2 N )
+
+d
+
+!2
+
+,
+
+with probability 1 − η/ 2. Therefore, we have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+≤ A4
+
+η 1 + 
+
+r log(2 N )
+
+d
+
+!4
+
+·
+
+(
+
+∆N + dN + d2
+
+r log(2 /η )
+
+M + log(2 /η )
+
+M
+
+!) 
+
+,
+
+with probability 1 − η. Therefore, for any η ∈ (0 , 1) , we have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+≤ A5
+
+η RN log 
+
+ e
+
+η
+
+
+
+,
+
+with probability at least 1 − η. On the other hand, since the output of every network in 
+
+Φ( L, W, B, C, D ) is clipped by clip F , it holds deterministically that 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+≤ 4F 2.
+
+15 The preceding high-probability bound implies that 
+
+P 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+> t 
+
+!
+
+≤ min 
+
+
+
+1, A5RN
+
+t log 
+
+
+
+e + tRN
+
+ 
+
+for all t > 0. Using this tail bound together with the deterministic bound above, we obtain 
+
+E
+
+"
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+#
+
+=
+
+Z 4F 2
+
+> 0
+
+P 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+h(m) 2
+
+> t 
+
+!
+
+dt
+
+≤ A5RN log 2
+
+
+
+e + 4F 2
+
+RN
+
+
+
+,
+
+by increasing A5 if necessary. This completes the proof. 
+
+B.2 Difference Between the Empirical Error and the Test Error 
+
+Here, we prove the following lemma, which upper-bounds the difference between the empirical error and the test error between two MLPs. Eventually, we will use this lemma by setting ϕ as the empirical minimizer, and ϕ∗ as the network constructed to achieve small error. 
+
+Lemma 9. For any ϕ, ϕ ∗ ∈ Φ( L, W, B, C, D ), it holds 
+
+E
+
+"
+
+sup 
+
+> ϕ∈Φ
+
+E[fϕ(p1: N , ξ )] − 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+fϕ(p(m)1: N , ξ (m))
+
+#
+
+≤ A9LW 
+
+√M
+
+plog {dL (B ∨ 1)( W + 1)( C ∨ 1) · ϵ−1 log( δ−1)}.
+
+where A9 is a constant. Proof. For ϕ ∈ Φ( L, W, B, C, D ), let vec( ϕ) ∈ [−B, B ]C denote the vector obtained by con-catenating its parameters into a single vector. In the following, we consider the regime in which 
+
+W ≥ max {d, d ′, D }, where d and d′ denote the dimension of input and output, respectively. For a fixed ϕ∗ ∈ Φ( L, W, B, C, D ), we define the function class F(L, W, B, C, D ) as 
+
+F(L, W, B, C, D ):= 
+
+n
+
+fϕ : ( p1: N , ξ ) 7 → ∥ ϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥2 ϕ ∈ Φ( L, W, B, C, D )
+
+o
+
+.
+
+We first remark that the number of parameters D(L, W, D ) of neural networks in Φ( L, W, B, C, D )
+
+is bounded as 
+
+D(L, W, D ) := d′W + W 2 · (L − 2) + W D + DW + W 2 · (L − 2) + W d ≤ 2LW 2.
+
+There exists a δ-cover C of {vec( ϕ) | ϕ ∈ Φ( L, W, B, C, D )} = [ −B, B ]D with |C| ≤ (B/δ )D with respect to the ∥ · ∥ ∞ norm. Therefore, for any ϕ ∈ Φ( L, W, B, C, D ), we can choose vec( ϕ′) ∈ C 
+
+such that ∥ vec( ϕ) − vec( ϕ′)∥∞ ≤ δ. Then, for any x1: N ∈ Rd×N , y1: N ∈ RN and ξ ∈ RD , we have 
+
+∥ϕ1(pn) − ϕ′
+
+> 1
+
+(pn)∥∞ ≤ L(B ∨ 1) L−1(W + 1) L · ∥ pn∥∞δ. 
+
+The proof of this inequality can be found in Suzuki (2019), for example. Then, we have 
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ1(pn)) + ξ
+
+!
+
+− 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+> ∞
+
+≤ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∥clip C (ϕ1(pn)) − clip C (ϕ′
+
+> 1
+
+(pn)) ∥∞
+
+≤ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∥ϕ1(pn) − ϕ′
+
+> 1
+
+(pn)∥∞
+
+≤ L(B ∨ 1) L−1(W + 1) L · 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∥pn∥∞
+
+!
+
+δ. 
+
+16 We can bound the term 1
+
+> N
+
+PNn=1 ∥pn∥∞ as follows: 
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∥pn∥∞ ≤ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+(∥xn∥2 + |yn|) ≤ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+(∥xn∥2 + ∥xn∥2∥w∥2 + |zn|)
+
+≤ (1 + ∥α∥) 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+∥xn∥2 + 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+|zn|≤ d(1 + ∥α∥) + 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+|zn|≤ d · C1(z1: N ),
+
+where we define C1(z1: N ) := 1 + ∥α∥ + 1
+
+> N
+
+PNn=1 |zn|. Therefore, we have 
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ1(pn)) + ξ
+
+!
+
+− 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+> ∞
+
+≤ dL (B ∨ 1) L−1(W + 1) L · C1(z1: N )δ. 
+
+Since clip F is 1-Lipschitz and ϕ2 is (BW )L-Lipschitz, we have 
+
+∥ϕ(p1: N , ξ ) − ϕ′(p1: N , ξ )∥∞
+
+≤ ϕ2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ1(pn)) + ξ
+
+!
+
+− ϕ′
+
+> 2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+> ∞
+
+≤ ϕ2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ1(pn)) + ξ
+
+!
+
+− ϕ2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+> ∞
+
++ ϕ2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+− ϕ′
+
+> 2
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ′
+
+> 1
+
+(pn)) + ξ
+
+!
+
+> ∞
+
+≤ (BW )L · dL (B ∨ 1) L−1(W + 1) L · C1(z1: N )δ + L(B ∨ 1) L−1(W + 1) L · (C + ∥ξ∥∞) · δ
+
+≤ (C1(z1: N ) + C + ∥ξ∥∞) · dL (B ∨ 1) 2L−1(W + 1) 2L · δ. 
+
+By the definition of fϕ, we have 
+
+|fϕ(p1: N , ξ ) − fϕ′ (p1: N , ξ )|
+
+= ∥ϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥2 − ∥ ϕ′(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥2
+
+≤ 4F · |∥ ϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥ − ∥ ϕ′(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥| ≤ 4F ∥ϕ(p1: N , ξ ) − ϕ′(p1: N , ξ )∥≤ 4F √d(C1(z1: N ) + C + ∥ξ∥∞) · dL (B ∨ 1) 2L−1(W + 1) 2L · δ
+
+≤ 4F 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+|zn| + ∥ξ∥∞ + ∥α∥ + 2 
+
+!
+
+· d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L · δ
+
+≤ 4F C2(z1: N , ξ ) · d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L · δ, 
+
+where we define C2(z1: N , ξ ) := 4 F · (C1(z1: N ) + ∥ξ∥∞ + 1) . Let PM be the empirical measure of 
+
+(p1: N , w, ξ ) defined by M data. Then, we have 
+
+∥fϕ − fϕ′ ∥2 
+
+> L2(PM)
+
+=
+
+Z
+
+|fϕ(p1: N , ξ ) − fϕ′ (p1: N , ξ )|2dPM (p1: N , ξ )
+
+≤
+
+
+
+4F · d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L · δ
+
+2
+
+· 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+C2(z(m)1: N , ξ (m))2.
+
+17 Since it holds 
+
+E
+
+"
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+C2(z(m)1: N , ξ (m))2
+
+#
+
+= Ez1: N ,ξ 
+
+C2(z1: N , ξ )2 ≤ A28(s2DP + 1) log(2 d),
+
+for some constant A8, we have 
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+C2(z(m)1: N , ξ (m))2 ≤ η−1E
+
+"
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+C2(z(m)1: N , ξ (m))2
+
+#
+
+≤ A28(s2DP + 1) log(2 d)η−1,
+
+with probability 1 − η. Therefore, we have 
+
+∥fϕ − fϕ′ ∥L2(PM ) ≤ 4F A 8 · d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L ·
+
+q
+
+(s2DP + 1) log(2 d)η−1/2δ. 
+
+This implies that the set {fϕ | ϕ ∈ Φ, vec( ϕ) ∈ C} is a (4 F A 8 · d3/2(C ∨ 1) L(B ∨
+
+1) 2L−1(W + 1) 2L · p(s2DP + 1) log(2 d)η−1/2δ)-cover of the function class Φ( L, W, B, C, D )
+
+with respect to ∥ · ∥ L2(PM ). By replacing δ with (4 F A 8 · d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L ·
+
+p(s2DP + 1) log(2 d)η−1/2)−1 · δ, we obtain the following bound of the covering number of F:
+
+N (δ; F, ∥ · ∥ ∞)
+
+≤ BD ·
+
+
+
+(4 F A 8 · d3/2(C ∨ 1) L(B ∨ 1) 2L−1(W + 1) 2L ·
+
+q
+
+(s2DP + 1) log(2 d)η−1/2)−1 · δ
+
+−D 
+
+≤  (B ∨ 1) 2L(W + 1) 2LD · (4 F A 8 · d3/2(C ∨ 1) L ·
+
+q
+
+(s2DP + 1) log(2 d)η−1/2δ−1)D
+
+≤
+
+n
+
+C3(L, W, B, C, d, s DP ) · η−1/2δ−1o2LD
+
+,
+
+where C3(L, W, B, C, d, s DP ) := 4 F A 8 ·d3/2L(B∨1)( W +1)( C ∨1) ·(s2DP +1) log(2 d). Therefore, we have 
+
+log N (δ; F, ∥ · ∥ L2(PM )) ≤ 2LD log 
+
+n
+
+C3(L, W, B, C, d, s DP )η−1/2δ−1o
+
+≤ 4L2W 2 log 
+
+n
+
+C3(L, W, B, C, d, s DP )η−1/2δ−1o
+
+.
+
+Using Dudley’s entropy integral bound (Wainwright, 2019, Theorem 5.22), we have 
+
+bRM (F) ≤ A6
+
+√M
+
+Z ∞
+
+> 0
+
+plog N (δ; F, L 2(PM )) d δ . 
+
+Since it holds 
+
+N (δ; F, ∥ · ∥ L2(PM )) ≤ N (δ; F, ∥ · ∥ ∞) = 1 
+
+for δ ≥ 4F 2, we have 
+
+bRM (F) ≤ 2A6LW 
+
+√M
+
+Z 4F 2
+
+> 0
+
+q
+
+log C3(L, W, B, C, d, s DP )η−1/2δ−1 dδ . 
+
+Since it holds R R
+
+> 0
+
+plog( S/δ ) d δ ≤ Rplog(e S/R ) for all S > 0 and R > 0, we have 
+
+bRM (F) ≤ 8F 2A6LW 
+
+√M
+
+q
+
+log C3(L, W, B, C, d, s DP )η−1/2 .
+
+Therefore, we have 
+
+R(F) = E[ bRM (F)] ≤
+
+Z 10
+
+2F A 6LW 
+
+√M
+
+q
+
+log C3(L, W, B, C, d, s DP )η−1/2 dη
+
+≤ A9LW 
+
+√M
+
+plog {C3(L, W, B, C, d, s DP )},
+
+18 for some constant A9. Symmetrization inequality implies that 
+
+E
+
+"
+
+sup 
+
+> ϕ∈Φ
+
+E[fϕ(p1: N , ξ )] − 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+fϕ(p(m)1: N , ξ (m))
+
+#
+
+≤ 2R(F) ≤ 2A9LW 
+
+√M
+
+plog {C3(L, W, B, C, d, s DP )}≤ A′
+
+> 9
+
+LW 
+
+√M
+
+q
+
+log {dL (B ∨ 1)( W + 1)( C ∨ 1) · (s2DP + 1) }≤ A′′  
+
+> 9
+
+LW 
+
+√M
+
+plog {dL (B ∨ 1)( W + 1)( C ∨ 1) · ϵ−1 log( δ−1)}.
+
+where A′ 
+
+> 9
+
+and A′′  
+
+> 9
+
+are constants. This completes the proof. 
+
+B.3 Constructing a Network with Small Error 
+
+In this section, we prove the following theorem, which constructs the network that outputs a vector close to the true parameter given N samples p1: N and DP noise ξ.
+
+Theorem 10. For any k = 1 , . . . , d , there exists a network ϕ ∈ Φ( L, W, B, C, D ) with 
+
+L ≤ A15 
+
+
+
+log d · ϵN 
+
+log δ−1
+
+
+
+, W ≤ 6d, B ≤ A15 d · ϵN 
+
+log δ−1 ,D = k, C = A15 
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 
+
+,
+
+satisfying 
+
+Ex1: N ,z 1: N ,w,ξ 
+
+h
+
+∥ϕ(p1: N , ξ ) − w∥2i
+
+≤ A14 
+
+(
+
+k log δ−1
+
+ϵ2N 2
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 2
+
++ 1
+
+N
+
+!
+
++
+
+Z dk
+
+dtt2γ
+
+)
+
+,
+
+where A14 and A15 are some constants. 
+
+To construct the network, we use the following lemma: 
+
+Lemma 11 (Schmidt-Hieber (2020)) . Let i ∈ Z≥0. There exists a neural network ϕmult ∈
+
+ΦMLP (L, W, B ) with 
+
+L = i + 5 , W ≤ 6, B = 1 ,
+
+satisfying the following three conditions: 
+
+• |ϕmult (x, y ) − xy | ≤ 2−i for all (x, y ) ∈ [0 , 1] 2.
+
+• |ϕmult (x, y )| ≤ 1 for all (x, y ) ∈ R2.
+
+• If xy = 0 , it holds ϕmult (x, y ) = 0 .
+
+We prove the following corollary using the lemma above. 
+
+Corollary 12. Let ε > 0, ρx, ρ y ≥ 1. There exists a neural network ϕmult ∈ ΦMLP (L, W, B ) with 
+
+L ≤ 6 + 
+
+
+
+log 2
+
+4ρxρy
+
+ε
+
+
+
+, W ≤ 6, B ≤ 4ρxρy ,
+
+satisfying the following three conditions: 
+
+• |ϕmult (x, y ) − xy | ≤ ε for all x ∈ [−ρx, ρ x] and y ∈ [−ρy , ρ y ].
+
+• |ϕmult (x, y )| ≤ ρxρy for all x, y ∈ R.
+
+• |ϕmult (x, y ) − xy | ≤ ρx(ρy + |y|) for all x ∈ [−ρx, ρ x] and y ∈ R.
+
+19 Proof. Let ϕ1, ϕ 2, ϕ 3 ∈ ΦMLP (L, W, B ) with 
+
+L = 1 , W ≤ 2, B = 1 ,
+
+be neural networks defined as 
+
+ϕ1(x) := x
+
+2ρx
+
++ 12 , ϕ2(y) := y
+
+2ρy
+
++ 12 , ϕ3(x, y ) := ρxx + ρy y + ρxρy .
+
+Then, we have 
+
+ϕ1(x)ϕ2(y) = xy 
+
+4ρxρy
+
++ x
+
+4ρx
+
++ y
+
+4ρy
+
++ 14 = xy 
+
+4ρxρy
+
++ 14ρxρy
+
+ϕ3(x, y ),
+
+which implies 
+
+xy = 4 ρxρy ϕ1(x)ϕ2(y) − ϕ3(x, y ).
+
+Now, we have ϕ1(x), ϕ 2(y) ∈ [0 , 1] if x ∈ [−ρx, ρ x] and y ∈ [−ρy , ρ y ]. Therefore, Lemma 11 implies that there exists a neural network ψ ∈ ΦMLP (L, W, B ) with 
+
+L ≤ 5 + 
+
+
+
+log 2
+
+4ρxρy
+
+ε
+
+
+
+, W ≤ 6, B ≤ 1,
+
+satisfying the following two statements: • If x ∈ [−ρx, ρ x] and y ∈ [−ρy , ρ y ], it holds |ψ(ϕ1(x), ϕ 2(y)) − ϕ1(x)ϕ2(y)| ≤ ε 
+
+> 4ρxρy
+
+.• For all x, y ∈ R, it holds |ψ(ϕ1(x), ϕ 2(y)) | ≤ 1.We define 
+
+ϕ4(x, y ) := 4 ρxρy ψ(ϕ1(x), ϕ 2(y)) − ϕ3(x, y ),ϕ5(x, y ) := max {− ρxρy , min {ρxρy , ϕ 4(x, y )}} .
+
+Then we have ϕ5 ∈ Φ( L, W, B ) with 
+
+L ≤ 6 + 
+
+
+
+log 2
+
+4ρxρy
+
+ε
+
+
+
+, W ≤ 6, B ≤ 4ρxρy .
+
+Moreover, for all x, y ∈ R, we have 
+
+|ϕ5(x, y )| ≤ ρxρy .
+
+For x ∈ [−ρx, ρ x] and y ∈ [−ρy , ρ y ], we have |xy | ≤ ρxρy , which yields 
+
+|ϕ5(x, y ) − xy | ≤ | ϕ4(x, y ) − xy |≤ 4ρxρy |ψ(ϕ1(x), ϕ 2(y)) − ϕ1(x)ϕ2(y)| ≤ ε. 
+
+Moreover, for any x, y ∈ R, we have 
+
+|ϕ5(x, y ) − xy | ≤ | ϕ5(x, y )| + |xy | ≤ ρxρy + ρx|y| ≤ ρx(ρy + |y|).
+
+This completes the proof. Using the corollary above, we prove Theorem 10. 
+
+Proof of Theorem 10. We first define the matrix Uk ∈ Rd×k as 
+
+(Uk)i,j =
+
+1 if i = j, 
+
+0 otherwise .
+
+Then, both UkU ⊤ 
+
+> k
+
+and I − UkU ⊤ 
+
+> k
+
+are projection matrices. Therefore, we have (I − UkU ⊤ 
+
+> k
+
+)2 =
+
+I − UkU ⊤ 
+
+> k
+
+. Moreover, since it holds 
+
+E[ww ⊤] = 13 diag( α21, . . . , α 2
+
+> d
+
+),
+
+20 we have 
+
+U ⊤ 
+
+> k
+
+E[ww ⊤]Uk = 13 diag( α21, . . . , α 2
+
+> k
+
+).
+
+Hence, we have 
+
+E[∥UkU ⊤ 
+
+> k
+
+w − w∥2] = E[∥(I − UkU ⊤ 
+
+> k
+
+)w∥2]= E[w⊤(I − UkU ⊤ 
+
+> k
+
+)2w]= E[w⊤(I − UkU ⊤ 
+
+> k
+
+)w]= tr  (I − UkU ⊤ 
+
+> k
+
+)E[ww ⊤]
+
+= tr  E[ww ⊤] − tr  UkU ⊤ 
+
+> k
+
+E[ww ⊤]
+
+= tr  E[ww ⊤] − tr  U ⊤ 
+
+> k
+
+E[ww ⊤]Uk
+
+
+
+= 13
+
+> d
+
+X
+
+> i=1
+
+α2 
+
+> i
+
+− 13
+
+> k
+
+X
+
+> i=1
+
+α2 
+
+> i
+
+= 13
+
+> d
+
+X
+
+> i=k+1
+
+α2 
+
+> i
+
+.
+
+Since it holds αi ≤ αiγ for i = 1 , . . . , d , we have 
+
+> d
+
+X
+
+> i=k+1
+
+α2 
+
+> i
+
+≤ α2
+
+Z dk
+
+dtt2γ
+
+
+
+≤ 12γ − 11
+
+k2γ−1
+
+
+
+,
+
+which implies 
+
+E[∥UkU ⊤ 
+
+> k
+
+w − w∥2] ≤ α2
+
+3
+
+Z dk
+
+dtt2γ .
+
+Below, we consider approximating UkU ⊤ 
+
+> k
+
+w instead of w. We denote Pk := UkU ⊤ 
+
+> k
+
+∈ Rd×d.
+
+Approximating Pkw using x1: N and y1: N Since it holds 
+
+E[ynPkxn | w] = E[( w⊤xn + zn)Pkxn] = PkE[xnx⊤ 
+
+> n
+
+]w + E[zn]PkE[xn] = Pkw
+
+Moreover, since x1, . . . , x n and y1, . . . , y n are conditionally independent given w, we have 
+
+E
+
+ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynPkxn − Pkw
+
+> 2
+
+w
+
+ = 1
+
+N 2
+
+> N
+
+X
+
+> n=1
+
+E
+
+h
+
+∥ynPkxn − Pkw∥2 w
+
+i
+
+= 1
+
+N E
+
+h
+
+∥y1Pkx1 − Pkw∥2 w
+
+i
+
+.
+
+Since it holds y1 = w⊤x1 + z1, we have 
+
+E (y1Pkx1)⊤Pkw w = E y1x⊤ 
+
+> 1
+
+PkPkw w
+
+= E w⊤PkPkw w
+
+= ∥Pkw∥2.
+
+Therefore, we have 
+
+E
+
+h
+
+∥y1Pkx1 − Pkw∥2 w
+
+i
+
+= E
+
+h
+
+∥y1Pkx1∥2 w
+
+i
+
+− ∥ Pkw∥2.
+
+As for the first term, since z and x are independent, we have 
+
+E
+
+h
+
+∥y1Pkx1∥2 w
+
+i
+
+= E
+
+h
+
+(w⊤x1 + z1)Pkx1 
+
+> 2
+
+w
+
+i
+
+= E
+
+h
+
+(w⊤x1)2∥Pkx1∥2 w
+
+i
+
++ Ez21
+
+E
+
+h
+
+∥Pkx1∥2i
+
+= dd + 2 
+
+
+
+k∥w∥2 + 2 ∥Pkw∥2
+
++ k. 
+
+21 Here, the last equality follows from the fourth-moment formula for x1 ∼ Unif( √dSd−1):
+
+E[x1,i x1,j x1,a x1,b ] = dd + 2 (1i=j 1a=b + 1i=a1j=b + 1i=b1j=a).
+
+Indeed, since P 2 
+
+> k
+
+= Pk and tr( Pk) = k, we have 
+
+E
+
+h
+
+(w⊤x1)2∥Pkx1∥2 w
+
+i
+
+= E (w⊤x1)2x⊤ 
+
+> 1
+
+Pkx1 w
+
+=
+
+> d
+
+X
+
+> i,j,a,b =1
+
+wiwj (Pk)ab E[x1,i x1,j x1,a x1,b ]= dd + 2 
+
+
+
+∥w∥2 tr( Pk) + 2 w⊤Pkw
+
+
+
+= dd + 2 
+
+
+
+k∥w∥2 + 2 ∥Pkw∥2
+
+,
+
+and E[z21 ]E[∥Pkx1∥2] = tr( Pk) = k. Therefore, we have 
+
+E
+
+h
+
+∥y1Pkx1 − Pkw∥2 w
+
+i
+
+= dd + 2 
+
+
+
+k∥w∥2 + 2 ∥Pkw∥2
+
++ k − ∥ Pkw∥2
+
+= dk d + 2 ∥w∥2 + d − 2
+
+d + 2 ∥Pkw∥2 + k
+
+≤ dk d + 2 ∥α∥2 + (d − 2) kd + 2 ∥α∥2 + k
+
+≤ k(2 ∥α∥2 + 1) .
+
+This implies that 
+
+E
+
+ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynPkxn − Pkw
+
+> 2
+
+w
+
+ ≤ k(2 ∥α∥2 + 1) 
+
+N .
+
+Evaluating truncation error Next, we upper bound the error between 1
+
+> N
+
+PNn=1 ynPkxn and its data-wise truncation Uk
+
+n 1
+
+> N
+
+PNn=1 clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+o
+
+for C > 0. We have 
+
+E
+
+ Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+)
+
+− 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynPkxn
+
+> 2
+
+
+
+= E
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+)
+
+− 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynU ⊤ 
+
+> k
+
+xn
+
+> 2
+
+
+
+≤ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+E
+
+h
+
+clip C (ynU ⊤ 
+
+> k
+
+xn) − ynU ⊤ 
+
+> k
+
+xn
+
+> 2
+
+i
+
+≤ E
+
+h
+
+clip C (y1U ⊤ 
+
+> k
+
+x1) − y1U ⊤ 
+
+> k
+
+x1
+
+> 2
+
+i
+
+.
+
+Therefore, it is sufficient to bound E
+
+h
+
+clip C (y1U ⊤ 
+
+> k
+
+x1) − y1U ⊤ 
+
+> k
+
+x1
+
+> 2
+
+i
+
+. Let Y := y1 and R := 
+
+U ⊤ 
+
+> k
+
+x1 . By the definition clip C (v) = min {1, C/ ∥v∥} v, we have ∥clip C (v) − v∥ = ( ∥v∥ − C)+
+
+for any vector v. Applying this with v = Y U ⊤ 
+
+> k
+
+x1, whose norm is |Y |R, gives 
+
+clip C (Y U ⊤ 
+
+> k
+
+x1) − Y U ⊤ 
+
+> k
+
+x1 
+
+> 2
+
+= ( |Y |R − C)2+ ≤ Y 2R21{| Y |R>C }.
+
+Moreover, the event {| Y |R > C } is included in {Y 2 > C } ∪ { R2 > C }. Therefore, by Cauchy’s inequality, 
+
+E
+
+h
+
+clip C (Y U ⊤ 
+
+> k
+
+x1) − Y U ⊤ 
+
+> k
+
+x1 
+
+> 2
+
+| w
+
+i
+
+≤ EY 2R21{Y 2>C } | w + EY 2R21{R2>C } | w
+
+≤ E[R4]1/2EY 41{Y 2>C } | w1/2 + EY 4 | w1/2ER41{R2>C }
+
+1/2.
+
+22 Since ∥w∥ ≤ ∥ α∥, Y = w⊤x1 + z1 is sub-Gaussian conditionally on w with a parameter depending only on α and γ. Also, R2 = U ⊤ 
+
+> k
+
+x1 
+
+> 2
+
+is the squared norm of a k-dimensional projection of 
+
+Unif( √dSd−1), and hence has a chi-square-type tail. Thus, if C ≥ (∥α∥2 + 1) k, then 
+
+E[R4] ≲ k2, EY 41{Y 2>C } | w ≲ exp( −cC ), EY 4 | w ≲ 1,
+
+and 
+
+ER41{R2>C }
+
+ ≲ k2 exp( −cC ),
+
+for a constant c > 0 depending only on α and γ. Combining the preceding bounds, we obtain 
+
+E
+
+h
+
+clip C (y1U ⊤ 
+
+> k
+
+x1) − y1U ⊤ 
+
+> k
+
+x1 
+
+> 2
+
+| w
+
+i
+
+≤ A13 k exp( −A12 C),
+
+for constants A13 and A12 that depend only on α and γ.
+
+Approximating Uk
+
+n 1
+
+> N
+
+PNn=1 clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+o
+
+via DP-DeepSets Let n ∈ [N ], i ∈ [d] and 
+
+τ > 0. Corollary 12 implies that there exists a neural network ϕ1 ∈ Φ( L, W, B ) with 
+
+L ≤ 6 + 
+
+&
+
+log 2
+
+4√dρ ε
+
+'
+
+, W ≤ 6, B ≤ 4√dρ. 
+
+satisfying |ϕ1(xn,i , y n)| ≤ √dρ and 
+
+|ϕ1(xn,i , y n) − xn,i yn| ≤ 
+
+ε (|yn| ≤ ρ),√d(ρ + |yn|) (otherwise ).
+
+Therefore, we have 
+
+E
+
+h
+
+{ϕ1(xn,i , y n) − xn,i yn}2i
+
+≤ E
+
+h
+
+1{| yn|≤ ρ}ε2 + 1{| yn|>ρ }d(ρ + |yn|)2i
+
+.
+
+Since it holds (|y| + ρ)2 ≤ 4y2 ≤ 4y4/ρ 2 for |y| ≥ ρ, we have 
+
+E
+
+h
+
+{ϕ1(xn,i , y n) − xn,i yn}2i
+
+≤ ε2 + E
+
+ 4dy 4
+
+> n
+
+ρ2
+
+
+
+= ε2 + 4dρ2 Ey4
+
+> n
+
+.
+
+We bound the expectation Ey4. It holds 
+
+E[y4
+
+> n
+
+] = E[( w⊤xn + zn)4]= E[( w⊤xn)4] + 6 E[( w⊤xn)2]E[z2
+
+> n
+
+] + E[z4
+
+> n
+
+]= E[( w⊤xn)4] + 6 E[( w⊤xn)2] + 3 .
+
+Moreover, we have 
+
+E[( w⊤xn)2 | w] = w⊤E[xnx⊤ 
+
+> n
+
+]w = 1
+
+d ∥w∥2 ≤ A210 
+
+d ,
+
+E[( w⊤xn)4 | w] = 3
+
+d(d + 2) ∥w∥4 ≤ 3A410 
+
+d(d + 2) ,
+
+where A10 is a constant that depends only on α. This implies that 
+
+E[y4
+
+> n
+
+] ≤ 3A410 
+
+d(d + 2) + 6A210 
+
+d + 3 ≤ A11 ,
+
+for some constant A11 that depends only on α. Taking ρ := 2 √A11 · √dε −1, we have 
+
+E
+
+h
+
+{ϕ1(xn,i , y n) − xn,i yn}2i
+
+≤ ε2 + 4dA 11 
+
+ρ2 = 2 ε2.
+
+Next, let ϕ2 ∈ ΦMLP (L, W, B ) with 
+
+L ≤ 6 + 
+
+
+
+log 2
+
+8√A11 dε2
+
+
+
+, W ≤ 6d, B ≤ 8pA11 · dε −1,
+
+23 be a neural network defined as 
+
+ϕ2(xn, y n) = [ ϕ1(xn, 1, y n), . . . , ϕ 1(xn,k , y n)] ⊤ ∈ Rk
+
+Then, we have 
+
+E
+
+h
+
+ϕ2(xn, y n) − ynU ⊤ 
+
+> k
+
+xn
+
+> 2
+
+i
+
+=
+
+> k
+
+X
+
+> i=1
+
+E
+
+h
+
+{ϕ1(xn,i , y n) − xn,i yn}2i
+
+≤ 2kε 2.
+
+Finally, let ϕ3 ∈ ΦMLP (L, W, B ) with L = 1 , W = d and B = 1 be a neural network defined as 
+
+ϕ3 : Rk → Rd, v 7 → Ukv. 
+
+Then, we have 
+
+E
+
+ ϕ3
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) + ξ
+
+!
+
+− Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+) 2
+
+≤ E
+
+ Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) − 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+)
+
++ Ukξ
+
+> 2
+
+
+
+≤ E
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) − 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+)
+
++ ξ
+
+> 2
+
+
+
+≤ 2E
+
+ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) − clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+> 2
+
+ + 2 E[∥ξ∥2]
+
+≤ 2
+
+N
+
+> N
+
+X
+
+> n=1
+
+E
+
+h
+
+clip C (ϕ2(xn, y n)) − clip C (ynU ⊤ 
+
+> k
+
+xn) 2i
+
++ 2 ks 2DP 
+
+≤ 2
+
+N
+
+> N
+
+X
+
+> n=1
+
+E
+
+h
+
+ϕ2(xn, y n) − ynU ⊤ 
+
+> k
+
+xn
+
+> 2
+
+i
+
++ 2 ks 2DP 
+
+≤ 4kε 2 + 2 ks 2DP .
+
+Setting ε := sDP /√2, we have 
+
+E
+
+ ϕ3
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) + ξ
+
+!
+
+− Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+) 2 ≤ 4ks 2DP .
+
+Finishing the proof If we set 
+
+ϕ(p1: N , ξ ) := ϕ3
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ϕ2(xn, y n)) + ξ
+
+!
+
+,
+
+then we have 
+
+E
+
+h
+
+∥ϕ(p1: N , ξ ) − w∥2i
+
+≤ 4
+
+E
+
+ ϕ(p1: N , ξ ) − Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+) 2
+
++E
+
+ Uk
+
+(
+
+1
+
+N
+
+> N
+
+X
+
+> n=1
+
+clip C (ynU ⊤ 
+
+> k
+
+xn)
+
+)
+
+− 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynPkxn
+
+> 2
+
+
+
+24 +E
+
+ 1
+
+N
+
+> N
+
+X
+
+> n=1
+
+ynPkxn − Pkw
+
+> 2
+
+ + E
+
+h
+
+∥Pkw − w∥2i
+
+≤ 16 ks 2DP + 4 A13 k exp( −A12 C) + 4k(2 ∥α∥2 + 1) 
+
+N + 4α2
+
+3
+
+Z dk
+
+dtt2γ .
+
+Let A15 and A14 be constants that depend only on α and γ. If we set 
+
+C =
+
+
+
+(∥α∥2 + 1) k ∨ 1
+
+A12 
+
+log 
+
+ ϵ2N 2
+
+log δ−1
+
+ 
+
+,
+
+then we have 
+
+E
+
+h
+
+∥ϕ(p1: N , ξ ) − w∥2i
+
+≤ A14 
+
+(
+
+k log δ−1
+
+ϵ2N 2
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 2
+
++ 1
+
+N
+
+!
+
++
+
+Z dk
+
+dtt2γ
+
+)
+
+,
+
+and ϕ ∈ Φ( L, W, B, C, D ) with 
+
+L ≤ A15 
+
+
+
+log d · ϵN 
+
+log δ−1
+
+
+
+, W ≤ 6d, B ≤ A15 d · ϵN 
+
+log δ−1 ,D = k, C = A15 
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 
+
+,
+
+which completes the proof. 
+
+B.4 Proof of Theorem 6 
+
+We finally prove our target statement. Let bϕ := arg min 
+
+> ϕ∈Φ( L,W,B,C,D )
+
+bR(ϕ) with 
+
+L ≃ log d · ϵN 
+
+log δ−1 , W ≃ d, B ≃ d · ϵN 
+
+log δ−1 , D = k, C ≃ k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+
+
+,
+
+Moreover, let ϕ∗ ∈ Φ( L, W, B, C, D ) be a network defined in Theorem 10 with the same 
+
+L, W, B, C, D specified above. First, we have 
+
+bϕ(p1: N , ξ ) − w 2
+
+≲ ∥ϕ∗(p1: N , ξ ) − w∥2 + bϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ ) 2
+
+≲ ∥ϕ∗(p1: N , ξ ) − w∥2 + 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
++ 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
+− E
+
+bϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ ) 2
+
+≲ ∥ϕ∗(p1: N , ξ ) − w∥2 + 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
++ sup 
+
+> ϕ∈Φ
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+ϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
+− Ep1: N ,ξ 
+
+h
+
+∥ϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥2i
+
+.
+
+The expectation of the first term is bounded in Theorem 10, i.e., 
+
+E
+
+h
+
+∥ϕ∗(p1: N , ξ ) − w∥2i
+
+≲ k log δ−1
+
+ϵ2N 2
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 2
+
++ 1
+
+N
+
+!
+
++
+
+Z dk
+
+dtt2γ =: ∆ N .
+
+Moreover, the expectation of the second term is bounded in Lemma 8: 
+
+E
+
+"
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+bϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
+#
+
+≤ eO
+
+
+
+∆N + dN + d2
+
+√M
+
+
+
+.
+
+25 Finally, the third term is bounded in Lemma 9: 
+
+E
+
+"
+
+sup 
+
+> ϕ∈Φ
+
+1
+
+M
+
+> M
+
+X
+
+> m=1
+
+ϕ(p(m)1: N , ξ (m)) − ϕ∗(p(m)1: N , ξ (m)) 2
+
+− Ep1: N ,ξ 
+
+h
+
+∥ϕ(p1: N , ξ ) − ϕ∗(p1: N , ξ )∥2i #
+
+≲ LW 
+
+√M
+
+plog {dL (B ∨ 1)( W + 1)( C ∨ 1) · ϵ−1 log( δ−1)}
+
+≲ d log( dϵN )
+
+√M .
+
+Therefore, we have 
+
+E
+
+bϕ(p1: N , ξ ) − w 2
+
+≤ eO k log δ−1
+
+ϵ2N 2
+
+
+
+k ∨ log 
+
+ ϵN 
+
+log δ−1
+
+ 2
+
++ dN + d2 + d log( ϵN )
+
+√M +
+
+Z dk
+
+dtt2γ
+
+!
+
+,
+
+which completes the proof. 
+
+## C Lower Bound of DP-SGD 
+
+Here, we provide the proof of Theorem 7. 
+
+Proof of Theorem 7. We first analyze the update of DP-SGD when clipping does not occur for the first t steps. Then, we lower-bound the probability that clipping does not occur. 
+
+Explicit update of DP-SGD without clipping Recall that we analyze the full-batch DP-SGD update 
+
+ωt = ωt−1 − ηN
+
+( NX
+
+> n=1
+
+clip C (∇L n(ωt−1)) + ξt
+
+)
+
+, ξt ∼ N (0 , s 2Id).
+
+We write ¯ξt := ξt/N , so that ¯ξt ∼ N (0 , (s2/N 2)Id). The loss function can be written as follows: 
+
+L(θ) = 12N
+
+> N
+
+X
+
+> i=1
+
+(θ⊤xi − w⊤xi − zi)2
+
+= 12 (θ − w)⊤
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+xix⊤
+
+> i
+
+#
+
+(θ − w) −
+
+"
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+zixi
+
+#⊤
+
+(θ − w) + 12N
+
+> N
+
+X
+
+> i=1
+
+z2
+
+> i
+
+= 12 (θ − w)⊤ bΣ( θ − w) + bμ⊤(θ − w) + 12N
+
+> N
+
+X
+
+> i=1
+
+z2
+
+> i
+
+where 
+
+bΣ := 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+xix⊤ 
+
+> i
+
+, bμ := − 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+zixi.
+
+Therefore, the gradient of the loss function is 
+
+∇L (θ) = bΣ( θ − w) + bμ. 
+
+Hence, the t-th update of DP-SGD without clipping can be written as 
+
+ωt = ωt−1 − η ∇L (ωt−1) + ¯ξt
+
+
+
+= ωt−1 − η bΣ( ωt−1 − w) − η(bμ + ¯ξt).
+
+26 Let ∆t := ωt − w. Then, we have 
+
+∆t = ∆ t−1 − η bΣ∆ t−1 − η(bμ + ¯ξt)= ( I − η bΣ)∆ t−1 − η(bμ + ¯ξt).
+
+Repeating over t steps, we have 
+
+∆t = ( I − η bΣ)∆ t−1 − η(bμ + ¯ξt)= ( I − η bΣ) 
+
+n
+
+(I − η bΣ)∆ t−2 − η(bμ + ¯ξt−1)
+
+o
+
+− η(bμ + ¯ξt)= ( I − η bΣ) 2∆t−2 −
+
+n
+
+η(I − η bΣ)( bμ + ¯ξt−1) + η(bμ + ¯ξt)
+
+o
+
+= · · · 
+
+= ( I − η bΣ) t∆0 −
+
+> t
+
+X
+
+> s=1
+
+η(I − η bΣ) t−s(bμ + ¯ξs)= ( I − η bΣ) t∆0 − (I − (I − η bΣ) t)bΣ−1 bμ − ξt,
+
+where 
+
+ξt := 
+
+> t
+
+X
+
+> s=1
+
+η(I − η bΣ) t−s ¯ξs.
+
+Conditionally on x1: N , the variable ξt follows the normal distribution N (0 , (s2/N 2)Σ t) with 
+
+Σt := 
+
+> t
+
+X
+
+> s=1
+
+η2(I − η bΣ) 2( t−s) = η
+
+h
+
+I − (I − η bΣ) 2tih bΣ(2 I − η bΣ) 
+
+i−1
+
+.
+
+Probability of no clipping We first lower-bound the probability that clipping does not occur. We can evaluate the loss associated with n-th data point as follows: 
+
+Ln(θ) = 12 (θ⊤xn − w⊤xn − zn)2
+
+= 12 (θ − w)⊤Σn(θ − w) − (znxn)⊤(θ − w) + z2
+
+> n
+
+2 ,
+
+where Σn := xnx⊤ 
+
+> n
+
+. Then, we have 
+
+∇L n(θ) = Σ n(θ − w) − znxn.
+
+Therefore, the sufficient condition for no clipping is ∥Σn∆t − znxn∥ ≤ C for all n = 1 , . . . , N and 
+
+t = 0 , . . . , T − 1. We have 
+
+∥Σn∆t − znxn∥ ≤ ∥ Σn∆t∥ + ∥znxn∥.
+
+Moreover, we have 
+
+∥Σn∆t∥ = xnx⊤ 
+
+> n
+
+∆t
+
+≤ (xnx⊤ 
+
+> n
+
+)( I − η bΣ) t∆0 + (xnx⊤ 
+
+> n
+
+)( I − (I − η bΣ) t)bΣ−1 bμ + (xnx⊤ 
+
+> n
+
+)ξt .
+
+We set the clipping size as 
+
+C ≥ max {8α, 5√68 }d. 
+
+It is sufficient to show that 
+
+
+
+(i) ∥(xnx⊤ 
+
+> n
+
+)( I − η bΣ) t∆0∥ ≤ C/ 4,
+
+(ii) ∥(xnx⊤ 
+
+> n
+
+)( I − (I − η bΣ) t)bΣ−1 bμ∥ ≤ C/ 4,
+
+(iii) ∥(xnx⊤ 
+
+> n
+
+)ξt∥ ≤ C/ 4,
+
+(iv) ∥znxn∥ ≤ C/ 4,
+
+27 for all t = 1 , . . . , T and n = 1 , . . . , N .We first prove the inequality (i). Since xnx⊤ 
+
+> n
+
+is a rank-1 matrix and 
+
+(xnxn)⊤xn = ∥xn∥2xn = dx n,
+
+its only non-zero (and therefore the maximum) eigenvalue is d. Therefore, we have 
+
+(xnx⊤ 
+
+> n
+
+)( I − η bΣ) t∆0 ≤ d∥(I − η bΣ) t∆0∥ ≤ d∥∆0∥.
+
+Moreover, we have 
+
+∥∆0∥ ≤ 
+
+r α2
+
+12γ + · · · + α2
+
+d2γ ≤ α
+
+s
+
+1 + 
+
+Z d
+
+> 1
+
+x−2γ dx ≤ 2α. 
+
+Hence, we have 
+
+(xnx⊤ 
+
+> n
+
+)( I − η bΣ) t∆0 ≤ 2αd ≤ C
+
+4 .
+
+Next, we prove (ii). We first define the event used to control the inverse of bΣ. By Lemma 13, with probability 1 − 117 · 12 , all of the eigenvalues are in [1 − ζN , 1 + ζN ], where 
+
+ζN := A1
+
+r dN +
+
+r log(68) 
+
+N
+
+!
+
++
+
+r dN +
+
+r log(68) 
+
+N
+
+!2.
+
+We denote this event by Eeigen . In particular, if N ≥ max {144 A21, 12 A1}(√d + plog(68)) 2, then 
+
+ζN ≤ 1/6. We upper-bound ∥bμ∥. By definition, we have 
+
+∥bμ∥22 = 1
+
+N 2
+
+> N
+
+X
+
+> i,j =1
+
+zizj · x⊤ 
+
+> i
+
+xj
+
+Taking expectation, we have 
+
+E[∥bμ∥22] = 1
+
+N 2
+
+> N
+
+X
+
+> i=1
+
+E[z2 
+
+> i
+
+· ∥ xi∥2] = 1
+
+N 2
+
+> N
+
+X
+
+> i=1
+
+E[z2 
+
+> i
+
+] · E[∥xi∥2]= 1
+
+N 2
+
+> N
+
+X
+
+> i=1
+
+E[x⊤ 
+
+> i
+
+xi] = 1
+
+N 2
+
+> N
+
+X
+
+> i=1
+
+E[tr  xix⊤
+
+> i
+
+]= tr( I)
+
+N = dN .
+
+Therefore, Markov’s inequality implies ∥bμ∥2 ≤
+
+q 68 dN with probability 1 − 117 · 14 . Therefore, we have ∥bμ∥ ≤ 
+
+q 68 dN . In particular, if N ≥ d, we have ∥bμ∥ ≤ √68 . Therefore, similarly to (i), we have 
+
+(xnx⊤ 
+
+> n
+
+)( I − (I − η bΣ) t)bΣ−1 bμ ≤ d (I − (I − η bΣ) t)bΣ−1 bμ
+
+≤ 65 d∥bμ∥ ≤ 6√68 5 d ≤ C
+
+4 .
+
+on the event Eeigen .Let us prove (iii) next. On the same event Eeigen , we have 
+
+Σt op ≤ η(1 − (1 − η · 56 )2t) 
+
+> 56
+
+·  2 − η · 76
+
+ ≤ 36 η
+
+5(12 − 7η) < 3,
+
+28 which implies x⊤ 
+
+> n
+
+Σtxn ≤ 3∥xn∥2. Since it holds x⊤ 
+
+> n
+
+ξt | xn ∼ N (0 , (s2/N 2)x⊤ 
+
+> n
+
+Σtxn), we have 
+
+P
+
+
+
+x⊤ 
+
+> n
+
+ξt ≤ 3sN
+
+p2 log(136 N T )∥xn∥ xn
+
+
+
+≥ P
+
+
+
+x⊤ 
+
+> n
+
+ξt ≤ sN
+
+p6 log(136 N T )∥xn∥ xn
+
+
+
+≥ P x⊤ 
+
+> n
+
+ξt ≤
+
+r 2s2
+
+N 2 x⊤ 
+
+> n
+
+Σtxn log(136 N T ) xn
+
+!
+
+≥ 1 − 1136 N T .
+
+Union bound over t = 1 , . . . , T and n = 1 , . . . , N implies that 
+
+x⊤ 
+
+> n
+
+ξt ≤ 3sN
+
+p2 log(136 N T )∥xn∥,
+
+for all t = 1 , . . . , T and n = 1 , . . . , N , with probability 1 − 117 · 18 . Under this event, it holds 
+
+xnx⊤ 
+
+> n
+
+ξt = x⊤ 
+
+> n
+
+ξt ∥xn∥ ≤ 3sN
+
+p2 log(136 N T )∥xn∥2
+
+≤ 3ds ⋆C
+
+p2T log(136 N T ) log( δ−1)
+
+N ϵ ,
+
+for all n = 1 , . . . , N and t = 1 , . . . , T . If N ≥ √2N0 log N0 with 
+
+N0 = 12 s⋆dp2T log(136 T )ϵ−2 log( δ−1),
+
+we have 
+
+xnx⊤ 
+
+> n
+
+ξt ≤ C
+
+4
+
+p(12 ds ⋆)2 · 2T log(136 T )ϵ−2 log( δ−1) + (12 ds ⋆)2 · 2T log( N )ϵ−2 log( δ−1)
+
+N
+
+≤ C
+
+4
+
+pN 20 + (12 ds ⋆)2 · 2T log( N0)ϵ−2 log( δ−1)
+
+√2N0 log N0
+
+≤ C
+
+4
+
+pN 20 + N 20 log( N0)
+
+√2N0 log N0
+
+≤ C
+
+4 ,
+
+for all t = 1 , . . . , T and n = 1 , . . . , N .Finally, we prove (iv). First, we have ∥znxn∥ = |zn|∥ xn∥ = √d|zn|. Since zn ∼ N (0 , 1) , we have 
+
+∥znxn∥ ≤ 
+
+s
+
+2d log 2(272 N )−1 ,
+
+with probability 1 − 117 · 116 N . Taking a union bound for n = 1 , . . . , N , we have 
+
+∥znxn∥ ≤ p2d log(544) ≤ 3d, 
+
+for all n = 1 , . . . , N , with probability 1 − 117 · 116 .Summarizing the bounds above, if N ≥ max {√2N0 log N0, d } and C ≥ max {8α, 5√68 }d, we have the following with probability 1 − 117 
+
+  14 + 18 + 116 
+
+:
+
+sup   
+
+> t=1 ,...,T ;n=1 ,...,N
+
+∥∇L n(ωt−1)∥ ≤ C, 
+
+which implies that no clipping occurs. 
+
+Lower bound of ∥∆T ∥ We first condition on x1: N and ∆0. Recall the following explicit form of 
+
+∆T :
+
+∆T = ( I − η bΣ) T ∆0 − (I − (I − η bΣ) T )bΣ−1 bμ − ξT ,
+
+= ( I − η bΣ) T ∆0 − BT bμ − ξT .
+
+29 where ξT ∼ N (0 , (s2/N 2)Σ T ) with ΣT = η
+
+h
+
+I − (I − η bΣ) 2T
+
+ih bΣ(2 I − η bΣ) 
+
+i−1
+
+, and BT := (I − (I − η bΣ) T )bΣ−1. Since it holds 
+
+E bμbμ⊤ x1: N
+
+ = 1
+
+N 2 E
+
+" NX
+
+> n=1
+
+z2
+
+> n
+
+xnx⊤ 
+
+> n
+
+x1: N
+
+#
+
+= 1
+
+N 2
+
+> N
+
+X
+
+> n=1
+
+xnx⊤ 
+
+> n
+
+= 1
+
+N bΣ,
+
+we have 
+
+−BT bμ − ξT
+
+ ∼ N (0 , S ) where S = 1
+
+N BT bΣB⊤ 
+
+> T
+
++ s2
+
+N 2 ΣT .
+
+Therefore, using Lemma 14, we have 
+
+∥∆T ∥2 ≥ 12 QT ,
+
+with probability 117 . Here, we define 
+
+QT := (I − η bΣ) T ∆0
+
+> 2
+
++ 1
+
+N tr 
+
+
+
+BT bΣB⊤
+
+> T
+
+
+
++ s2
+
+N 2 tr  ΣT
+
+.
+
+Next, we lower-bound the right-hand side with constant probability on x1: N and ∆0. We first recall that, under the event Eeigen , we have λmax ∈ [1 , 1 + ζN ] and λmin ∈ [1 − ζN , 1] . We also recall that, if N ≥ max {144 A21, 12 A1}(√d + plog(68)) 2, then ζN ≤ 1/6.We consider the following two cases separately. • Case (i): η ∈ [6 /7, 1) . In this case, for T ≥ 1, we have 
+
+1
+
+N tr 
+
+
+
+BT bΣB⊤
+
+> T
+
+
+
+= 1
+
+N
+
+> d
+
+X
+
+> i=1
+
+1 − (1 − ηλ i)T 2
+
+λi
+
+≥ 67N
+
+> d
+
+X
+
+> i=1
+
+1 − (1 − ηλ i)T 2 ≥ 150 343 
+
+dN ,
+
+where we used λi ≤ 7/6 and |1 − ηλ i| ≤ 2/7 on Eeigen . Moreover, 
+
+tr  ΣT
+
+ = tr 
+
+> T
+
+X
+
+> s=1
+
+η2(I − η bΣ) 2( T −s)
+
+!
+
+≥ tr  η2I = η2d ≥ 36 49 d, 
+
+which implies 
+
+QT ≥ 150 343 
+
+dN + 36 49 
+
+ds 2
+
+N 2 ≥ 150 343 
+
+dN + 36 49 
+
+ds 2
+
+T N 2 .
+
+• Case (ii): η ∈ (0 , 6/7) . Let 0 ≤ λmin = λ1 ≤ · · · ≤ λd = λmax . Then, we have 
+
+tr  ΣT
+
+ = tr 
+
+> T
+
+X
+
+> s=1
+
+η2(I − η bΣ) 2( T −s)
+
+!
+
+= η2 
+
+> T−1
+
+X
+
+> k=0
+> d
+
+X
+
+> i=1
+
+(1 − ηλ i)2k.
+
+Since it holds ηλ max < 67 · 76 = 1 under the event Eeigen , we have 
+
+tr  ΣT
+
+ ≥ η2 
+
+> T−1
+
+X
+
+> k=0
+> d
+
+X
+
+> i=1
+
+(1 − ηλ max )2k
+
+= dη 1 − (1 − ηλ max )2T
+
+λmax (2 − ηλ max )= dηλ max 
+
+1 − (1 − ηλ max )2T
+
+λ2max (2 − ηλ max ) .
+
+30 We upper-bound the factor λ2max (2 − ηλ max ). The function λ 7 → λ2(2 − ηλ ) monotonically increases in λ ∈
+
+h
+
+0, 43η
+
+i
+
+. Since η−1 > 7/6, it holds 43η > 14 9 > 76 . Using λmax ≤ 76 , we have 
+
+λ2max (2 − ηλ max ) ≤
+
+ 76
+
+2
+
+2 − η · 76
+
+
+
+≤ 49 18 .
+
+This implies that 
+
+tr  ΣT
+
+ ≥ 18 49 dηλ max 
+
+1 − (1 − ηλ max )2T .
+
+Moreover, we have 
+
+(I − η bΣ) T ∆0
+
+> 2
+
+≥ (1 − ηλ max )2T ∥∆0∥2.
+
+Also, we have 
+
+1
+
+N tr 
+
+
+
+BT bΣB⊤
+
+> T
+
+
+
+= 1
+
+N
+
+> d
+
+X
+
+> i=1
+
+1 − (1 − ηλ i)T 2
+
+λi
+
+≥ 150 343 
+
+dN
+
+1 − (1 − ηλ max )T 2.
+
+Here, we used 1 − (1 − ηλ i)T ≥ 57
+
+1 − (1 − ηλ max )T , which follows from λi ≥ 57 λmax on 
+
+Eeigen . Combining the preceding two displays and using a(1 − y)2 + by 2 ≥ 12 min {a, b } for 
+
+a, b > 0 and y ∈ [0 , 1] , we obtain 
+
+(I − η bΣ) T ∆0
+
+> 2
+
++ 1
+
+N tr 
+
+
+
+BT bΣB⊤
+
+> T
+
+
+
+≥ 12 min 
+
+ 150 343 
+
+dN , ∥∆0∥2
+
+
+
+.
+
+Therefore, we have 
+
+(I − η bΣ) T ∆0
+
+> 2
+
++ s2
+
+N 2 tr  ΣT
+
+
+
+≥ 18 49 
+
+ds 2
+
+T N 2 T ηλ max 
+
+1 − (1 − ηλ max )2T  + ∥∆0∥2(1 − ηλ max )2T .
+
+Since it holds ηλ max ∈ [0 , 1] , we can apply Lemma 15 with x ← ηλ max , A ← 18 49   
+
+> ds 2
+> T N 2
+
+, and 
+
+B ← ∥ ∆0∥2. Therefore, we have 
+
+(I − η bΣ) T ∆0
+
+> 2
+
++ s2
+
+N 2 tr  ΣT
+
+ ≥ min 
+
+ 140 · 18 49 
+
+ds 2
+
+T N 2 , 180 ∥∆0∥2
+
+
+
+.
+
+Combining the two lower bounds in Case (ii), and using QT ≥ A and QT ≥ B to obtain 
+
+QT ≥ (A + B)/2 when the two lower bounds above control A and B, we have 
+
+QT ≳ min 
+
+ dN , ∥∆0∥2
+
+
+
++ min 
+
+ ds 2
+
+T N 2 , ∥∆0∥2
+
+
+
+.
+
+Combining (i) and (ii), we have 
+
+QT ≳ min 
+
+ dN , ∥∆0∥2
+
+
+
++ min 
+
+ ds 2
+
+T N 2 , ∥∆0∥2
+
+
+
+.
+
+Additionally, with probability 1 − 117 · 132 , it holds ∥∆0∥ ≥ α 
+
+> 544
+
+, and 
+
+QT ≳ dN + min 
+
+ ds 2
+
+T N 2 , 1
+
+
+
+,
+
+where we used N ≥ d.Therefore, we have 
+
+∥∆T ∥2 ≳ dN + min 
+
+ ds 2
+
+T N 2 , 1
+
+
+
+. (3) 31 Finishing the proof The conditions imposed on N and C above are summarized as 
+
+N ≥ max 
+
+n
+
+d, √2N0 log N0, max {144 A21, 12 A1}(√d + plog(68)) 2o
+
+,
+
+with N0 = 12 s⋆dp2T log(136 T )ϵ−2 log( δ−1) and C ≥ max {8α, 5√68 }d. Under these conditions, we have (3) with probability 
+
+117 
+
+
+
+1 − 12 − 14 − 18 − 116 − 132 
+
+
+
+≥ 117 · 132 .
+
+Therefore, we have 
+
+E[∥ωT − w∥2] ≳ dN + min 
+
+ ds 2
+
+T N 2 , 1
+
+
+
+≳ dN + min 
+
+(
+
+d C2 log  δ−1
+
+ϵ2N 2 , 1
+
+)
+
+≳ dN + min 
+
+( d3 log  δ−1
+
+ϵ2N 2 , 1
+
+)
+
+,
+
+which completes the proof. 
+
+## D Auxiliary Lemmas 
+
+The following lemma is about the concentration of eigenvalues of the empirical covariance matrix. 
+
+Lemma 13. Let N ∈ Z>0, and x1, . . . , x N ∼ Unif( √dSd−1) be i.i.d. random variables. We define 
+
+bΣ := 1
+
+> N
+
+PNn=1 xnx⊤ 
+
+> n
+
+, and let λ1, . . . , λ d be the eigenvalues of bΣ. Suppose that N > d . Then, we have the following two facts: 
+
+• For any δ ∈ (0 , 1) , it holds 
+
+sup 
+
+> i=1 ,...,d
+
+|λi − 1| ≤ A1
+
+r dN +
+
+r log(2 /δ )
+
+N
+
+!
+
++
+
+r dN +
+
+r log(2 /δ )
+
+N
+
+!2.
+
+with probability 1 − δ, where A1 is an absolute constant. 
+
+• There exists a constant A2 such that 
+
+P(λmin (bΣ) ≤ t) ≤ 2
+
+
+
+KN,d 
+
+√t
+
+N −d+1 
+
+,
+
+for all t ∈ (0 , K −2
+
+> N,d
+
+] where KN,d := A2
+
+> √N√d
+> √d+
+
+√2 log(2 N )  
+
+> √N−√d
+
+.Proof. We first prove the first argument. Let A ∈ RN ×d be the matrix whose n-th row is x⊤ 
+
+> n
+
+. Then 
+
+bΣ = A⊤A/N . The random vector xn ∼ Unif( √dSd−1) is mean zero and isotropic: by rotational invariance, E[xnx⊤ 
+
+> n
+
+] = aI d for some a > 0, and taking traces gives ad = E∥xn∥2 = d, hence a = 1 .Moreover, xn is sub-Gaussian with an absolute sub-Gaussian norm. Indeed, for every u ∈ Sd−1,
+
+⟨xn, u ⟩ has the same distribution as √d θ 1, where θ ∼ Unif( Sd−1); the standard concentration inequality on the sphere gives 
+
+P(|⟨ xn, u ⟩| > t ) ≤ 2 exp  −ct 2, t ≥ 0,
+
+for an absolute constant c > 0. Thus sup u∈Sd−1 ∥⟨ xn, u ⟩∥ ψ2 is bounded by an absolute constant. Theorem 4.6.1 of Vershynin (2020), applied to the matrix A with independent, mean-zero, isotropic, sub-Gaussian rows, implies that for every t ≥ 0, with probability at least 1 − 2 exp  −t2,
+
+bΣ − Id op 
+
+= A⊤AN − Id
+
+> op
+
+≤ C
+
+
+
+√d + t
+
+√N +
+
+√d + t
+
+√N
+
+!2,
+
+32 where C > 0 is an absolute constant. Taking t = plog(2 /δ ) yields the bound with probability at least 1 − δ. Finally, since bΣ − Id is symmetric, 
+
+sup 
+
+> i=1 ,...,d
+
+|λi − 1| = bΣ − Id op 
+
+,
+
+which proves the first argument after absorbing constants into A1.We prove the second argument. Let un := xn/√d. Then, we have un ∼ Unif( Sd−1). Let r1, . . . , r N
+
+be independent random variables, independent of u1, . . . , u N , whose common distribution is the norm of a standard Gaussian vector in Rd. By the polar decomposition of a Gaussian vector, gn := rnun are i.i.d. N (0 , I d). Let U := [ u1, . . . , u N ] and G := [ g1, . . . , g N ] = U D with D = diag( r1, . . . , r N ).Moreover, we have X = √dU and bΣ = dN U U ⊤, which yields 
+
+λmin (bΣ) = dN smin (U )2,
+
+where smin is the smallest singular value. Let M := max n=1 ,...,N rn. Then, we have P(rn ≥ √d + t) ≤ e−t2/2. Therefore, we have 
+
+P(M ≤ √d + p2 log(2 N )) ≥ 12 .
+
+On the event E := {M ≤ √d + p2 log(2 N )}, we have 
+
+smin (G) = smin (U D ) ≤ ∥ D∥op smin (U ) ≤ (√d + p2 log(2 N )) smin (U ).
+
+Therefore, we have 
+
+{smin (U ) ≤ u} ∩ E ⊂ { smin (G) ≤ (√d + p2 log(2 N )) u}.
+
+Since {smin (U ) ≤ u} depends only on the directions u1, . . . , u N , whereas E depends only on the independent radii r1, . . . , r N , these two events are independent. This implies 
+
+P(smin (U ) ≤ u) ≤ P(smin (G) ≤ (√d + p2 log(2 N )) u)
+
+P(E)
+
+≤ 2P(smin (G) ≤ (√d + p2 log(2 N )) u).
+
+Since G is a random matrix whose entries independently follow N (0 , 1) , the standard lower-tail bound for the smallest singular value of rectangular Gaussian matrices gives, for ϵ > 0,
+
+P(smin (G) ≤ ϵ(√N − √d)) ≤ (A2ϵ)N −d+1 .
+
+Therefore, we have 
+
+P(smin (U ) ≤ u) ≤ 2 A2
+
+(√d + p2 log(2 N )) u
+
+√N − √d
+
+!N −d+1 
+
+.
+
+Hence, we have 
+
+P(λmin (bΣ) ≤ t) = P smin (U ) ≤
+
+r N t d
+
+!
+
+≤ 2( KN,d 
+
+√t)N −d+1 ,
+
+which completes the proof. The following lemma provides a constant lower bound on the probability that the norm of an uncentered Gaussian vector exceeds a specified threshold. 
+
+Lemma 14. Let p ∈ Rd and x ∼ N (0 , S ) for some positive definite matrix S ∈ Rd×d. Then, we have 
+
+P
+
+"
+
+∥p + x∥2 ≥ ∥p∥2 + tr S
+
+2
+
+#
+
+≥ 117 .
+
+33 Proof. First, we evaluate the expectation and the variance of ∥p + x∥. We have 
+
+E
+
+h
+
+∥p + x∥2i
+
+= E
+
+h
+
+∥p∥2 + 2 p⊤x + ∥x∥2i
+
+= ∥p∥2 + E[∥x∥2]= ∥p∥2 + tr S =: M. 
+
+Moreover, we have 
+
+Var 
+
+
+
+∥p + x∥2
+
+= Var 
+
+
+
+2p⊤x + ∥x∥2
+
+= 4 Var( p⊤x) + Var( x⊤x) + 4 Cov( p⊤x, x ⊤x)= 4 p⊤Sp + 2 tr  S2.
+
+We upper-bound the variance using M 2. As for the first term, we have 
+
+p⊤Sp ≤ λmax (S)∥p∥2 ≤ tr( S)∥p∥2.
+
+Moreover, the second term can be upper-bounded as 
+
+tr  S2 =
+
+> d
+
+X
+
+> i=1
+
+λ2 
+
+> i
+
+≤
+
+> d
+
+X
+
+> i=1
+
+λi
+
+!2
+
+= tr( S)2.
+
+Therefore, we have 
+
+Var 
+
+
+
+∥p + x∥2
+
+= 4 p⊤Sp + 2 tr  S2
+
+≤ 4 tr( S)∥p∥2 + 2 tr( S)2
+
+≤ tr( S)
+
+
+
+4∥p∥2 + 2 tr( S)
+
+
+
+≤ 4M 2.
+
+Now, Cantelli’s inequality implies 
+
+P
+
+
+
+∥p + x∥2 − M ≤ − M
+
+2
+
+
+
+≤
+
+Var 
+
+
+
+∥p + x∥2
+
+Var 
+
+
+
+∥p + x∥2
+
++ ( M/ 2) 2
+
+= 1 − M 2
+
+4 Var 
+
+
+
+∥p + x∥2
+
++ M 2
+
+≤ 1 − M 2
+
+16 M 2 + M 2 = 16 17 .
+
+This yields 
+
+P
+
+
+
+∥p + x∥2 ≥ M
+
+2
+
+
+
+≥ 117 ,
+
+which completes the proof. The following lemma is used in the proof of Theorem 7 to lower-bound the sum of two terms; one from the DP noise and the other from the bias of the initial point. 
+
+Lemma 15. Let A, B > 0 and T ∈ Z≥0. We define a function f : [0 , 1] → R as f (x) = 
+
+AT x (1 − (1 − x)2T ) + B(1 − x)2T . Then, we have 
+
+min  
+
+> x∈[0 ,1]
+
+f (x) ≥ min 
+
+ A
+
+40 , B
+
+80 
+
+
+
+.
+
+34 Proof. If T = 0 , then f (x) = B, whose minimum is B.We consider the case of T ≥ 1. Let R := B/A and y := (1 − x)2T . Then, we have 
+
+f (x)
+
+A = T x (1 − y) + Ry. 
+
+Suppose that 1/2 ≤ x ≤ 1. Then, we have y ≤ 2−2T ≤ 1/4, which yields 
+
+f (x)
+
+A ≥ T x (1 − y) ≥ T · 12 · 34 = 3T
+
+8 .
+
+Next, we consider 0 ≤ x ≤ 1/2. Since it holds −2x ≤ log(1 − x) ≤ − x, we have 
+
+e−4T x ≤ y ≤ e−2T x .
+
+Therefore, we have 
+
+f (x)
+
+A ≥ T x (1 − e−2T x ) + Re−4T x .
+
+We define M := min {T, log(1 + R)}, and consider the following two cases separately. • Case (i): M ≤ 1. We first consider the case of 2T x ≤ 1. We have 
+
+f (x)
+
+A ≥ Re−4T x ≥ e−2R ≥ e−2 log(1 + R) ≥ e−2M. 
+
+On the other hand, if 2T x > 1 we have 
+
+f (x)
+
+A ≥ T x (1 − e−2T x ) ≥ 12 (1 − e−1) ≥ 12 (1 − e−1)M. 
+
+• Case (ii): M > 1. If T x ≥ M/ 8 ( > 1/8) , we have 
+
+f (x)
+
+A ≥ T x (1 − e−1/4) ≥ 1 − e−1/4
+
+8 M. 
+
+Next, we consider the case of T x < M/ 8. Since it holds M ≤ log(1 + R) and M > 1, we have 
+
+R ≥ eM − 1 = e M  1 − e−M  ≥ eM  1 − e−1.
+
+Combining with 4T x < M/ 2, we have 
+
+f (x)
+
+A ≥ Re−4T x ≥ eM  1 − e−1 · e−M/ 2 =  1 − e−1eM/ 2.
+
+Since it holds eM/ 2 ≥ M/ 2, we have 
+
+f (x)
+
+A ≥ 1 − e−1
+
+2 M. 
+
+Overall, we have 
+
+f (x)
+
+A ≥ min 
+
+
+
+e−2, 1 − e−1/4
+
+8 , 1 − e−1
+
+2
+
+
+
+M > M
+
+40 .
+
+Finally, we evaluate M . If B ≥ (e − 1) A, then log(1 + R) ≥ 1, which implies M ≥ min {T, 1} = 1 .Otherwise, we have R < e − 1, which yields log(1 + R) ≥ R/ 2 = B 
+
+> 2A
+
+. Therefore, we have 
+
+f (x) ≥ A · min 1, B
+
+> 2A
+
+40 = min 
+
+ A
+
+40 , B
+
+80 
+
+
+
+,
+
+for all x ∈ [0 , 1] , which completes the proof. 35 E More Details on Experimental Setups 
+
+Computational resources We conducted all experiments on a cluster of eight NVIDIA A100 GPUs, each with 40 GB of VRAM. 
+
+License We use the pretrained model imagenet64_uncond_100M_1500K.pt , which is provided under the MIT License. 
+
+Setups for baselines For all baseline methods, LoRA parameters are inserted only into attention layers, and the LoRA rank is set to 1. To select the learning rate, we first ran non-private SGD (3,000 steps) on 8 datasets selected from the 100 private k-NN sets and compared the average FID. The results are shown in Table 1. Based on this preliminary experiment, we evaluated learning rates 10 2
+
+and 10 3, which achieved the best performance among the candidates. We also monitored the gradient norms during this preliminary experiment and set the clipping threshold to 10 −2 accordingly. For the number of training steps, we evaluated 100 and 400 steps. In Figure 2, we report, for each ϵ,the lowest FID among these combinations of learning rates and training steps. The results for all hyperparameter combinations are available in Table 2. We used a cosine learning-rate scheduler with a linear warmup over the first 10% of training steps. The batch size was set to 32 .For PDA-DPMD, we set the coefficient of the public-data-based mirror map to α = 0 .5. See Section 5.1 of Amid et al. (2022) for the definition of α. For DP-SGD with public-data finetuning, we first finetuned the pretrained model on all 30 ,000 public examples for 100 epochs using Adam, a learning rate of 10 −2, a batch size of 32 , and a cosine learning-rate scheduler with a linear warmup over the first 10% of training steps. In this public finetuning stage, LoRA parameters were inserted only into attention layers, and the LoRA rank was set to 8.
+
+Setups for DP-DeepSets For DP-DeepSets, we use the same LoRA configuration as the baselines: LoRA parameters are inserted only into attention layers, and the LoRA rank is set to 1. This results in 
+
+40 ,704 LoRA parameters in total. We split these parameters into 128 -dimensional tokens so that each token contains only parameters from the same position, resulting in 318 tokens. We set the dataset embedding dimension to 128 , matching the token dimension. The hypernetwork uses a Transformer with hidden dimension 128 , depth 4, MLP width 512 , and 4 attention heads. To prevent the generated LoRA parameters from having excessively large norms, the linear head is initialized from a normal distribution with standard deviation 10 −2, rather than using the PyTorch default initialization. We set the clipping scale for obtaining the noisy dataset embedding to C = 1 . We train the hypernetwork for 
+
+200 epochs using 30 ,000 public datasets, each of which corresponds to a k-NN set of a CIFAR-10 data point with k = 128 . For training, we use a learning rate of 10 −3, a batch size of 4, and a cosine learning-rate scheduler with a linear warmup over the first 10% of training steps. 
+
+## F Additional Experiment: Hypernetwork Training under Distribution Shift 
+
+In the experiments above, the public and private datasets were constructed by splitting the same dataset into two subsets. As an additional experiment, we consider the case where the two datasets are constructed from different open datasets. That is, we investigate the out-of-distribution generalization ability of DP-DeepSets. The private datasets are constructed from CIFAR-10 in the same way as before. The public datasets are constructed from ImageNet64. We downsample the 64 × 64 images to 32 × 32 images, matching the resolution of CIFAR-10. As with CIFAR-10, for each data point, we construct a public dataset by taking its k-NN set in the Inception embedding space with k = 128 , yielding 1,281 ,167 public datasets. Using this collection of public datasets, we train DP-DeepSets for 5 epochs. We modify the DP-DeepSets configuration as follows: we set the number of Transformer layers to 
+
+6, increase the width of the feed-forward layers to 1024 , and increase the hidden dimension of the Transformer to 256 . Because of the increased model size, we further reduce the initialization scale of the final layer (linear head) to 4 × 10 −3. For the DP parameters, we keep δ = 10 −5 and conduct experiments with ϵ = 1 and ϵ = 4 . We set the clipping scale to C = 10 .Table 3 compares the results of DP-DeepSets and DP-SGD. For both values of ϵ, DP-DeepSets achieves lower FID than DP-SGD. This suggests that DP-DeepSets can serve as a better differentially 36 private finetuning method than DP-SGD even when it is trained on public datasets whose distribution differs from that of the private dataset, especially when the private dataset is small. Table 1: FID scores for learning-rate selection in the preliminary non-private SGD experiment. 
+
+Learning rate 10 4 10 3 10 2 10 1 10 0 10 −1 10 −2
+
+FID 449 .4 ± 68 .8 114 .0 ± 15 .1 178 .7 ± 28 .0 240 .2 ± 16 .3 247 .5 ± 16 .3 246 .0 ± 13 .6 246 .0 ± 13 .7
+
+Table 2: FID scores for baseline methods across DP budgets, learning rates, and training steps. 
+
+Methods learning rate Steps DP epsilon 
+
+1024 256 64 16 4 1
+
+PDA-DPMD 10 3 100 243 .6 ± 30 .3 450 .6 ± 37 .4 450 .7 ± 42 .7 452 .8 ± 39 .2 453 .9 ± 39 .9 446 .8 ± 43 .5400 452 .2 ± 36 .5 453 .8 ± 37 .9 452 .4 ± 39 .3 454 .8 ± 38 .5 453 .4 ± 39 .7 463 .9 ± 67 .010 2 100 251 .4 ± 19 .9 251 .7 ± 20 .0 252 .4 ± 20 .1 268 .4 ± 23 .8 411 .1 ± 79 .0 452 .1 ± 38 .1400 241 .2 ± 19 .8 242 .3 ± 22 .3 272 .8 ± 30 .1 439 .9 ± 63 .8 452 .3 ± 39 .0 452 .8 ± 38 .4
+
+PublicFT + DP-SGD 10 3 100 221 .4 ± 34 .0 297 .6 ± 45 .3 368 .4 ± 52 .0 434 .7 ± 44 .8 451 .3 ± 39 .1 448 .7 ± 38 .3400 290 .8 ± 47 .3 399 .1 ± 49 .3 451 .5 ± 38 .2 453 .0 ± 39 .2 448 .8 ± 38 .7 382 .0 ± 37 .210 2 100 230 .2 ± 29 .0 230 .0 ± 29 .3 230 .1 ± 29 .7 236 .5 ± 31 .9 344 .0 ± 46 .9 430 .0 ± 35 .6400 226 .4 ± 29 .1 224 .1 ± 30 .4 234 .6 ± 38 .4 259 .4 ± 38 .5 446 .1 ± 36 .3 446 .3 ± 38 .1
+
+Methods learning rate Steps DP epsilon 
+
+1024 512 256 128 64 32 
+
+DP-SGD 10 3 100 233 .4 ± 31 .9 226 .8 ± 34 .4 296 .5 ± 44 .3 342 .5 ± 48 .0 382 .1 ± 48 .8 418 .7 ± 45 .5400 287 .4 ± 44 .5 345 .1 ± 51 .0 396 .7 ± 47 .2 452 .0 ± 43 .4 454 .8 ± 39 .3 450 .7 ± 39 .710 2 100 251 .2 ± 19 .7 251 .3 ± 20 .0 251 .4 ± 20 .0 251 .6 ± 19 .7 252 .2 ± 20 .0 254 .7 ± 20 .0400 231 .9 ± 24 .9 232 .8 ± 26 .9 235 .7 ± 30 .2 245 .2 ± 34 .9 261 .0 ± 42 .0 254 .5 ± 35 .1
+
+learning rate Steps DP epsilon 
+
+16 8 4 2 110 3 100 434 .0 ± 42 .3 450 .7 ± 38 .7 451 .7 ± 39 .0 449 .5 ± 39 .1 448 .3 ± 38 .2400 452 .1 ± 38 .7 451 .3 ± 38 .6 449 .0 ± 38 .6 442 .6 ± 36 .7 382 .2 ± 37 .110 2 100 266 .3 ± 20 .3 302 .2 ± 30 .5 348 .7 ± 47 .6 377 .7 ± 39 .4 435 .9 ± 35 .6400 271 .3 ± 45 .9 386 .7 ± 52 .0 439 .2 ± 35 .6 445 .4 ± 37 .1 448 .9 ± 39 .8
+
+Table 3: FID scores under distribution shift between public and private datasets. DP epsilon 1 4Ours 228.8 ± 55.8 224.0 ± 55.3 
+
+DP-SGD 382.2 ± 37.1 348.7 ± 47.6 37

@@ -1,0 +1,938 @@
+Title: SHARD: cell-keyed residual splitting for alignment-resistant private dense retrieval
+
+URL Source: https://arxiv.org/pdf/2606.27976v1
+
+Published Time: Mon, 29 Jun 2026 00:45:24 GMT
+
+Number of Pages: 40
+
+Markdown Content:
+# SHARD: cell-keyed residual splitting for alignment-resistant private dense retrieval 
+
+Sergey M. Kurilenko 
+
+Moscow Institute of Physics and Technology 
+
+sergkurilenko@gmail.com 
+
+June 29, 2026 
+
+Abstract 
+
+Dense embeddings underpin semantic search and Retrieval-Augmented Generation, yet a leaked vector store hands much of the underlying text back to whoever holds it. The modern attacks that make this possible—few-shot alignment, zero-shot inversion, unsupervised cross-space translation—all turn on the same weakness: the protected store is a single global geometry , and any single geometry can be aligned to a known one. A secret global rotation, the usual lightweight defence, is no exception, since orthogonal Procrustes recovers it once the attacker has assembled on the order of the subspace dimension in known plaintext pairs. We introduce Shard , a retrieval-preserving embedding transform built to remove that weak axis rather than to mask a distortion surrogate. The centred embedding is rotated and split into a short public prefix, which drives coarse stage-1 retrieval, and a private residual, which is sharded into C cells and rotated cell by cell under separate secret keys; the residual is reranked under CKKS, where those keys cancel and leave the inner product exact. Asingle parameter C carries the design from the global-linear baseline it replaces ( C=1) to per-document micro-keys ( C=N ). Measured on cached embeddings from five encoders, the transform earns its keep on three fronts. Because the rerank is full-dimensional it returns the raw-space nDCG@10 that half-SVD truncation gives up; because the residual is keyed cell-locally, recovering it into a common frame under a diffuse known-plaintext leak costs roughly 
+
+C times more anchors (the median rises from 200 to 102 ,400 at C=256 ) for only a handful of encrypted residual queries per search; and because the public channel is a short prefix rather than half the space, it exposes far less neighbour structure, with a micro-key limit that drives the residual graph to zero and leaves an unlinkable, renewable template. The barrier holds against the stronger aligners we tried—learned-linear, non-linear, and unsupervised—and where a distortion-aware noise defence at matched utility still de-anonymises almost every probe, Shard de-anonymises none. We are equally plain about what it does not do: within a cell the keys cancel and similarities survive, a targeted attacker who concentrates on one victim’s cell needs only about dpriv anchors, and an overlapping reference corpus still leaks through the public prefix. Shard is an attack-aware geometric defence, not a cryptographic guarantee. 
+
+Keywords: dense retrieval, embedding privacy, protective transforms, alignment attacks, embedding inversion, cell-keyed splitting, cancellable templates, homomorphic encryption, CKKS, retrieval-augmented generation. 
+
+# 1 Introduction 
+
+The privacy of vector representations of text—“embeddings”—has become a first-class concern in production retrieval systems. Dense retrievers (DPR [ 5], ColBERT [ 6]) and state-of-the-art encoders (Sentence-BERT [ 1], multilingual-E5 [ 2], GTR [ 3], BGE-M3 [ 4]) push the per-document representation through a ∼ 10 2-dimensional bottleneck that nevertheless preserves enough information to reconstruct the original text with high BLEU. Vec2Text [7] reports 1
+
+> arXiv:2606.27976v1 [cs.CR] 26 Jun 2026
+
+BLEU ≈ 97 .3% on 32 -token inputs when the attacker has query access to the encoder; GEIA [8]and TEIA [ 9] show that even snapshot attacks (an adversary with read access to the vector database) recover personally identifiable information at high rates. For Retrieval-Augmented Generation pipelines whose vector stores typically contain customer support tickets, internal corporate documents and personal data, this rule of thumb—“a leak of the embedding is a leak of the text”—is now well documented [48, 18]. The defensive landscape is bracketed by two extremes that, individually, do not satisfy industrial requirements. Differential privacy [ 22 , 23 ] adds calibrated noise per-record but, in the naive coordinate-Gaussian formulation on retrieval-quality embeddings, it faces a difficult operating-point choice: mild noise preserves much of the nearest-neighbour geometry, while stronger noise destroys ranking quality long before the privacy budget reaches a level considered useful. Fully homomorphic encryption [ 27 , 33 ] allows arbitrary computation on ciphertexts, but the ciphertext-ciphertext (ct-ct) regime is too expensive for top-k search across 10 6 documents. 
+
+The weak axis of global-linear defences. Between the two extremes sits a popular lightweight middle ground: compress the collection onto a data-dependent SVD subspace, apply a single secret orthogonal rotation, publish an approximate-nearest-neighbour (ANN) index, and rerank the encrypted query under CKKS. We first measure this global-linear stack and confirm that its protection lives on one weak axis —the protected store is a single globally-aligned geometry. Concretely (Section 8): a known-plaintext orthogonal Procrustes attack recovers the secret rotation with about k = d/ 2 anchors, after which an overlapping reference corpus yields near-exact paragraph recovery ( 99 .8% top-1); the public product-quantisation index preserves a mean cosine of 0.95 and 67% of exact top-10 neighbours; and because the rerank happens in the truncated half, the stack loses retrieval quality on real IR, dropping nDCG@10 by 2–8 points on BEIR. These are exactly the weaknesses that modern few-shot alignment [ 10 ], zero-shot inversion [11 ] and unsupervised cross-space translation [ 17 ] attacks exploit: a single global map is, in the end, alignable. 
+
+Shard : an attack-aware geometric transform. We introduce Shard , a family of retrieval-preserving protective transforms designed against the alignment and index-leakage attack surface rather than against a distortion surrogate such as σrec (which, as we and others show, is not a privacy metric). The construction (Section 7) keeps the CKKS/ct-pt machinery of the baseline but replaces its single global geometry. The construction itself is quick to state. We rotate the centred embedding and split it into a short public prefix u—the top-dpub PCA directions, which carry coarse stage-1 retrieval—and a private residual r. The residual is sharded into C coarse cells defined by u, and each cell is turned by its own secret orthogonal key Hc, a product of Householder reflections, so that the server ever only stores zi = Hc(i)ri. Reranking then happens under CKKS in the residual space, where the per-cell keys cancel, ⟨Hcrq, z i⟩ = ⟨rq, r i⟩, and the inner product comes back exact . The single knob C interpolates between the global-linear baseline it replaces ( C=1) and per-document micro-keys ( C=N ), and along the way buys revocability at cell granularity. What this construction buys—measured rather than assumed—comes to four findings. The first is utility (Section 8.5): because the rerank is full-dimensional, Shard recovers the raw ranking that the truncating baseline sacrifices, so that on the BEIR tasks where half-SVD truncation significantly drops nDCG@10 it matches raw (e5-base/SciFact 0.638 against raw 0.637 
+
+and baseline 0.585 ) while exposing a public channel only a quarter to a half as wide. The second, and the headline, is that alignment resistance scales with C (Sections 8.5–8.6): under a diffuse 
+
+known-plaintext leak the anchors needed to map the private residual back into its native frame grow roughly C-fold—a median of 200 for the global key, 25 ,600 at C=64 and 102 ,400 at C=256 ,and the same on a second encoder—at a cost of some 7–30 encrypted residual queries per search. We are careful to fence that claim in: a targeted attacker who concentrates anchors in a victim’s 2public cell needs only about dpriv of them ( 320 and 576 on our two encoders), so the C× gain is a property of diffuse, aggregate leakage and not of every attacker. The barrier nonetheless survives the stronger aligners we set against it—the learned-linear core of ALGEN , a non-linear MLP, and unsupervised vec2vec -style matching all do no better than the plain orthogonal Procrustes we use (Section 8.6)—and against a distortion-aware DP-noise defence held at matched utility, 
+
+Shard alone reaches near-zero de-anonymisation (Section 8.8). The remaining two findings concern what the public side gives away and where the guarantee stops. The short prefix leaks coarse rather than fine structure (Sections 8.7, 8.7): it reveals far less neighbour structure than the baseline’s exposed half (NN-overlap@10 climbing from 0.20 at 
+
+dpub =d/ 16 to 0.55 at d/ 4, against 0.76 ), the within-cell residual graph the server can rebuild shrinks with C (0.25 at C=64 , 0.18 at C=256 ), and per-document micro-keys take it to 0.00 while leaving an unlinkable, renewable template (re-keying AUC ≈ 0.5). The fourth finding we state rather than hide (Section 8.8): Shard hardens the diffuse native-frame mapping, not the coarse graph, so within a cell the keys cancel, and an overlapping reference corpus still de-anonymises through the public prefix once its one cheap global key is recovered. We measure that leak and point to the coarse-cell-ID and micro-key variants that close it, each at a recall or bandwidth cost. The global-linear baseline characterisation (alignment, PQ leakage, BEIR-truncation loss, and the calibrated-noise diagnostic that σrec is not a privacy metric) is retained in Section 8 as the foil that motivates Shard , together with the CKKS ct-pt speed-up and parameter selection (Sections 8.1, 5) that both schemes share. This global-linear stack is the lightweight hybrid of our earlier work [55]; Shard is the attack-aware successor that removes its single weak axis. 
+
+Contributions relative to prior work. The global-linear baseline—SVD truncation, a secret rotation, a public ANN index and ct-pt CKKS reranking—together with the reproducible CKKS parameter selection are not new here: they are our previously published hybrid system [ 55 ] and its companion preprint [ 56 ], which we reproduce only as the comparison setting. Relative to that prior work, this paper contributes exactly the following new elements: (i) the Shard cell-keyed residual-splitting construction (Section 7); (ii) the ≈ C× anchor-complexity scaling law with a semi-formal account (Proposition 3, Section 8.6); (iii) the learned/non-linear/unsupervised aligner study against the keyed residual and the learned-obfuscation and PQ-only defense baselines (Sections 8.6, 8.7); (iv) the public-prefix leakage study and the per-document micro-key limit (Sections 8.7, 8.7); and (v) the targeted-vs-diffuse attacker distinction (Section 8.6). Everything outside this list is reproduced baseline context, condensed and attributed accordingly. 
+
+Hypotheses. The study is organised around four testable hypotheses. (H1) A single global keyed residual is recoverable with O(d) aligned anchors, whereas a cell-local keyed residual requires 
+
+O(C d priv ) diffuse anchors. (H2) Full-dimensional reranking over the keyed residual recovers raw retrieval quality more faithfully than half-SVD truncation at a matched short-listing setup. (H3) 
+
+Public-stage leakage under the short prefix is lower than under a public half-space PQ index at matched short-list utility. (H4) Stronger learned aligners do not beat the dpriv anchor threshold of a single cell. The experiments of Section 8 test each in turn. 
+
+Security-claim discipline. Shard is an attack-aware geometric defence, not a cryptographic privacy guarantee, and every claim below should be read as holding in the measured setting and against the studied attacker families . Query values and scores are protected cryptographically by CKKS; the document side is hardened, not proven secure; and access patterns together with an overlapping public reference corpus remain exposed channels that we measure rather than close. 
+
+Notation. To avoid the overloading of the symbol N , we use Npoly for the CKKS polynomial-modulus degree, Ndocs for the corpus size, and Kcands for the stage-1 short-list length throughout. 3An elementary proxy bound. We state a one-line projection bound (Proposition 1): any decoder whose image is constrained to span (Vk) has L2 reconstruction error at least ∥x⊥∥2. This is a Pythagorean fact, not a security theorem; we use it only to make σrec a precise distortion proxy within that decoder class. Its empirical relation to the BLEU of an off-the-shelf Vec2Text 
+
+attack is reported as Empirical Hypothesis 1. 
+
+Roadmap. Section 2 reviews related literature; Section 3 states the threat model; Section 4 describes the global-linear baseline (the foil) and the shared CKKS/ct-pt machinery; Section 5 the CKKS parameter selection; Section 6 an elementary projection bound; Section 7 introduces 
+
+Shard ; Section 8 reports the baseline characterisation and the four Shard experiments (utility, alignment resistance, public-index leakage, and the reference-lookup limitation); Section 9 discusses limitations and open work. Appendix A condenses the baseline inversion analyses that overlap with the global-linear paper [56]. 
+
+# 2 Related Work 
+
+Embedding inversion. Vec2Text [7] trains an encoder–decoder model that iteratively rewrites a candidate hypothesis until its embedding matches a target vector; on 32 -token MS-MARCO inputs the attack achieves BLEU ≈ 97 .3% and ≈ 92% exact recovery. GEIA [ 8]instead trains a generative decoder that maps a target embedding to a prompt and reconstructs the whole sentence in a single pass. TEIA [9] removes the need to query the victim encoder, training a surrogate inverter that transfers across embedding models. Earlier work of Song and Raghunathan [ 19 ] already established that embedding models leak substantial information about their inputs. Adjacent work on membership-inference [ 20 ] and on extracting training texts from large language models [ 21 ] confirms that the risk surface of dense retrievers is broader than the embedding-inversion literature alone suggests. The 2025 generation of attacks further weakens any defence that relies only on an unknown embedding orientation: ALGEN aligns a victim embedding space to an attack space with few known pairs and then generates text [10 ]; ZSInvert removes the need for an embedding-specific inversion model by using a universal zero-shot decoding strategy [ 11 ]; and LAGO extends few-shot inversion to cross-lingual settings by coupling alignments across related languages [ 12 ]. These papers motivate the alignment experiment in Section 8.3: if a secret rotation can be absorbed by a small alignment matrix, it must not be described as a security guarantee. 
+
+Encrypted search and leakage. A long cryptographic line studies search over encrypted data and the leakage it admits by construction. Searchable symmetric encryption formalised the efficiency/leakage trade-off [ 50 ], and structured encryption generalised it to encrypted data structures with controlled disclosure [ 51 ]. A parallel line of leakage-abuse cryptanalysis shows that access-pattern and co-occurrence leakage alone can reconstruct queries and data [ 52 , 53 ]. We position Shard within this framing rather than against it: CKKS reranking hides the value channel, but the public stage-1 index and the per-query access pattern are leakage that remains 
+
+by construction , which is why we measure the public-index neighbour leakage explicitly and flag access patterns as an open channel for composition with a PIR/ORAM-style primitive. A recent reproducibility study of Vec2Text [ 54 ] corroborates that inversion is strong under ideal conditions yet sensitive to sequence length and to simple quantisation/noise, consistent with our weak-attacker calibration. 
+
+Lightweight defences and transformed representations. Recent defences increasingly treat embeddings as representations whose geometry can be compressed, transformed or regu-larised rather than merely noised. EGuard uses a projection network with mutual-information 4Table 1: Positioning against recent privacy-preserving retrieval defenses. ✓ provided, × not addressed, ∼ partial/approximate; “exact rerank” is full-dimensional scoring with no quanti-zation/noise loss, “coarse-only leak” means the accessible channel exposes only coarse/topic structure.                                                   
+
+> Defense Query priv. Doc. priv. Exact rerank Coarse-only leak Attacker / cost
+> Shard (ours) ✓CKKS ∼keyed ✓✓known-plaintext; ≈C×q.
+> STEER [57] ✓align. ×∼approx. —query inversion; one-off
+> EntroGuard [58] ×∼perturb. ×∼trained EIA; low
+> EGuard [13] ×∼learned ×∼trained EIA; low PQ-only / quantization ×∼lossy ×∼reconstruction; low DP-noise [24] ×∼noise ××any (no key); low
+
+regularisation to reduce inversion leakage [ 13 ]; SPARSE studies concept-aware privacy mecha-nisms and anisotropic noise for embedding inversion resistance [ 14 ]; and nonparametric variational DP work adds bottleneck/noise mechanisms at the representation level [ 15 ]. Matryoshka-style representation learning shows that retrieval utility can be deliberately concentrated in prefix subspaces [ 16 ], while recent cross-space translation work argues that embedding spaces share enough geometry for transfer maps to be useful [ 17 ]. Shard builds on both observations: it uses a Matryoshka-style prefix as a deliberately coarse public channel, precisely because the cross-space-translation literature shows that a single global geometry is alignable. 
+
+Positioning against the 2025 defense and attack lines. Two recent defenses target different channels than Shard . STEER [ 57 ] is query-side : the client learns a one-off transform that maps its query into the server’s embedding space, so the server cannot invert the query—but it does not protect the stored documents and its cross-model alignment is approximate. EntroGuard [58 ](like EGuard ) is a perturbation defense: it raises the entropy of inverted text under a distortion bound, protecting embeddings against trained inversion but at a lossy, non-exact reranking cost. On the attack side, ZSInvert and the universal geometry of vec2vec make a leaked store inversion-prone without victim-specific training—precisely the alignment surface Shard hardens. Table 1 places these lines on common axes: Shard is the only one combining cryptographic query privacy, exact full-dimensional reranking, and an alignment-resistant coarse-only public channel, at the cost of ≈ C encrypted residual queries. 
+
+Cancellable templates and decoupled encoders. Shard ’s cell-local keys import two ideas that are standard in biometric template protection but rare in text retrieval. Cancellable biometrics [ 32 ] require a protected template to be renewable (re-key after compromise) and 
+
+unlinkable (the same identity under two keys should not be matchable); a product of secret Householder reflections per cell gives Shard both at cell granularity. Separately, work on retrieval with asymmetric document/query encoders [ 5, 6] shows that the document and query sides need not share one geometry—the structural premise that lets Shard key the stored side while keeping queries encrypted. Our contribution is to combine a coarse public prefix, a cell-keyed private residual, and CKKS reranking into one retrieval-preserving transform, and to show measured 
+
+advantages on the alignment and index-leakage attack surface relative to the global-linear baseline. 
+
+Differential privacy for embeddings. Lyu et al. [ 24 ] investigate per-coordinate Gaussian noise on dense representations; the empirical finding is that retrieval quality degrades sharply long before ε reaches a useful range. Random-projection-based privacy [ 26 , 25 ] predates modern dense retrieval; the data-dependent SVD projection used here is closer to a noise-removal technique than to a privacy-preserving DP mechanism, although σrec provides a useful proxy quantity. 5Homomorphic encryption. The CKKS scheme [ 27 ] introduced approximate-arithmetic FHE; OpenFHE [ 33 ] and TenSEAL provide production-grade implementations. The bootstrapping cost [ 28 ] pushes practitioners to leveled circuits; specialised compilers [ 34 , 35 ] optimise scale and modulus chains. GPU acceleration of CKKS bootstrap [ 36 ] and Intel HEXL [ 37 ] have made larger leveled circuits feasible. 
+
+Hybrid privacy-preserving retrieval. Tiptoe [ 38 ] combines clustering with PIR for query privacy. SealPIR [ 39 ], OnionPIR [ 41 ] and SimplePIR [ 40 ] provide single-server PIR with practical query sizes. The architecture in this paper is complementary: ct-pt CKKS reranking takes care of the value side of the leakage, while access patterns remain a separate problem for which PIR/ORAM-like primitives are an appropriate composition. 
+
+# 3 Threat Model 
+
+The global-linear baseline and Shard share one threat model, which we fix here. It is asymmetric— a trusted client (the data owner), an honest-but-curious server , and a non-adaptive baseline attacker, strengthened by the known-plaintext attacker we use throughout the alignment analysis. This is a fat-client, data-owner setting: the client runs the encoder, holds all keys, performs stage-1 retrieval locally, and the server only reranks under CKKS—a scoping assumption, not the only possible deployment. Tables 2 and 3 map the baseline ’s coverage and claims (the foil); Table 4 does the same for Shard (the contribution, Section 7). The setting has three parties. The client is the data owner: it runs the encoder E, generates the secret keys μ, V k, R, sk CKKS and never shares them, so it is trusted both in software and in key management. The server runs the search service over the rotated database Erot ∈ RNdocs ×k
+
+and the public PQ artefact; it is honest-but-curious, following the protocol faithfully while trying to read textual information out of everything it stores and every query it processes. The attacker ,finally, is at minimum non-adaptive—an off-the-shelf Vec2Text model with no knowledge of R—but against both schemes we grant it considerably more: a known-plaintext alignment attacker (diffuse, and for Shard also targeted), public-index leakage, reference-corpus lookup, and, against Shard ’s keyed residual, the learned-linear ( ALGEN ) and unsupervised ( vec2vec )alignment cores together with a non-linear MLP (Section 8.6). Malicious-server behaviour and the full generative stages of the modern inverters stay out of scope. 
+
+Three distinct privacy notions. A recurring source of confusion in hybrid designs is the conflation of what is protected. We therefore separate three independent notions and tie each to the component responsible for it. Document privacy is the weakest: the plaintext rotated database 
+
+Erot is visible to the server, protected only by SVD truncation (through the proxy quantity σrec )and the secret rotation R, an empirical obfuscation layer—this is not a cryptographic protection, and it fails under a known R and, as Section 8.3 shows, under even a modest known-plaintext alignment attack. Query privacy is the one part that is cryptographic: CKKS hides the numerical value of the query vector and of the similarity scores from the server, at the chosen security level. 
+
+Access-pattern privacy is again absent—the candidate IDs reranked per query, and the public PQ codes, are not hidden, since CKKS leaves that channel untouched and closing it would need composition with a PIR/ORAM-style primitive. In particular, the public PQ artefact (codebook + per-document codes, trained in the rotated space) is itself a lossy compressed view of Erot . Section 8.3 quantifies this leakage on a controlled sample; the result is strong enough that public PQ codes must be treated as a meaningful side channel rather than as a harmless index artefact. Table 2 summarises the coverage and Table 3 maps each claim to the evidence that supports it. The diagonal of the coverage table is intentional: ct-pt reranking takes care of the value channel, but the access-pattern channel (which document IDs are reranked) remains open, and 6Table 2: Threat coverage of the global-linear baseline (the foil). Shard ’s coverage of the same vectors is in Table 4. 
+
+Attack vector Covered? Comment 
+
+Snapshot of Erot without R (off-the-shelf Vec2Text) Partial Heuristic; empirically validated against non-adaptive Vec2Text. Network interception, leakage of similarity scores Yes CKKS at tc128; sk never leaves the client. Known R (known-rotation attacker) No Reduces to σrec from SVD truncation only. Known-plaintext pairs (text i, E rot ,i ) No Evaluated in Section 8.3; roughly k pairs recover the rotation numerically. Reference-corpus overlap after known-plaintext alignment Partial Evaluated in Section 8.3; overlapping texts are recoverable. Unsupervised cross-space translation attacks No Not evaluated on the baseline; the vec2vec 
+
+alignment core is evaluated against Shard ’s residual (Section 8.6). Adaptive / learned alignment decoder No Appendices A.1, A.4 use off-the-shelf Vec2Text on the baseline; learned-linear/MLP alignment is tested against 
+
+Shard (Section 8.6). Malicious server (protocol deviation, substi-tution) No Verifiable computation / TEEs are an orthog-onal addition. Access-pattern leakage on candidate IDs No CKKS hides values, not access patterns; re-quires PIR/ORAM. Leakage from the public PQ artefact (rotated-space codes) Partial Evaluated in Section 8.3; neighbour structure is substantially preserved, so this remains an exposed channel. 
+
+the public-PQ-artefact channel is measured as leaky rather than closed. They would require composition with a PIR-style primitive and a stronger static-side index protection, respectively. 
+
+# 4 Baseline Construction (the global-linear foil) 
+
+This section describes the global-linear baseline that Shard (Section 7) replaces—SVD truncation, a single secret rotation, a public PQ index, and CKKS reranking. The construction is reproduced 
+
+from our prior work [ 55 , 56 ] and condensed to the elements the Shard comparison needs; we claim no novelty for it here and refer the reader there for the full derivation. It is the foil against which the contribution is measured; Shard reuses its CKKS ct-pt machinery (Sections 4.2, 5) but discards its single global geometry. The baseline is illustrated in Figure 1: an offline data-preparation phase (Section 4.1) and the online query protocol (Section 4.2). 
+
+4.1 Offline phase 
+
+Encoder and centring. The data owner runs the encoder E on a corpus D = {T1, . . . , T Ndocs }
+
+to obtain X ∈ RNdocs ×d with L2-normalised rows. The global centroid μ ∈ Rd is computed and the corpus is centred: Xc = X − μ.
+
+SVD truncation. A randomised SVD [ 42 , 44 ] Xc ≈ UkΣkV ⊤ 
+
+> k
+
+produces the orthonormal matrix 
+
+Vk ∈ Rd×k that spans the dominant k-dimensional subspace. We define the corpus-level relative reconstruction error 
+
+σ2
+
+> rec
+
+(E; Vk) = ∥E − πk(E)∥2
+
+> F
+
+∥E∥2
+
+> F
+
+= 1 − ηk,
+
+where ηk is the fraction of squared Frobenius energy retained. Because σrec decreases as k grows, the operating point k = d/ 2 is the largest truncation dimension (rounded to d/ 2) at which the 7Table 3: Baseline claims vs. evidence (the foil): which statements about the global-linear stack are demonstrated and which are deliberately not claimed. Shard ’s claims are in Table 4. 
+
+Claim Evidence / status 
+
+CKKS hides query values and scores from the server Cryptographic construction + parameters (Sec. 5, 4.3); query privacy is cryptographic. ct-pt is faster than ct-ct for the reranking Section 8.1 ( 1.44 × on the micro-benchmark, 1.7× at the auto-tuned configuration). Secret rotation helps against off-the-shelf ,non-adaptive Vec2Text Appendix A.1; effect holds only for the tested weak-attacker configuration. Aligned off-the-shelf Vec2Text recovers text/PII after Procrustes Appendix A.4: not observed in the memory-capped RTX 4090 run, but the raw baseline is also near the reconstruction floor, so this is not a proof of security. Secret rotation is robust to known-plaintext alignment 
+
+False ; Section 8.3 shows near-exact recovery with about 
+
+k known pairs. Public PQ codes are harmless metadata False ; Section 8.3 shows substantial reconstruction and nearest-neighbour leakage. The protective wrapper preserves ranking in span( Vk)
+
+Section 8.2 (within the 5-seed CI). SVD truncation improves Acc@1 (a “de-noiser”) 
+
+Not significant ; Section 8.2: paired tests give p ≥ 0.11 
+
+for every encoder. SVD truncation significantly improves 
+
+Acc@10 for d=1024 retrieval-trained en-coders Section 8.2 (e5-large +0 .042 , p < 10 −6); it significantly 
+
+degrades compact/paraphrase encoders. The denoiser generalises to real IR False ; Section 8.2: SVD significantly reduces nDCG@10 on BEIR SciFact/NFCorpus for every encoder. 
+
+σrec alone measures document privacy Not claimed ; Appendix A.3 shows that matched-distortion noise can preserve substantially more raw neigh-bour structure. End-to-end query latency < 1 s at 10 6 docs Section 8.4 (loopback PoC). The system is secure against an adaptive 
+
+inversion attacker 
+
+Not claimed ; learned/universal adaptive decoders re-main a required experiment (Sec. 10). The system is secure against reference-corpus lookup 
+
+False when the reference overlaps ; Section 8.3 shows exact paragraph recovery after alignment. The system is secure against unsupervised cross-space transfer attacks 
+
+Not claimed ; these attacks remain outside the evaluated threat model. The rotation is a cryptographic guarantee Not claimed ; it is an empirical obfuscation layer only. Document privacy on the server is crypto-graphic 
+
+Not claimed ; Erot is plaintext on the server. No information leaks from the public PQ codes 
+
+Not claimed ; the measured leakage is non-negligible. 
+
+8Table 4: Shard (the contribution) claims vs. evidence. 
+
+Claim Evidence / status 
+
+Full-dimensional reranking recovers raw re-trieval quality Section 8.5; on BEIR Shard matches raw nDCG@10 where the baseline loses 2–8 points. Diffuse known-plaintext alignment cost grows 
+
+≈ C×
+
+Section 8.6; m50 200 → 25 .6k → 102 .4k (global, C=64 ,
+
+C=256 ), reproduced on two encoders. The barrier is an artefact of assuming orthog-onal Procrustes 
+
+False ; Section 8.6: learned-linear, MLP, and unsuper-vised attackers do no better than Procrustes. The public prefix leaks less than the base-line’s index Section 8.7; NN-overlap@10 0.20 –0.55 vs. 0.76 .Micro-keys remove the residual leak and are unlinkable Section 8.7; residual-graph recoverable → 0.00 , re-keying AUC ≈ 0.5.Keying beats a matched-utility distortion (DP-noise) defence Section 8.8; DP de-anon R@1 ≈ 1.0 vs. Shard 0.0.The ≈ C× gain is free Not claimed ; it costs ≈ 7–30 encrypted residual queries per search (Section 8.5). A targeted attacker is held to ≈ C× Not claimed ; concentrating anchors in a victim’s pub-lic cell needs only ≈ dpriv (Section 8.6). 
+
+Shard hides the neighbour graph Not claimed ; same-cell similarities leak (Section 8.7). 
+
+Shard stops an overlapping reference lookup False ; the public prefix still de-anonymises (Sec-tion 8.8). 
+
+Shard is a cryptographic guarantee Not claimed ; it is an attack-aware geometric trans-form.    
+
+> 1. Client encoder
+> 2. Secret transform
+> μ, V k, R
+> 3. Local PQ shortlist
+> 4. CKKS encrypt rotated query
+> 5. Server ct-pt rerank
+> 6. Decrypt scores
+> 7. Top-k
+> results
+> Offline: protected database Erot + public PQ artifact
+> Online: CKKS hides query values & scores; access pattern stays visible
+
+Figure 1: Online query flow of the global-linear baseline . Steps 1–7 realise the two-stage protocol: client transformation T (·) and local PQ filtering produce a short-list of Kcands candidate IDs; step 4 encrypts the rotated query under CKKS; step 5 runs ct-pt reranking on the server; steps 6–7 decrypt the scores and sort. The secret keys ( μ, Vk, R, sk CKKS ) and the rotated database Erot 
+
+are produced offline by the data owner (Section 4.1). 9distortion floor σrec ≥ 0.10 still holds uniformly across all five tested encoders (the binding cases are e5-large, σrec = 0 .101 , and mpnet, σrec = 0 .107 ); larger k would drop some encoders below the floor. Thus k = d/ 2 maximises retained utility subject to the distortion-proxy constraint. We caution that the threshold 0.10 is an engineering proxy (Section 6), not a privacy guarantee, and is close to binding for two encoders. 
+
+Secret rotation. A Haar-uniform random orthogonal matrix R ∈ O(k) is generated by QR-decomposing a Gaussian matrix and correcting the diagonal of R to obtain a uniform distribution on the group. The protected document representation is 
+
+v′ 
+
+> i
+
+= T (vi) = R V ⊤ 
+
+> k
+
+(vi − μ) ∈ Rk.
+
+Public PQ artefact. A faiss product-quantisation IndexPQ index [ 43 ] is trained in the rotated space Erot with M = k/ 4 subquantisers and 8 bits per code. Both the codebook and the per-document codes are public; the client downloads them once at on-boarding. Training the PQ artefact in the rotated space removes one trivial cross-space pairing (an attacker cannot compose pairs ( ˆEproj , E rot ) from a non-rotated PQ index to estimate R). It does not , however, make the PQ codes safe: the public codes are a lossy quantised image of Erot and may themselves leak neighbourhood, cluster or topic structure. We treat the PQ artefact as part of the attack surface and quantify nearest-neighbour and reconstruction leakage in Section 8.3. 
+
+Client-side state. The client retains μ, Vk, R and the CKKS secret key sk CKKS . The server stores Erot ∈ RNdocs ×k in plaintext and the public PQ artefact. 
+
+4.2 Online query protocol 
+
+The pipeline of Figure 1 processes a query in stages, of which only the last leaves the client. The client encodes the query, vq = E(qtext ) ∈ Rd, and forms the rotated query q′ = R V ⊤ 
+
+> k
+
+(vq − μ) ∈ Rk;using the public PQ artefact and ˜q = q′ it then runs an asymmetric PQ-distance search locally and keeps the top-Kcands candidate IDs Icand —a short-list small enough ( Kcands = 40 in our experiments) that the CKKS reranking still fits the latency budget. It encrypts the rotated query, 
+
+ct q = Enc pk (q′), and sends it on; for each j ∈ Icand the server computes ct (j)score = ct q ⊙ v′ 
+
+> j
+
+in ct-pt mode, a ciphertext that encodes the inner product ⟨q′, v ′ 
+
+> j
+
+⟩ in the rotated projected space. The client finally decrypts those scores, sj = Dec sk ( ct (j)score ), sorts them, and returns the top-K
+
+documents—so the server reranks without ever seeing a plaintext query value or score. 
+
+Why ct-pt is sufficient. In step 5 the server multiplies a ciphertext by a plaintext vector. Unlike ciphertext-ciphertext multiplication, this operation produces a ciphertext that stays in the two-component form, no relinearisation is required, and the modulus chain is consumed by exactly one rescale. The sum of slots into a single scalar ⟨q′, v ′ 
+
+> j
+
+⟩ requires log 2 k rotations using Galois keys, but no further multiplications. The result is a sub-second latency at Ndocs = 10 6.
+
+Choice of Kcands . Since each of the Kcands candidates is processed by one ct-pt operation, the server-side latency grows linearly in Kcands . Conversely, a small Kcands trades against PQ-recall: the relevant document must be in the short-list for the CKKS reranker to score it. We pick Kcands 
+
+as the smallest value for which PQ-recall@ Kcands matches the SVD-projected exact baseline within the 5-seed CI; in our integral experiment this is Kcands = 40 , but the parameter is a deployment knob and should be retuned for new encoders or larger corpora. 10 Table 5: Comparison of CKKS configurations on the test workload.                                   
+
+> Configuration Nlog 2Q(bits) Security Time (ms) Speed-up Default, [60 ,40 ,40 ,60] 8192 200 tc128 419.4 1.0×
+> Opt. (Acc@10), [40 ,20 ,40] ,∆ = 2 20 4096 100 tc128 173.7 2.4×
+> Opt. (Acc@1), [60 ,40 ,60] ,∆ = 2 40 8192 160 tc128 245.2 1.7×
+
+4.3 Cryptographic reproducibility 
+
+For the auto-selected configuration ( Npoly = 8192 , coefficient-modulus chain [60 , 40 , 60] bits, 
+
+log 2 Q = 160 , scale ∆ = 2 40 , TenSEAL/Microsoft SEAL backend) we report the parameters needed to reproduce the cryptographic budget rather than only the latency: A single rotated query q′ ∈ Rk packs into one ciphertext over k ≤ Npoly /2 = 4096 slots, and since the integral encoders have k ∈ { 192 , 384 , 512 } one ciphertext per query suffices, with no cross-ciphertext aggregation. Each candidate score then costs a single ct-pt multiply, one rescale (one level consumed), and a slot-sum realised as ⌈log 2 k⌉ ciphertext rotations under Galois keys (8–9 rotations for the tested k)—never a relinearisation or a ciphertext-ciphertext multiply. The 
+
+[60 , 40 , 60] chain leaves exactly one multiplicative level beyond the input, and after the lone rescale the remaining 60 -bit modulus holds the additive noise far below the ∆ = 2 40 scale, so decrypted scores track the plaintext inner product to a relative error under 10 −3 (Pearson > 0.9999 against exact, Section 8.2). The objects stay small: a fresh ciphertext is ≈ 0.21 MB, the Galois-key set for the power-of-two rotations is ≈ 6–8 MB, the relinearisation key is not generated at all (ct-pt only), and the public key is ≈ 0.4 MB, so per query the client uploads one ciphertext (≈ 0.21 MB) and downloads the Kcands score ciphertexts ( ≈ 40 × 0.21 ≈ 8.4 MB before base64; measured on-wire JSON+base64 sizes are in Section 8.4). On security we assert no generic “standard” label, reporting instead log 2 Q = 160 < 218 for Npoly = 8192 , within the conservative ternary-secret tc128 bound of the HomomorphicEncryption.org tables [ 29 ] and cross-checked against the lattice-estimator methodology of Albrecht et al. [ 30 ]; the standard documents are guidelines, so we name the concrete estimator and table used so the claim can be re-derived. 
+
+# 5 CKKS Parameter Selection 
+
+The reproducible CKKS parameter selection recapped here is carried over from our prior work [ 55 ,56 ] as part of the shared baseline machinery—not a new contribution of this paper; we keep only the result the ct-pt reranking needs. We are explicit about what does the work. The 
+
+≈ 1.7× speed-up below is not a machine-learning result; it follows from the structural observation that ct-pt reranking consumes exactly one multiplicative level, so a three-prime modulus chain 
+
+[60 , 40 , 60] suffices where the stock setting uses four. The latency surrogate we fit is useful only for extrapolating to configurations or hardware we did not benchmark; on the enumerated grid itself, one simply selects the measured fastest valid configuration, and no model is needed. We report the surrogate for completeness and as a porting aid, not as the source of the speed-up. The selected configuration is found by the offline grid search of [ 56 ], recapped briefly. Over a discrete grid ( Npoly ∈ { 212 , . . . , 214 }, security-valid modulus chains bounded by the Homomorphi-cEncryption.org tables [ 29 ] cross-checked with the lattice estimator [ 30 ], and several scales log 2 ∆), a GradientBoosting latency surrogate [ 46 ] ( R2=0.985 on a held-out split of 198 benchmarked configurations) returns the minimum-latency valid configuration meeting an accuracy tolerance 
+
+|∆ Acc@1 | ≤ τ against the SVD baseline. With τ = 1 p.p. it selects Npoly =8192 , [60 , 40 , 60] , ∆=240 
+
+(log 2 Q=160 bits, within the conservative tc128 bound), ≈ 1.7× faster than the TenSEAL stock 
+
+[60 , 40 , 40 , 60] (log 2 Q=200 ) at the same security (Table 5). 11 6 A Projection Bound for the Distortion Proxy 
+
+This short section concerns the baseline only (the bound is reproduced from [ 56 ]): it states the one elementary fact behind its σrec distortion proxy, and why that proxy is not a privacy metric—motivating Shard ’s move to an attack-aware design that does not rely on σrec at all. Let 
+
+x ∈ Rd denote a centred embedding, Vk ∈ Rd×k the orthonormal matrix from the SVD truncation, and πk(x) = VkV ⊤ 
+
+> k
+
+x the orthogonal projection onto span (Vk). We use a per-vector relative reconstruction error here, σrec (x; Vk) = ∥x − πk(x)∥2/∥x∥2, distinguished from the corpus-level Frobenius quantity σrec (E; Vk) of Section 4.1 (the operating-point threshold 0.10 is applied to the corpus-level aggregate); write x⊥ = x − πk(x).
+
+Proposition 1. Let f : Rd → Rd be any decoder whose image is constrained by f (y) ∈ span (Vk)
+
+for every y ∈ Rd. Then for every x ∈ Rd
+
+∥x − f (πk(x)) ∥22 ≥ ∥ x⊥∥22,
+
+with equality at f (y) = y. In relative form, ∥x − f (πk(x)) ∥2/∥x∥2 ≥ σrec (x; Vk).Proof. Decompose x = πk(x) + x⊥ with πk(x) ∈ span (Vk) and x⊥ ∈ span (Vk)⊥. By the image restriction f (πk(x)) ∈ span (Vk), hence x − f (πk(x)) =  πk(x) − f (πk(x))  + x⊥ is the sum of two orthogonal vectors. Pythagoras gives ∥x−f (πk(x)) ∥22 = ∥πk(x)−f (πk(x)) ∥22+∥x⊥∥22 ≥ ∥ x⊥∥22.
+
+Scope: a projection bound, not an inversion-security theorem. Proposition 1 bounds the L2 error of decoders whose image is contained in span (Vk). It is a statement about information lost to the projection, not about the security of text inversion. A realistic attacker is not so constrained: it may output arbitrary text, whose re-embedding generally has a non-zero x⊥
+
+component, and it may exploit corpus priors or memorisation to partially recover the discarded component. The proposition therefore does not lower-bound the achievable inversion BLEU, token overlap or PII recovery. We use it only to make the proxy criterion σrec ≥ 0.10 precise within the projection-restricted class, and we stress that the threshold 0.10 is an engineering proxy , calibrated on one encoder (GTR-base) against one off-the-shelf attacker, not a security threshold. A per-encoder ablation of σrec against BLEU, token overlap and typed-PII recovery (names, addresses, e-mail, phone, medical terms) is listed as a required pre-submission experiment (Section 10). 
+
+Empirical Hypothesis 1. For an off-the-shelf inversion attack Vec2Text [ 7], the expected BLEU of recovering the original text from πk(x) is monotone in ηk = 1 − σ2
+
+> rec
+
+(E; Vk):
+
+EBLEU( f (πk(x)) , T (x))  ≈ BLEU 0 + γf ηk,
+
+where BLEU 0 is the BLEU of a “random semantically close” text and γf is a decoder-specific constant. 
+
+Hypothesis 1 is examined numerically in Appendix A.1; we deliberately separate the formal statement from the empirical observation. 
+
+# 7 SHARD: Cell-Keyed Residual Splitting 
+
+The baseline of Section 4 protects the collection with a single global geometry Erot = R V ⊤ 
+
+> k
+
+(x − μ).Its weakness is structural: one global map is recoverable by one alignment (Section 8.3), and the public index sits on the full protected space. Shard keeps the same CKKS ct-pt reranking but removes the single global axis. It is a family of transforms parametrised by a cell count C.12 Offline construction. Let μ be the corpus centroid and V ∈ O(d) the PCA rotation of the centred embeddings (eigenvectors of the covariance, sorted by variance). For a document x write the centred, rotated coordinate V x c = [ u ∥ r ], splitting it into a public prefix u ∈ Rdpub (the top variance directions) and a private residual r ∈ Rdpriv , dpriv = d − dpub . A coarse partition into C
+
+cells is defined by k-means on u. The data owner draws, from a secret master key, one orthogonal key per cell, Hc = Q 
+
+> j
+
+(I − 2wcj w⊤ 
+
+> cj
+
+) ∈ O(dpriv ), a product of Householder reflections (cheap to apply, exactly orthogonal). The stored representation of document i in cell c(i) is the pair 
+
+  ui, zi = Hc(i) ri
+
+,
+
+the prefix ui for the stage-1 index and the keyed residual shard zi for reranking. The keys {Hc},
+
+V and μ are client secrets. 
+
+Online two-stage query. The client encodes the query, forms [uq∥rq] = V q c, and (i) runs stage-1 ANN locally over the public prefix u to obtain a short-list of Kcands candidates; then (ii) for each active cell c it sends Enc (Hcrq) under CKKS, and the server returns the ct-pt inner products against the stored shards zi. Because Hc is orthogonal, 
+
+⟨Hcrq, z i⟩ = ⟨Hcrq, H cri⟩ = ⟨rq, r i⟩,
+
+so the decrypted residual score is exact . The client combines it with the public-prefix score into the full similarity 
+
+S(q, i ) = ⟨uq, u i⟩ + ⟨rq, r i⟩ = ⟨xq − μ, x i − μ⟩,
+
+i.e. reranking is full-dimensional with no truncation. The only quality loss is whether stage-1 places the target in the short-list; the CKKS budget is the same ct-pt form as the baseline, now over the residual dimension. 
+
+Proposition 2 (Exact cell-keyed reranking) . Let Hc ∈ O(dpriv ) be the orthogonal key of cell c
+
+and zi = Hc(i)ri the stored shard of document i in cell c(i). For any query residual rq and any document i,
+
+Hc(i) rq, z i = ⟨rq, r i⟩,
+
+so S(q, i ) = ⟨uq, u i⟩ + ⟨rq, r i⟩ = ⟨xq − μ, x i − μ⟩ is reconstructed with no truncation. Consequently, for documents i, j in the same cell, ⟨zi, z j ⟩ = ⟨ri, r j ⟩.Proof. Hc is orthogonal, hence H⊤ 
+
+> c
+
+Hc = I and ⟨Hcrq, H cri⟩ = r⊤ 
+
+> q
+
+H⊤ 
+
+> c
+
+Hc ri = ⟨rq, r i⟩; the public-prefix term is unmodified, giving the stated full similarity. The same-cell identity applies the same equality to the shared key Hc of two stored residuals. 
+
+Proved vs. measured, and what Shard does not promise. What Shard proves is precisely Proposition 2: exact full-dimensional reranking, and the same-cell cancellation ⟨zi, z j ⟩ =
+
+⟨ri, r j ⟩. Everything else below is measured , not guaranteed: the ≈ C× known-plaintext alignment cost (§8.6), the resistance of that barrier to learned and unsupervised attackers (§8.6), the public-prefix leakage (§8.7), the micro-key limit (§8.7) and the online latency (§8.5). Three non-promises follow directly from the proposition and the construction: Shard is not a cryptographic guarantee on the store; it does not hide the coarse neighbour graph (same-cell similarities are computable by the server unless C=N ); and an overlapping plaintext reference corpus still de-anonymises through the public prefix (§8.8). The barrier Shard raises is the diffuse alignment/inversion surface, not the coarse graph. 13 The C family and micro-keys. The cell count interpolates between two regimes. At C=1
+
+the residual carries a single global key and Shard reduces to the global-linear baseline (with a public prefix). At the other extreme, a micro-key variant assigns one key per document ( C=N ); then no two stored residuals share a key, so the within-cell similarity leak below vanishes and alignment is impossible (a key cannot be recovered from other documents’ anchors), at the cost of sending one transformed residual query per candidate rather than per cell. Cell-level Shard is the bandwidth-efficient middle ground. 
+
+What the server sees, and what it protects. The honest-but-curious server holds the coarse prefix u and the cell-keyed shards z. Two facts frame every experiment below. (1) Within a cell the keys cancel : ⟨zi, z j ⟩ = ⟨ri, r j ⟩ for i, j in the same cell, so same-cell similarities are computable by the server; Shard localises but does not eliminate neighbour-graph leakage (the micro-key variant does). (2) Mapping a shard back to the native frame requires the cell key : an attacker holding known-plaintext pairs must recover the target cell’s Hc, which needs ∼ dpriv pairs inside that cell ; spread over C cells this is ≈ C× the baseline’s cost. Shard is therefore aimed squarely at the alignment and inversion attack surface, and at index leakage, not at the coarse graph. Re-keying a compromised cell (revocation) re-randomises its shards without touching the rest of the store. 
+
+# 8 Experiments 
+
+The experiments come in two groups. Sections 8.1–8.4 characterise the global-linear baseline —the ct-pt speed-up and parameter selection that Shard reuses, the SVD-denoiser significance and its non-transfer to BEIR, and the three failure modes that motivate Shard : known-plaintext Procrustes alignment, public-PQ leakage, and exact reference-corpus lookup. The inversion-versus-rotation analyses reproduced from the global-linear paper [ 56 ]—off-the-shelf and aligned Vec2Text, the lightweight projection baselines, and the calibrated-noise diagnostic that σrec is not a privacy metric—are condensed in Appendix A. Sections 8.5–8.8 then evaluate Shard : utility, the online cost, alignment resistance (diffuse, targeted, and against learned/unsupervised attackers), public-index leakage, the micro-key variant, a comparison to a distortion-aware DP-noise defence, and the overlap-reference limitation. Readers interested only in the contribution can skip to Section 8.5; the baseline group is the foil. 
+
+Hardware and software. All local experiments run on a single workstation: Intel Core i5-14400F, 32 GB DDR5-4800, NVIDIA RTX 5060 (8 GB VRAM), Windows 11. The original note-books use Python 3.10–3.11; the added revision scripts (alignment/PQ leakage, SVD/noise diag-nostic and figure generation) use the bundled Python 3.12 runtime recorded in environment.lock .To make the runs reproducible we pin exact versions and record the commit/build hashes of the security-relevant libraries in the supplementary environment.lock : PyTorch 2.10 + CUDA 12.8, TenSEAL 0.3.16 (Microsoft SEAL 4.1 backend), faiss-cpu 1.13.0, transformers 4.57.0, scikit-learn 1.5.x, sacrebleu for BLEU [ 47 ]. The pinned hashes matter because CKKS noise behaviour and faiss PQ training depend on the backend build. The denoiser-significance, BEIR, and all Shard 
+
+experiments (Sections 8.2, 8.2, 8.5–8.8) were run on the bundled Python 3.12 with numpy 2.3, scipy 1.17, scikit-learn 1.9, and—for BEIR encoding—a CPU build of PyTorch 2.12 with trans-formers 5.9 and datasets 4.8; they use only the cached embeddings or public BEIR data and need neither TenSEAL nor a GPU (the per-cell keys are orthogonal, so the Shard reranking score is exact and is computed directly). The aligned Vec2Text stress test in Appendix A.4 is the only non-local run: it uses the provided memory-capped RTX 4090 profile with roughly 11 GiB free VRAM, Python 3.12 and PyTorch 2.6.0+cu124. 14 Table 6: Ciphertext-plaintext vs. ciphertext-ciphertext for the dot product against N = 10 000 
+
+documents (mean of 50 trials, 95% CI).                           
+
+> Mode Operation Relin. Latency Tquery QPS Speed-up ct-ct (baseline) Enc( v1)·Enc( v2)yes (heavy) 19 .15 ±0.15 s0.052 1.00 ×
+> ct-pt (proposed) Enc( v1)·Plain( v2)no 13 .28 ±0.10 s0.075 1.44 ×
+
+Figure 2: ct-pt vs. ct-ct: distribution of per-batch latencies over 50 trials. Removing relinearisa-tion moves the median by ∼ 6 s and tightens the upper tail. 
+
+8.1 Ciphertext-plaintext speed-up 
+
+We benchmark a batched dot-product of an encrypted 192 -dimensional query with N = 10 000 
+
+plaintext documents. The CKKS parameters are Npoly = 8192 , coefficient chain [60 , 40 , 40 , 60] 
+
+and ∆ = 2 40 (log 2 Q = 200 < 218 , within the conservative tc128 bound for Npoly = 8192 ;cf. Section 4.3). Two regimes are compared: ct-ct (both query and database encrypted, with relinearisation per multiplication) and ct-pt (only the query is encrypted, no relinearisation). Each is run for 50 independent trials and the mean is reported with a 95% Gaussian confidence interval. 
+
+8.2 Utility at 10 6 scale: the denoiser effect and its transfer to BEIR 
+
+We carry two utility properties of the global-linear baseline forward only as context for Shard ;both are reproduced from our prior work [ 56 ] and detailed, with their tables, in Appendix A. The first is that, measured against lightweight alternatives at k = d/ 2 (Gaussian and random-orthogonal projection [ 45 ]), the choice of projection is an encoder-dependent trade-off rather than a universal privacy primitive. The second is that a calibrated Gaussian-noise diagnostic exposes the reconstruction proxy σrec as not a privacy metric: matched-distortion noise can preserve substantially more raw-neighbour structure than SVD at the same σrec (Appendix A.3). The remainder of this section establishes, at 10 6 scale, whether half-truncation acts as a denoiser, whether that effect is statistically real, and whether it transfers to BEIR—prerequisites for the 
+
+Shard evaluation that follows. 
+
+Integral multi-encoder evaluation at 10 6 scale. We run the full pipeline at the canon-ical operating point k = d/ 2 across five encoders— intfloat/multilingual-e5-small 
+
+(d = 384 ), intfloat/multilingual-e5-base (d = 768 ), sentence-transformers/ paraphrase-multilingual-mpnet-base-v2 (d = 768 ), intfloat/multilingual-e5-large 
+
+(d = 1024 ) and BAAI/bge-m3 (d = 1024 ). The corpus is one million Russian-Wikipedia paragraphs; queries are 500 self-retrieval requests sampled at seed 42 ; the rotation is averaged 15 Table 7: Integral experiment at k = d/ 2 on a 10 6-document corpus across five encoders. Reported are the raw baseline (no defence), the SVD-projected baseline (FAISS-IP exact in span (Vk), no rotation, no CKKS), the baseline PQ+CKKS pipeline (mean ±95% t-CI half-width over 5 rotation seeds), and the delta of Acc@1 from the raw baseline.                                                                                                                  
+
+> Encoder Metric Raw SVD Proposed ∆raw Server p95 (ms)
+> multilingual-e5-small ( d= 384 ,k= 192 ,M= 48 ,σrec = 0 .239 )
+> Acc@1 0.782 0 .702 0 .701 ±0.001 −0.081 314
+> Acc@10 0.890 0 .834 0 .831 ±0.002 −0.059
+> MRR 0.817 0 .747 0 .746 ±0.001 −0.071
+> NDCG@10 0.834 0 .768 0 .767 ±0.001 −0.067
+> multilingual-e5-base ( d= 768 ,k= 384 ,M= 96 ,σrec = 0 .129 )
+> Acc@1 0.830 0 .834 0 .833 ±0.001 +0 .003 356
+> Acc@10 0.934 0 .924 0 .924 ±0.001 −0.010
+> MRR 0.862 0 .865 0 .864 ±0.001 +0 .002
+> NDCG@10 0.880 0 .879 0 .879 ±0.000 −0.001
+> paraphrase-multilingual-mpnet-base-v2 ( d= 768 ,k= 384 ,M= 96 ,σrec = 0 .107 )
+> Acc@1 0.716 0 .650 0 .649 ±0.001 −0.067 351
+> Acc@10 0.842 0 .796 0 .795 ±0.001 −0.047
+> MRR 0.762 0 .693 0 .692 ±0.001 −0.070
+> NDCG@10 0.782 0 .717 0 .717 ±0.000 −0.066
+> multilingual-e5-large ( d= 1024 ,k= 512 ,M= 128 ,σrec = 0 .101 )
+> Acc@1 0.796 0 .814 0 .814 ±0.000 +0 .018 219
+> Acc@10 0.880 0 .922 0 .920 ±0.000 +0 .040
+> MRR 0.824 0 .848 0 .848 ±0.000 +0 .024
+> NDCG@10 0.838 0 .866 0 .865 ±0.000 +0 .027
+> BAAI/bge-m3 ( d= 1024 ,k= 512 ,M= 128 ,σrec = 0 .128 )
+> Acc@1 0.818 0 .832 0 .832 ±0.000 +0 .014 221
+> Acc@10 0.908 0 .926 0 .924 ±0.000 +0 .016
+> MRR 0.848 0 .863 0 .863 ±0.000 +0 .015
+> NDCG@10 0.862 0 .878 0 .878 ±0.000 +0 .016
+
+over 5 seeds {11 , 23 , 47 , 31 , 53 }. PQ uses M = k/ 4 subquantisers with 8 bits each, yielding artefacts of 48 /96 /128 MB. The CKKS configuration is the auto-selected one ( Npoly = 8192 ,
+
+[60 , 40 , 60] , ∆ = 2 40 ). 
+
+On the use of self-retrieval. Self-retrieval (the query is the first sentence of the target paragraph) is a controlled geometry probe , not a production IR benchmark: it isolates whether the defensive transform T (·) preserves the ranking induced by the encoder, with a deterministic, leakage-free ground truth at 10 6-scale. It is sufficient for the paper’s actual claim—that the PQ+CKKS wrapper is metric-preserving in span (Vk)—but it does not establish production retrieval quality, and as the BEIR experiment (Section 8.2) shows, conclusions about the SVD step drawn from this probe do not necessarily transfer to real graded-relevance retrieval. The present numbers should therefore be read as a transform-fidelity measurement, not as a retrieval-quality benchmark. 
+
+The protective layer is essentially free in the projected space. The difference (proposed) vs. (baseline_proj) is within the ±0.001 5-seed CI for every metric and every encoder. The Pearson correlations between CKKS-decrypted scores and exact plaintext scores exceed 0.9999 in all cases. The proxy criterion σrec ≥ 0.10 holds uniformly. 
+
+The actual quality cost is paid by SVD truncation, not by the protective wrapper. The split 
+
+∆SVD = baseline _proj − baseline _dense is +0 .004 / + 0 .018 / + 0 .014 for retrieval-trained encoders with d ≥ 768 (e5-base / e5-large / bge-m3), −0.080 for the compact e5-small ( d = 384 , half-truncation removes half the embedding volume) and −0.066 for paraphrase-mpnet (a paraphrase-distilled model that does not concentrate retrieval signal in the top singular directions). 
+
+The end-to-end accuracy budget is met for retrieval-trained d ≥ 768 . The end-to-end criterion 
+
+∆ Acc@1 ≥ − 0.05 relative to the raw baseline holds for e5-base ( +0 .003 ), e5-large ( +0 .018 ) and bge-m3 ( +0 .014 ); for the compact e5-small and the paraphrase-distilled mpnet it is violated and 16 Figure 3: Per-seed Acc@10 of the baseline PQ+CKKS pipeline relative to baseline_proj on five rotation seeds; the spread is below the 5-seed CI of the baseline. the limitation is documented as an encoder-selection recommendation. 
+
+Linear-denoiser side effect (significance deferred). On the two retrieval-trained encoders with d = 1024 , half SVD truncation does not degrade—and at Acc@10 measurably improves— ranking over the raw baseline (e.g. +0 .042 Acc@10 on e5-large). This is consistent with reading the 
+
+Vk-projection as a linear denoiser: trailing singular directions, dominated by fp16 inference noise, are filtered out, so the ranking in span (Vk) can be cleaner than in raw Rd. The point estimates above are tabulated across rotation seeds; because that CI does not capture query-sampling uncertainty, we test the effect properly with paired per-query tests in Section 8.2 (where the Acc@1 “gains” turn out not to be significant, while the Acc@10 gains on the d = 1024 encoders are) and check its direction on real IR tasks in Section 8.2. 
+
+Paired significance of the denoiser effect. The integral experiment reports the SVD effect 
+
+∆SVD = baseline _proj −baseline _dense with a 5-seed rotation CI. That CI measures the stability of the random rotation, not the uncertainty of estimating accuracy from a finite query set: with 
+
+500 queries the binomial standard error of an Acc@1 near 0.8 is p0.8 · 0.2/500 ≈ 0.018 , i.e. as large as the reported +0 .018 effect itself. We therefore test the effect directly. Raw ( Rd) and SVD (span (Vk), k = d/ 2) retrieval are evaluated on the same 500 self-retrieval queries, so the per-query hit indicators are paired. We report McNemar’s exact test (a two-sided binomial test on the discordant pairs) for Acc@1 and Acc@10, and a paired bootstrap ( 10 4 resamples) 95% CI for each delta. Neither rotation nor CKKS is involved—the denoiser is a property of Vk alone—so this is computed exactly from the cached embeddings, and the raw/SVD point estimates reproduce Table 7. The result sharpens the SVD-denoiser picture considerably. The Acc@1 “denoiser gains” turn out not to be statistically significant for any encoder—e5-base at p = 0 .86 , e5-large at p = 0 .11 ,bge-m3 at p = 0 .12 , with all three bootstrap CIs straddling 0—so the earlier reading that “SVD improves the four ranking metrics” merely over-interpreted Acc@1 point estimates. The effect that is real and significant surfaces one cutoff later, at Acc@10, and only for the retrieval-trained 
+
+d = 1024 encoders: e5-large gains +0 .042 (p < 10 −6, and of the discordant queries 21 are pulled into the top-10 by SVD while none are lost), and bge-m3 +0 .016 (p = 0 .04 ). At the other end, for the compact e5-small and the paraphrase-distilled mpnet, truncation significantly degrades 
+
+retrieval at both cutoffs ( −0.082 and −0.064 Acc@1, p < 10 −5); and for e5-base the projected space is statistically indistinguishable from raw at either cutoff, so the wrapper is effectively free 17 Table 8: Paired significance of SVD truncation ( k = d/ 2) relative to the raw space, on 500 
+
+self-retrieval queries. ∆ = SVD − raw ; brackets are paired-bootstrap 95% CIs ( 10 4 resamples); p
+
+is McNemar’s exact two-sided test on the discordant pairs. Bold p marks significance at α = 0 .05 .
+
+Acc@1 Acc@10 Encoder σrec ∆ 95% CI p ∆ 95% CI p
+
+e5-small 0.239 −0.082 [−0.108 , −0.056] 2×10 −9 −0.058 [−0.084 , −0.034] 5×10 −6
+
+e5-base 0.129 +0 .004 [−0.018 , +0 .026] 0.86 −0.010 [−0.024 , +0 .004] 0.27 
+
+mpnet 0.107 −0.064 [−0.092 , −0.038] 3×10 −6 −0.046 [−0.068 , −0.026] 2×10 −5
+
+e5-large 0.101 +0 .018 [−0.002 , +0 .038] 0.11 +0 .042 [+0 .026 , +0 .060] 1×10 −6
+
+bge-m3 0.128 +0 .014 [ 0 .000 , +0 .030] 0.12 +0 .016 [+0 .004 , +0 .030] 0.039 
+
+Figure 4: Paired effect of SVD truncation ( k = d/ 2) relative to the raw space, with bootstrap 
+
+95% CIs, on 500 self-retrieval queries. Green markers are significant improvements ( p < 0.05 ,McNemar), red significant degradations, grey not significant. No encoder shows a significant Acc@1 gain; the significant Acc@10 gains are confined to the retrieval-trained d=1024 encoders. 
+
+Table 9: SVD truncation ( k = d/ 2) vs. the raw space on BEIR (max input length 128 , mean pooling). ∆ = SVD − raw ; brackets are paired-bootstrap 95% CIs ( 10 4 resamples). Every ∆
+
+nDCG@10 CI excludes 0: SVD truncation significantly reduces nDCG@10 in all cells.                                            
+
+> Encoder Dataset σrec raw nDCG@10 SVD nDCG@10 ∆nDCG@10 (95% CI) ∆R@10 e5-large ( d=1024 )SciFact 0.072 0.643 0.574 −0.069 [ −0.091 ,−0.047] −0.053
+> e5-base ( d=768 )SciFact 0.090 0.637 0.586 −0.051 [ −0.072 ,−0.032] −0.035
+> e5-small ( d=384 )SciFact 0.183 0.598 0.519 −0.079 [ −0.103 ,−0.055] −0.080
+> e5-base ( d=768 )NFCorpus 0.085 0.327 0.305 −0.022 [ −0.032 ,−0.013] −0.016
+> e5-small ( d=384 )NFCorpus 0.172 0.302 0.277 −0.025 [ −0.035 ,−0.014] −0.016
+
+there. The corrected conclusion is thus narrower and more defensible than “SVD is a denoiser”: half-SVD truncation is a mild, encoder-dependent denoiser that helps recall-style metrics for retrieval-trained high-dimensional encoders and hurts compact or paraphrase-distilled ones, but it does not reliably improve top-1 accuracy for any encoder we tested. 
+
+Generality of the denoiser effect on BEIR. Self-retrieval is a controlled geometry probe. To check that the denoiser direction is not an artefact of it, we repeat the raw-vs-SVD comparison on two standard BEIR [ 49 ] datasets with real graded relevance judgements: SciFact ( 5,183 
+
+documents, 300 test queries) and NFCorpus ( 3,633 documents, 323 test queries). Each corpus and query set is encoded with the e5 family (mean pooling, query: / passage: prefixes, L2
+
+normalisation); we fit the data-dependent Vk basis on the corpus embeddings at k = d/ 2 and compare exact inner-product retrieval in Rd and in span (Vk). We report nDCG@10 and Recall@10 with a paired bootstrap 95% CI for each delta and McNemar’s test for the top-1 hit. 18 Table 10: Known-plaintext Procrustes attack. m = −1 is the known-R oracle; m = 0 is no alignment. Values are means over five rotation seeds.                                
+
+> Known pairs mMean cosine Rel. L2error Target R@1 Target R@10
+> 0−0.004 1.417 0.000 0.001 10 0.098 1.343 0.005 0.039 50 0.377 1.116 0.722 0.925 100 0.621 0.870 1.000 1.000 192 1.000 1.8×10 −51.000 1.000 500 1.000 4.9×10 −71.000 1.000
+
+Table 9 is an important corrective to the self-retrieval reading. On both real IR datasets and for every encoder, half SVD truncation significantly reduces nDCG@10 and Recall@10—the bootstrap CIs exclude zero in all cells, with drops of 2–8 nDCG points. Decisively, e5-large , the one encoder that gained Acc@10 on the 10 6-document self-retrieval probe ( +0 .042 , Section 8.2), 
+
+loses −0.069 nDCG@10 on SciFact. The modest gains on the self-retrieval probe therefore do 
+
+not transfer to these smaller, graded-relevance tasks: on real IR the discarded bottom half of the spectrum still carries task-relevant signal. Two further points sharpen the message. First, the effect is consistent across d ∈ { 384 , 768 , 1024 }, so it is not a low-dimensionality artefact. Second, on these corpora k = d/ 2 already sits below the σrec ≥ 0.10 floor for e5-base and e5-large ( σrec ≈ 0.07 –0.09 ), yet truncation still costs nDCG—so the utility cost, like the privacy interpretation, is not predicted by σrec alone. The practical implication matches the encoder-selection caution of Section 8.2: on a real workload one should treat k as a tunable accuracy cost and run a k-sweep, not assume a free denoiser. (For resource transparency, the five reported cells were CPU-encoded; the sixth, e5-large/NFCorpus, did not finish within our CPU budget and is omitted; the script reproduces it on a GPU or with more time.) 
+
+8.3 Attacks on the baseline: alignment, PQ leakage, and inversion 
+
+We now stress the global-linear baseline with four attacks that step outside the primary non-adaptive threat model: known-plaintext alignment of the secret rotation, leakage from the public PQ codes, a text-level reference-corpus lookup, and an aligned off-the-shelf inverter. 
+
+Known-plaintext alignment. We simulate an attacker who knows m pairs (E(xi), E rot ,i ) and estimates the hidden orientation with the orthogonal Procrustes solution [ 31 ]. The experiment uses e5-small projected to k = 192 , five rotation seeds, 400 held-out probes and a 10 000 -document gallery. The attack is evaluated in embedding space: after alignment, the probe should recover its own projected vector and retrieve the corresponding document from the gallery. This does not measure generated text quality, but it is the relevant precursor to a few-shot Vec2Text-style attack because it recovers the native projected space given to the inverter. The conclusion is sharp: the rotation is useful only while aligned plaintext anchors are unavailable. With approximately k known pairs, the orientation is numerically recovered. Even 
+
+50 pairs do not recover the vector perfectly, but they are enough to retrieve the target in the top 10 for 92 .5% of probes in a 10 000 -document gallery. This is a negative result for broad document-privacy claims and is therefore reflected in the threat table. 
+
+PQ-code leakage. We also train public product-quantisation codebooks directly in the rotated space and reconstruct approximate vectors from codebook + per-document codes alone. On a 
+
+20 000 -document sample, the canonical e5-small configuration ( M = 48 , 8 bits) preserves a mean cosine of 0.953 to Erot , 67 .4% of exact top-10 neighbours, and 97 .1% of exact top-10 neighbours inside the approximate top-40 candidate set. Smaller artefacts leak less but remain non-negligible (Table 11). 19 Figure 5: Known-plaintext alignment quickly destroys the unknown-rotation assumption. The 
+
+x axis uses a symlog scale to include m = 0 .
+
+Table 11: Leakage from public PQ codes on a 20 000 -document rotated e5-small sample. Neighbour overlap excludes the query document itself.                  
+
+> MBits Bytes/vector Cosine to Erot NN overlap@10
+> 24 824 0.837 0.384 48 848 0.953 0.674 48 636 0.904 0.529
+
+Figure 6: Public PQ codes preserve both vector direction and substantial nearest-neighbour structure in the rotated space. 20 Table 12: Reference-corpus lookup attack after known-plaintext alignment. The overlapping reference has 500 targets plus 100 000 decoys. Jaccard is token-set overlap between the target paragraph and the top-1 retrieved paragraph. Values are means over five rotation seeds.                              
+
+> Known pairs mExact R@1 Exact R@10 Jaccard overlap-ref Jaccard disjoint-ref
+> 00.000 0.000 0.006 0.006 10 0.000 0.009 0.009 0.009 25 0.044 0.132 0.055 0.012 50 0.535 0.784 0.543 0.018 100 0.998 1.000 0.999 0.034 192 1.000 1.000 1.000 0.043
+
+Figure 7: Reference-corpus lookup after known-plaintext alignment. When the reference corpus overlaps the protected collection, alignment turns the protected vector into an exact paragraph lookup. With a disjoint reference corpus, this simple token-overlap proxy remains low; semantic leakage there requires a stronger judge or generative attack. These results do not invalidate the query-privacy contribution of CKKS, but they do narrow the document-privacy interpretation: public PQ artefacts and known plaintext anchors should be treated as exposed channels. A system requiring stronger document confidentiality needs a different static-side primitive or a composition that hides the PQ artefact itself. 
+
+Reference-corpus lookup after alignment. The Procrustes experiment above is an embedding-space test. We next ask whether the same failure mode can become a text-level leakage channel without training a generative inverter. The attacker is given the protected target vectors, m known plaintext/protected pairs for estimating the rotation, and a reference corpus of candidate paragraphs with native e5-small embeddings. This models a realistic overlap case: some private documents may also occur in a public or previously leaked corpus. We use 500 
+
+target paragraphs, 100 000 reference decoys, five rotation seeds and the same k = 192 SVD subspace. The overlapping reference corpus contains the targets plus the decoys; the disjoint reference corpus removes the targets and is used only as a lexical nearest-neighbour proxy. The overlap case is severe. With only 50 known pairs, the attacker recovers the exact source paragraph at 53 .5% top-1 and 78 .4% top-10 recall among 100 500 candidates; with 100 known pairs, top-1 recall rises to 99 .8% . This is the text-level analogue of the embedding-space Procrustes result and makes the static-side limitation concrete: if a public or leaked reference corpus overlaps the private collection, rotation secrecy is not enough. The disjoint-reference numbers are intentionally reported as a boundary condition: token Jaccard remains low ( 0.034 at m = 100 and 0.043 at 
+
+m = 192 ), so a non-overlapping reference corpus requires semantic similarity metrics, human judgement, or a generative inverter before one can claim text reconstruction. 21 Table 13: Latency decomposition on a 10 6-document corpus, client-server PoC over HTTP loopback. The dominant row combines FastAPI/JSON transport with server-side ct-pt reranking, as measured by the client. “Encoder” is independent of the defence layer.                        
+
+> Stage p95 (ms) Notes Encoder forward pass (client) ∼200 rubert-style on CPU/GPU Projection (client) 0.09 T(q) = ( E(q)−μ)VkR
+> Local PQ search (client) 22 .8Kcands = 40
+> CKKS encryption (client) 4.9one rotated query
+> Server + HTTP/JSON 531 .3includes server ct-pt rerank CKKS decrypt + sort (client) 20 .740 ciphertexts Total (excluding encoder) 578 .2ms p95 , full pipeline
+
+Aligned Vec2Text inversion stress test. As a portable generative-inversion control on the baseline, we also ran an aligned off-the-shelf Vec2Text corrector (GTR-base, k = d/ 2, up to 
+
+m = 500 Procrustes pairs) against the rotated store. No exact document or typed PII is recovered in any case, but the raw row is also at the reconstruction floor, so this off-the-shelf corrector certifies nothing; the open risk is a learned, corpus-adapted decoder. The full setup and table are reproduced from [ 56 ] in Appendix A.4; the result does not contradict the exact-lookup failure mode of Section 8.3. 
+
+8.4 End-to-end client-server latency 
+
+We package the pipeline as a FastAPI service, with the client and the server running as two independent processes on the same machine, communicating via HTTP/JSON over loopback. The setup measures the realistic HTTP framing, base64 serialisation of CKKS ciphertexts, FastAPI/uvicorn stack and JSON (de-)serialisation, but without physical network latency. The encoder is multilingual-e5-small ( d = 384 , k = 192 , M = 48 , Kcands = 40 , Ndocs = 10 6), measured over 500 queries at a fixed rotation seed. The multi-encoder experiment above reports the server-side component over five rotation seeds; this subsection adds the HTTP/JSON framing overhead. 
+
+On-wire payload sizes. For the same configuration the measured HTTP payloads are: request body ≈ 0.29 MB (one CKKS query ciphertext, base64-encoded JSON, inflated ≈ 1.37 × over the 0.21 MB raw ciphertext); response body ≈ 11 .4 MB ( Kcands = 40 score ciphertexts, base64 JSON). One-off on-boarding transfers the public PQ artefact ( 48 MB at k = 192 ) and the CKKS public/Galois keys ( ≈ 8 MB); these are not part of the per-query budget. Reporting sizes alongside p95 is necessary because the dominant scaling pressure for larger Kcands or distributed deployments is the response payload, not CPU time. 
+
+Reconciling the timing figures. The CKKS numbers reported in different experiments measure different workloads and must not be compared directly. To avoid confusion we state the operation count behind each. (a) The mode microbenchmark (Table 6, 13 .28 s) encrypts a query and scores it against all N =10 000 plaintext documents— 10 000 ct-pt multiplies—to isolate the ct-pt-vs-ct-ct ratio at the stock parameters [60 , 40 , 40 , 60] ; it is not what the pipeline does. (b) 
+
+The parameter-selection workload (Table 5, ≈ 245 ms) times one batch ct-pt operation at the auto-selected [60 , 40 , 60] . (c) The pipeline (Tables 7 and 13) reranks only the Kcands =40 stage-1 candidates: 40 ct-pt multiplies, 40 rescales and 40 × ⌈ log 2 k⌉ Galois rotations, giving a server-side 
+
+p95 of 219 –356 ms and an end-to-end p95 of 578 ms once HTTP/JSON framing is added. The sub-second figure is a consequence of reranking 40 candidates, not 10 6; the local PQ stage, not CKKS, is what reduces 10 6 documents to 40 .22 Figure 8: Left: p95 latency decomposition by stage in the HTTP prototype. Right: CDF of the per-query latency trace from the local pipeline benchmark. Both views remain below the 1 starget; physical network latency is not included. 
+
+8.5 SHARD: utility and online cost 
+
+The experiments above characterise the global-linear baseline. We now evaluate Shard on the same cached embeddings, computing the geometry exactly with numpy (the per-cell keys are orthogonal, so the residual reranking score is exact and needs no CKKS to be measured). Because Shard reranks the prefix short-list in the full space, it recovers the raw ranking that the truncating baseline loses. This is decisive on the BEIR tasks where half-SVD truncation significantly reduced nDCG@10 (Section 8.2): Table 14 shows that Shard with a d/ 4 prefix matches the raw ceiling on every cell (paired-bootstrap CI on the delta includes 0 or is within a fraction of a point), while exposing a public channel half as wide as the baseline’s k = d/ 2. Even a 
+
+d/ 8 prefix beats the baseline. On the 10 6-document self-retrieval probe we add paired significance at the same d/ 4 prefix. On e5-base Shard is statistically indistinguishable from raw Acc@1 (0.826 vs. 0.830 ; −0.004 [ −0.026 , +0 .018] , McNemar p=0.86 ), and on e5-small it significantly beats the SVD baseline ( 0.734 vs. 0.696 ; +0 .038 [0 .014 , 0.062] , p= 3×10 −3). A residual ∼ 5-point gap to raw remains on e5-small at this short prefix ( p= 7×10 −5)—a pure stage-1 short-list effect that closes at a wider d/ 2 prefix (Acc@1 0.778 vs. raw 0.784 ). Top-1 self-retrieval is stricter than top-10 nDCG, which is why the d/ 4 prefix already recovers the raw nDCG@10 ceiling on BEIR while top-1 keeps a small, prefix-tunable gap. 
+
+Why this is not merely “do not truncate”. A reader might object that the baseline could also rerank full-dimensionally by storing the untruncated Erot . It cannot do so for free: an untruncated plaintext store has a single global key that cancels for all pairs , so the server recovers the entire d-dimensional neighbour graph. The point of Shard is that full-dimensional reranking is privacy-neutral precisely because the residual is cell-keyed—the server gains the residual’s contribution to the score (under CKKS) without gaining a globally-comparable residual geometry. 
+
+Shard therefore buys raw utility and a coarse public footprint at the same time, which the untruncated baseline cannot. Read as significance tests, the bootstrap CIs sharpen the claim: every SVD-baseline ∆ excludes 
+
+0 (a significant 2–8 nDCG-point loss), whereas every Shard -d/ 4 ∆ either includes 0 or lies within ±0.01 of it (statistically indistinguishable from raw), while the more aggressive d/ 8 prefix is small but mostly significant. Thus d/ 4 is the operating point that recovers the raw ceiling— hypothesis H2, confirmed across three BEIR datasets and two encoders with per-query confidence intervals rather than point estimates alone. 
+
+Multilingual replication at 10 5 scale (MIRACL). To test whether the BEIR pattern holds on a large, multilingual benchmark scored with a graded ranking metric, we repeat the full-corpus 23 Table 14: Shard utility on three BEIR datasets (SciFact, NFCorpus, ArguAna; nDCG@10, 
+
+Kcands =200 ). Each protected column reports the change ∆ vs. raw with a paired-bootstrap 95% 
+
+CI over per-query nDCG@10 ( 10 4 resamples, seed 2026 ). The SVD k=d/ 2 baseline reranks in the truncated half and loses nDCG; Shard reranks full-dimensionally and recovers the raw ceiling with a public prefix of only d/ 4.                                                          
+
+> Encoder Dataset raw SVD k=d/ 2 ∆ [95% CI] Shard d/ 4 ∆ [95% CI] Shard d/ 8 ∆ [95% CI] e5-base SciFact 0.637 −0.052 [ −.073 ,−.032] +0.001 [.000 , . 003 ]−0.007 [ −.017 , . 000]
+> e5-base NFCorpus 0.327 −0.022 [ −.033 ,−.013] −0.001 [−.002 , . 000 ]−0.005 [ −.008 ,−.001]
+> e5-base ArguAna 0.346 −0.082 [ −.091 ,−.073] −0.001 [−.002 , . 001 ]−0.005 [ −.008 ,−.002]
+> e5-small SciFact 0.598 −0.076 [ −.100 ,−.053] −0.008 [−.020 , . 001 ]−0.025 [ −.042 ,−.009]
+> e5-small NFCorpus 0.302 −0.021 [ −.031 ,−.011] −0.002 [−.004 , . 000 ]−0.018 [ −.026 ,−.011]
+> e5-small ArguAna 0.358 −0.060 [ −.069 ,−.051] −0.002 [−.004 , . 000 ]−0.013 [ −.017 ,−.008]
+
+Figure 9: BEIR utility: the SVD k=d/ 2 baseline loses nDCG@10 because it reranks in the truncated half; Shard reranks full-dimensionally and recovers the raw ceiling. 
+
+Table 15: Shard utility on MIRACL (multilingual, nDCG@10, Kcands =200 ): full-corpus retrieval over the dev queries of two typologically distinct languages. Columns as in Table 14: ∆
+
+vs. raw with a paired-bootstrap 95% CI over per-query nDCG@10 ( 10 4 resamples, seed 2026 ). |C|
+
+is the corpus size; MIRACL uses binary judgements scored with the graded nDCG@10 metric.                                           
+
+> Encoder Language ( |C|)raw SVD k=d/ 2 ∆ [95% CI] Shard d/ 4 ∆ [95% CI] Shard d/ 8 ∆ [95% CI] e5-base Swahili ( 132 k) 0.707 −0.021 [ −.034 ,−.009] +0.000 [.000 , . 001 ]−0.002 [ −.006 , . 002]
+> e5-base Bengali ( 297 k) 0.727 −0.030 [ −.042 ,−.019] +0.000 [.000 , . 000 ]−0.001 [ −.006 , . 002]
+> e5-small Swahili ( 132 k) 0.680 −0.065 [ −.083 ,−.047] −0.006 [−.015 , . 001 ]−0.108 [ −.134 ,−.083]
+> e5-small Bengali ( 297 k) 0.688 −0.051 [ −.067 ,−.035] −0.008 [−.017 ,−.001 ]−0.104 [ −.131 ,−.077]
+
+protocol on MIRACL—the canonical multilingual IR benchmark (binary judgements scored with nDCG@10)—for two typologically distinct languages with manageable corpora: Swahili (Bantu, Latin script; 131 ,924 passages, 482 dev queries) and Bengali (Indo-Aryan, Bengali script; 297 ,265 
+
+passages, 411 queries). Table 15 shows the same three-way ordering at 10 5-document scale and on a different language family per row: half-SVD truncation significantly loses nDCG@10 on every cell ( −0.021 to −0.065 ; all CIs exclude 0), while Shard with a d/ 4 prefix recovers the raw ceiling—exactly on e5-base ( ∆ = +0 .000 ) and within 0.006 –0.008 on e5-small. The only departure from BEIR is the more aggressive d/ 8 prefix on the compact e5-small encoder, which loses ≈ 0.10 
+
+nDCG@10: a 48 -dimensional stage-1 short-list under-recalls on a 10 5-document corpus—an effect invisible on the few-thousand-document BEIR corpora—whereas the 768 -dimensional e5-base is unaffected. This reinforces d/ 4 as the operating point. 24 Table 16: Shard per-query online cost (e5-small, dpub = d/ 4). Active cells set the upload (one 
+
+0.21 MB ciphertext each); the baseline ( C=1) sends one. Server compute and download are unchanged.                    
+
+> Kcands active cells (mean / p95) upload (MB) ×baseline
+> C=64 C=256 (C=256 )(C=256 )
+> 40 7.2/13 11 .6/19 2.411 .6×
+> 100 11 .3/19 20 .0/32 4.220 .0×
+> 200 15 .7/26 30 .1/48 6.330 .1×
+
+Online cost and the C trade-off. Shard is not free relative to the single-query baseline, and we measure the cost rather than assert it. The client sends one encrypted residual query 
+
+per active cell —a cell touched by the stage-1 short-list—so the per-query upload and client-side encryption scale with the number of distinct cells the short-list spans. Table 16 reports this directly. Two things matter. First, the absolute cost is modest: even at C=256 , Kcands =200 the short-list spans ≈ 30 cells, i.e. ≈ 6 MB of upload at one 0.21 MB ciphertext per cell, and the 
+
+server compute is unchanged ( ∼ Kcands ct-pt products, each scored with its cell’s keyed query) as is the download ( Kcands score ciphertexts). Second, and more important, this exposes the central trade-off of the family: larger C buys alignment resistance (Section 8.6) but costs more active cells per query . The numbers are consistent across encoders (e5-base spans ≈ 9–35 cells over the same grid). Active cells grow because k-means cells are finer than a query’s neighbourhood; a deployment tunes (C, K cands , d pub ) to balance alignment resistance, stage-1 recall and upload, and the micro-key extreme ( C=N ) is the endpoint where every candidate is its own cell ( ≈ Kcands 
+
+queries). 
+
+8.6 SHARD: alignment resistance scales with the cell count 
+
+This is the central privacy result. We replicate the known-plaintext alignment threat of Section 8.3, but against the cell-keyed residual: an attacker holds m pairs (native residual, stored shard) and, for any cell with at least dpriv anchors, solves orthogonal Procrustes to recover that cell’s key, then de-keys and re-identifies held-out targets in a 10 000 -document residual gallery. We use dpub = d/ 4
+
+(dpriv = 288 for e5-small, 576 for e5-base), a 200 000 -document pool and 5 rotation seeds, and report the median anchor count m50 with a paired-bootstrap 95% CI over seeds ×probes ( 2000 
+
+resamples), together with a random-cell control whose cells are assigned independently of the public prefix (Table 17, Fig. 10). Before the measurement, we state the scaling semi-formally. 
+
+Proposition 3 (Diffuse anchor complexity) . Split the private residual into C cells, each keyed by an independent secret orthogonal Hc ∈ O( dpriv ), and let a known-plaintext attacker hold m pairs 
+
+(ri, H c(i)ri). Assume: (A1) recovering Hc by orthogonal Procrustes needs ≥ dpriv anchors lying in cell c in general position; (A2, diffuse leak) the anchors fall across cells with per-cell fraction 
+
+pc ≤ (1 + δ)/C for a small δ ≥ 0; (A3) cells are balanced up to that factor. Then de-anonymising a target in cell c requires 
+
+m ≥ dpriv 
+
+pc
+
+≥ C d priv 
+
+1 + δ ,
+
+so the diffuse anchor complexity is Θ( C d priv )—a factor ≈ C above the single-key residual ( C=1). A targeted attacker who concentrates anchors in the victim’s (public) cell has pc=1 and needs only m ≥ dpriv , independent of C.Proof sketch. The keys are independent across cells, so pairs outside cell c carry no information about Hc; orthogonal Procrustes then fixes the dpriv ×dpriv map uniquely once ≥ dpriv in-cell anchors are present (A1). The expected in-cell count is m p c; equating it to dpriv and bounding pc
+
+25 Table 17: Alignment anchor-complexity with a random-cell control and paired-bootstrap 95% 
+
+CIs ( 5 seeds × 500 probes, 2000 resamples). m50 is the known-plaintext anchor count at which residual re-identification R@1 reaches 0.5; k-means and random cells give the same m50 , so the resistance comes from cell-keying, not the public-prefix clustering. R@10 5 is the k-means recovery rate at the full 102 ,400 -anchor budget; > 10 5 marks m50 not reached within budget.                                             
+
+> Encoder Scheme m50 (k-means) m50 (random) R@10 5[95% CI] e5-small global key 200 —1.00 [1 .00 ,1.00]
+> e5-small Shard C=64 25 600 25 600 1.00 [1 .00 ,1.00]
+> e5-small Shard C=256 102 400 102 400 0.93 [0 .92 ,0.94]
+> e5-base global key 400 —1.00 [1 .00 ,1.00]
+> e5-base Shard C=64 51 200 51 200 1.00 [1 .00 ,1.00]
+> e5-base Shard C=256 >10 5>10 50.06 [0.05 ,0.07 ]
+
+Figure 10: Residual re-identification R@1 vs. known-plaintext anchors m, with paired-bootstrap 
+
+95% CI bands (left: e5-small, right: e5-base; 5 seeds). A single global key is recovered with ∼ d/ 2
+
+anchors; Shard requires ∼ dpriv anchors per cell , shifting the curve right by ≈ C (and off-scale for C=256 on e5-base). The micro-key ( C=N ) limit is unreachable: a per-document key cannot be recovered from other documents’ anchors. by (A2)–(A3) gives the thresholds. The measured m50 below match Θ( C d priv ) up to the constant absorbed by “general position” and cell imbalance. □
+
+The scaling is clean and close to linear in C: from 200 /400 anchors for one global key (e5-small/e5-base) to 25 600 /51 200 at C=64 and 102 400 />102 400 at C=256 . The bootstrap makes three things precise. First, the transition is sharp—Procrustes either has ≥ dpriv in-cell anchors and recovers the key exactly, or it does not—so m25 , m50 and m75 coincide at our grid resolution, and the recovery-rate CIs at the threshold are tight (e.g. e5-small C=64 reaches 0.91 [0 .90 , 0.92] 
+
+at 25 600 anchors). Second, and decisively for the baseline question, the random-cell control gives the same m50 as k-means cells: the alignment resistance is a property of cell-keying itself, not of the public-prefix clustering, which only buys query locality (Section 8.5). Third, the strongest configuration here— C=256 on e5-base—holds the attacker to 0.06 [0 .05 , 0.07] re-identification even at the full 102 400 -anchor budget, because with dpriv =576 no cell receives its dpriv in-cell anchors; this is hypothesis H1, now measured with confidence intervals and a random-cell control. 
+
+Baseline: a learned obfuscation. Could a more complex — learned, nonlinear—global transform substitute for cell-keying? We test the natural baseline: replace the orthogonal key with a single global MLP f trained to preserve inner products (retrieval), store z = f (r), and let the attacker train an inverse network g on the m known (r, z ) pairs. It fails on both axes. The 26 Table 18: Targeted attacker (anchors concentrated in the victim’s public cell). Re-identification needs ≈ dpriv in-cell anchors independently of C—the C× factor is a diffuse-leak/aggregate property, and the per-victim worst case is ≈ dpriv .             
+
+> Encoder ( dpriv )mtgt 50 (C=64 )mtgt 50 (C=256 )diffuse m50 (C=64 )e5-small ( 288 )320 320 25 600
+> e5-base ( 576 )576 576 51 200
+
+transform only partially preserves retrieval (inner-product correlation 0.61 /0.66 for e5-small/e5-base, versus Shard ’s exact 1.0) and, decisively, offers no alignment resistance: the learned inverse re-identifies over 90% of targets from only m50 =72 anchors on both encoders— below even the global orthogonal key’s 200 , because a globally invertible map is learnable from anchors anywhere. Together with the random-cell control, this isolates the source of Shard ’s C× resistance: not the complexity or learnedness of the transform, but the locality of the secret —a key the attacker cannot fit from out-of-cell pairs. 
+
+Diffuse vs. targeted leaks: what ≈ C does and does not mean. The C× factor is an aggregate property: it is the cost of recovering the store under a diffuse known-plaintext leak whose anchors fall uniformly across cells, so the median cell is saturated only when the total reaches ≈ C d priv . Because cells are public , a targeted attacker can instead concentrate anchors in a single victim’s cell and recover only that key. We measure this (Table 18): targeted re-identification succeeds at ≈ dpriv in-cell anchors regardless of C (mtgt 50 =320 for e5-small at both 
+
+C=64 and C=256 , versus 25 600 /102 400 diffuse). So the per-victim worst case is ≈ dpriv —about 
+
+1.7× the baseline’s d/ 2, not C×—and Shard ’s alignment advantage is precisely against diffuse leaks and aggregate de-anonymisation of the store, plus the case where a topically concentrated leak still cannot fill the victim’s cell. Two regimes make the targeted attack itself collapse: when an overlapping plaintext reference exists, the public prefix already de-anonymises (Section 8.8), so the residual key is moot; and when cells are smaller than dpriv (i.e. C > N/d priv , the micro-key regime), no cell can supply dpriv in-cell anchors and targeted recovery is impossible. The operational reading is that C trades query cost (Section 8.5) for diffuse-leak resistance, while the micro-key limit is what removes the targeted vulnerability outright. 
+
+Stronger and learned alignment attackers. The ≈ C× barrier was measured with orthogo-nal Procrustes; a reviewer will rightly ask whether it is an artefact of assuming an orthogonal 
+
+map. We therefore attack a single cell’s keyed residual ( dpriv =288 ) with the alignment cores 
+
+of the modern attacks and compare recovered-residual cosine vs in-cell anchors (Fig. 11): alearned linear map (ridge least-squares, the core of ALGEN ’s few-shot alignment-and-generate [10 ]); a non-linear MLP; and unsupervised covariance/eigenvector matching (the no-pairs core of 
+
+vec2vec -style cross-space translation [17]). No attacker beats the dpriv barrier, and orthogonal Procrustes is in fact the strongest of the four. It exploits the known orthogonality of Hc and recovers the key exactly at m = dpriv (cosine 
+
+1.00 ), with essentially nothing below it. The learned linear map ( ALGEN core) is weaker : not constrained to be orthogonal, it must fit d2priv free parameters and reaches only cosine 0.68 at 
+
+m = dpriv and 0.80 at m = 512 . The MLP is worse still (cosine ≤ 0.13 ): a non-linear hypothesis is the wrong inductive bias for an orthogonal map and merely overfits. And the unsupervised attacker fails outright (cosine 0.00 ): the residual covariance is anisotropic, so eigenvector matching pins down Hc only up to a per-axis sign —a 2dpriv ambiguity that no amount of unpaired data resolves. The anchor barrier is thus a property of the construction—a dpriv -dimensional secret orthogonal map per cell—not of the particular attacker; the off-the-shelf Procrustes used in Section 8.6 is, if anything, the worst case for the defender. 27 Figure 11: Stronger attackers on Shard ’s keyed residual. Recovered cosine to the native residual vs in-cell anchors. Orthogonal Procrustes is optimal (exact at m = dpriv ); the learned-linear ALGEN core and an MLP are weaker; unsupervised vec2vec -style matching fails (sign ambiguity). Within the studied attacker family, no method surpasses the dpriv single-cell anchor threshold. 
+
+Figure 12: Public-index leakage (e5-small). The Shard public prefix u reveals far less of the true top-10 neighbour structure than the baseline’s exposed SVD k=d/ 2 geometry; a d/ 8 prefix discloses about half as much. 
+
+8.7 SHARD: the public channel leaks coarse structure 
+
+The baseline’s public PQ index sits on the full protected space and preserves 67% of exact top-10 neighbours (Section 8.3). Shard ’s public channel is only the short prefix u. We measure how much true (full-space) top-10 neighbour structure each public channel reveals (NN-overlap@10, e5-small, 100 000 documents, 1000 probes; Fig. 12). A d/ 4 prefix reveals NN-overlap 0.55 and a d/ 8 prefix only 0.36 (and 0.20 at d/ 16 ), against 0.76 for the baseline’s exposed SVD k=d/ 2
+
+geometry. The public stage-1 channel thus discloses coarse/topic neighbours but not fine identity, which lives in the keyed residual. The pattern reproduces on e5-base: a d/ 8 prefix leaks NN-overlap 0.58 and a d/ 4 prefix 0.77 , against 0.94 for the baseline geometry; the within-cell fraction is 0.55 /0.46 at C=64 /256 .We are explicit about the residual leak. Within a cell the keys cancel, so the server can compute exact same-cell similarities; the fraction of a document’s true top-10 neighbours that fall in its own cell—hence remain recoverable—is 0.50 at C=64 and 0.41 at C=256 , against 1.00 for 28 Table 19: A PQ-only hardened store vs. Shard (100 000 documents, 1000 probes). Rerank fidelity is the cosine of the channel used for scoring to the true vector ( Shard ’s cell-keyed residual cancels exactly; PQ-only is lossy); NN-overlap@10 is the full-space top-10 structure recoverable from the public channel.                                          
+
+> Encoder Public channel rerank fidelity NN-overlap@10 e5-small Shard d/ 4prefix exact ( 1.000 )0.55
+> e5-small PQ-only M=24 (24 B) 0.67 0.27
+> e5-small PQ-only M=48 (48 B) 0.83 0.49
+> e5-base Shard d/ 4prefix exact ( 1.000 )0.77
+> e5-base PQ-only M=48 (48 B) 0.67 0.41
+> e5-base PQ-only M=96 (96 B) 0.83 0.63
+
+the baseline’s single global key (which cancels for all pairs). More cells localise the leak further, and the micro-key variant removes it entirely. Shard therefore shrinks, but does not zero, the neighbour graph available to an honest-but-curious server. 
+
+Baseline: a PQ-only hardened store. A natural alternative to cell-keying is to publish product-quantization codes of the rotated store and rerank from them—a PQ-only defense. We compare it on the same data and leakage metric (Table 19); the result is an honest trade-off, not a clean win. At small code sizes PQ-only leaks less coarse neighbour structure than Shard ’s d/ 4
+
+prefix (NN-overlap@10 0.27 –0.63 vs. 0.55 –0.77 ), because lossy quantization blurs the high-variance directions the prefix exposes. But that loss is the catch: PQ-only reranks from a reconstruction of cosine only 0.67 –0.83 to the true vector, so retrieval quality degrades, whereas Shard ’s per-cell orthogonal keys cancel and rerank exactly (cosine 1.000 )—the raw-nDCG recovery of Section 8.5 that PQ-only cannot match. The two are different points on the privacy/utility frontier: PQ-only buys a smaller footprint and lower coarse leak at a retrieval-quality cost; Shard preserves exact retrieval and instead localises the residual leak to cells (and removes it at the micro-key limit, Section 8.7). 
+
+The micro-key limit: no residual leak, unlinkable. The within-cell residual leak and the targeted attack share one fix: shrink cells to a single document. We measure the per-document micro-key variant against the cell-level scheme (e5-small, dpub = d/ 4; Table 20). The residual graph the server can reconstruct from the keyed shards (the fraction of a document’s true residual 
+
+top-10 neighbours recoverable through same-key inner products) falls from 0.25 at C=64 to 0.18 
+
+at C=256 and to 0.00 for per-document keys—no two shards share a key, so no pairwise residual similarity survives. And the residual channel is a genuine cancellable template [32 ]: re-keying the store twice and trying to match the same document across keys gives a mated-vs-non-mated AUC of ≈ 0.50 (cell 0.47 /0.50 ; micro-key 0.50 ), i.e. renewable and unlinkable. The price is bandwidth: micro-keys send one residual query per candidate ( ≈ Kcands per search, the C=N
+
+endpoint of Table 16). The family therefore spans a clear spectrum: cell-level Shard is the bandwidth-efficient operating point with diffuse-leak resistance and a localised, non-zero residual leak; per-document micro-keys are the high-assurance endpoint that removes the residual leak and 
+
+the targeted attack, at Kcands queries per search. One honesty caveat carries over: unlinkability holds for the residual channel; the public prefix is identical across re-keyings unless its global key is also refreshed (Section 8.8). 
+
+8.8 SHARD vs. a distortion-aware defence 
+
+Shard is attack-aware (it keys the residual against alignment) rather than distortion-aware 
+
+(adding noise calibrated to a budget). To show the two are not interchangeable, we protect 29 Table 20: Micro-keys remove the residual leak and are unlinkable (e5-small). Residual-graph recoverable: fraction of true residual top-10 neighbours the server can reconstruct from the shards. Unlinkability AUC ≈ 0.5 means the same document is not matchable across two key sets.           
+
+> Key granularity residual-graph recoverable unlinkability AUC cell, C=64 0.25 0.47
+> cell, C=256 0.18 0.50
+> micro-key (per-doc) 0.00 0.50
+
+Table 21: Attack-aware vs. distortion-aware on the same residual (e5-small, dpriv =288 ). De-anon R@1 is a known-plaintext attacker at m=6400 diffuse anchors, with paired-bootstrap 95% CIs over (seed ×target). DP matches Shard ’s utility ( 0.722 ) only at σ=0, where de-anon is 1.000 ;only Shard reaches high utility and low de-anonymisation.                                  
+
+> Defence (on the residual) utility Acc@1 de-anon R@1 [95% CI] DP-noise σ=0 (no noise) 0.722 1.000 [1 .000 ,1.000]
+> DP-noise σ=0 .5σr0.719 1.000 [1 .000 ,1.000]
+> DP-noise σ=1 .0σr0.711 1.000 [1 .000 ,1.000]
+> DP-noise σ=1 .5σr0.694 1.000 [1 .000 ,1.000]
+> DP-noise σ=2 .0σr0.666 0.996 [0 .993 ,0.999]
+> Shard C=64 0.722 0.000 [0.000 ,0.000 ]
+> Shard C=256 0.722 0.000 [0.000 ,0.000 ]
+
+the same residual with calibrated isotropic Gaussian noise—a DP-style mechanism, the natural lightweight alternative [ 24 ]—and place every defence on the utility-vs-de-anonymisation plane (Table 21, Fig. 13). Utility is self-retrieval Acc@1; de-anonymisation is a known-plaintext attacker’s R@1 against a 10 000 -document native gallery at a diffuse budget of m= 6400 anchors, with paired-bootstrap 95% CIs over (seed ×target). The contrast is stark, and now carries CIs over a finer σ sweep. DP-noise provides essentially no resistance to this attack at any usable utility : there is no transform to invert, so the stored noised residual still matches its own native entry—de-anon R@1 stays 1.000 across the whole sweep and only dips to 0.996 [0 .993 , 0.999] at σ=2σr, where utility has already fallen by six points. Read as a matched-utility test this is decisive: DP equals Shard ’s utility ( 0.722 ) only at 
+
+σ=0, exactly where its de-anon is 1.000 ; any σ that lowers de-anon strictly lowers utility below 
+
+Shard ’s. A single global key is no better—it is recovered far below this budget (Section 8.6). 
+
+Shard alone reaches the top-left corner: identical utility ( 0.722 , the keyed rerank is exact) with de-anon R@1 = 0 .000 , because a diffuse budget of 6400 anchors cannot fill any of its cells. The mechanisms are complementary—one could compose Shard with mild noise—but for the alignment/de-anonymisation surface that the modern attacks target, keying is what pays. 
+
+A measured limitation: overlap reference lookup. The baseline allowed an overlapping reference corpus to recover exact source paragraphs after alignment ( 99 .8% top-1, Section 8.3). We test whether Shard closes this channel, keying both the prefix (one global key K) and the residual (cell keys). It does not , and we report this honestly. Because the prefix carries a single 
+
+global key, it is recovered with only dpub anchors; once K is known, the de-rotated public prefix 
+
+ut exactly matches the target’s entry in an overlapping native reference, so de-anonymisation R@1 stays near 1.0 (e5-small, 100 000 -document reference: 0.995 at m=200 ) regardless of the residual keys. In other words, Shard hardens the native-frame mapping of the private residual (Section 8.6) but not the coarse identity carried by an exposed prefix when the attacker already possesses the plaintext. Two design responses follow directly: (i) a coarse-cell-ID public channel, which exposes only the cell label (so overlap lookup returns ∼ N/C candidates rather than one) at a stage-1 recall cost; and (ii) per-document micro-keys , under which there is no global prefix 30 Figure 13: Utility vs. de-anonymisation at a fixed anchor budget. DP-noise and a single global key sit at high de-anon (no alignment resistance); Shard (⋆) reaches high utility with near-zero de-anonymisation. key to recover. We leave a full evaluation of these stronger variants to future work and stress that 
+
+Shard ’s demonstrated advantage is against alignment/inversion in the absence of an overlapping plaintext reference. 
+
+# 9 Discussion 
+
+Why Shard is the right shape of defence. The measurements tell a consistent story. The baseline’s protection is a single global geometry, and every leakage channel we measured exploits exactly that: Procrustes aligns the one rotation, the public PQ index sits on the one space, and reference lookup follows once aligned. Shard attacks the shape of the problem rather than adding noise to a surrogate: it removes the global axis (cell keys), shrinks the public footprint to a coarse prefix, and—by reranking the full residual rather than a truncated half—actually 
+
+improves utility. The single knob C turns the diffuse -leak known-plaintext cost from O(d) into 
+
+O(Cd ) and the residual graph leak from global to cell-local, paying ≈ C extra encrypted queries per search and leaving a per-victim targeted cost of ≈ dpriv ; the per-document limit removes the residual leak and the targeted attack outright at Kcands queries. This is the cancellable-template philosophy [ 32 ] carried into dense text retrieval: renewable, revocable, and tuned against attacks rather than against σrec —with the trade-offs measured rather than assumed. The contrast with the distortion-aware alternative is the cleanest evidence for this stance: at matched utility a DP-noise residual is still trivially de-anonymised (R@1 ≈ 1), because noise has no key to recover, whereas Shard ’s keyed residual is not—and the keying holds against learned-linear, non-linear and unsupervised attackers, not just the orthogonal Procrustes that motivated it. 
+
+Encoder selection is part of the protocol. The baseline protective wrapper is essentially metric-preserving in the projected space; the end-to-end deviation from the raw baseline is dominated by what end-to-end deviation from the raw baseline is dominated by what SVD truncation does on the chosen encoder. Models trained with contrastive retrieval objectives and large dimension ( e5-large , bge-m3 , d=1024 ) concentrate the retrieval signal in the top singular directions: half truncation leaves Acc@1 unchanged (no significant difference) and significantly 
+
+improves Acc@10 (Section 8.2), the linear-denoiser effect. The mid-sized e5-base (d=768 ) is statistically indistinguishable from raw. Paraphrase-distilled models ( mpnet ) and very compact models ( e5-small , d=384 ) do not show this concentration: truncation significantly degrades 31 retrieval, so we recommend either replacing them with a retrieval-trained d ≥ 1024 equivalent or running a k-sweep before deployment to find a k that satisfies both the application’s accuracy budget and the σrec ≥ 0.10 distortion floor. 
+
+The role of the rotation R: obfuscation, not a primitive. We state this as plainly as possible: the secret rotation is an empirical obfuscation layer, not a cryptographic primitive .It contributes a defence channel orthogonal to SVD truncation, and even at k/d = 1 .0 the unknown-R regime reduces off-the-shelf Vec2Text BLEU to the noise floor—but the paper also reports that a known-R attacker gains nothing beyond SVD and that a known-plaintext attacker recovers the orientation with standard Procrustes alignment. The aligned Vec2Text stress test does not recover text or typed PII, but its raw baseline is already near the reconstruction floor; a learned or universal decoder adapted to the protected space is still untested and out of scope. The rotation’s value proposition is therefore limited: it is a cheap obstacle for a weak unknown-orientation attacker, not a security guarantee. The scientific weight of the paper is the measured privacy/latency/accuracy trade-off and the documented failure modes, not the rotation. 
+
+What CKKS hides and what it does not. The CKKS layer hides the numerical repre-sentation of the query and the exact similarity scores from the server. Two things it does not 
+
+hide are the identifiers of the candidates produced by stage-1 PQ filtering and the L2-distances among them implicit in the order in which they are sent. Section 8.3 also shows that the public PQ codes preserve substantial local geometry even before observing queries. An access-pattern attacker can therefore, over many queries, build a co-occurrence model of which documents are co-retrieved. Composing the pipeline with a PIR-style retrieval primitive (Tiptoe [ 38 ], SealPIR [ 39 ], OnionPIR [ 41 ], SimplePIR [ 40 ]) is the natural remedy; ours is engineered to be PIR-friendly because the ct-pt operations on the server are stateless and cluster-local. 
+
+Parameter selection. The selected configuration is ≈ 1.7× faster than the TenSEAL stock parameters at the same parameter-table security bound and within ∆Acc@1 ≤ 1 p.p. of base-line_proj. We reiterate that this speed-up is structural—ct-pt needs one multiplicative level, hence a shorter modulus chain—rather than a product of the learned surrogate, which only serves to extrapolate latency to unbenchmarked configurations or hardware. The selection runs offline at no per-query cost. 
+
+# 10 Limitations and Future Work 
+
+We separate intrinsic limitations (properties of the construction under study) from future work 
+
+(experiments that would extend the measurement, especially before any security claim could be made for a security venue). We name and scope the latter rather than leaving it vague, so the boundary of what we measured is explicit. 
+
+Intrinsic limitations. The most important caveat is that Shard hardens alignment, not the coarse graph. The keyed residual resists native-frame mapping— ≈ C× anchors—but two channels stay open: within a cell the keys cancel, so same-cell similarities still leak (about 0.50 of the neighbour graph at C=64 ), and the public prefix carries a single global key that dpub anchors recover, after which an overlapping reference corpus de-anonymises through it (Section 8.8); the micro-key and coarse-cell-ID variants would address both, at a bandwidth or recall cost we have not yet paid. More broadly, Shard is a geometric rather than a cryptographic defence—an attack-aware transform with measured advantages against alignment and index leakage, but no formal privacy guarantee, and like the baseline it leaves access patterns to a PIR/ORAM composition. 32 Two further limitations are inherited from the baseline it replaces. Document privacy there is not cryptographic: Erot sits in plaintext on the server, protected only by SVD truncation (a proxy) and the secret rotation (an empirical obfuscation layer), and Sections 8.3 and 8.3 show that known-plaintext anchors defeat the rotation and that an overlapping reference corpus then recovers the exact source paragraph. Access patterns and the public PQ codes are exposed as well: CKKS hides values, not which candidates are reranked, and the PQ codes are a lossy but non-negligible view of Erot , so production use needs a PIR/ORAM layer together with a static-side protection for the index artefact. The rest are matters of scope. The strict end-to-end budget ∆ Acc@1 ≥ − 5 p.p. holds only on retrieval-trained encoders with d ≥ 768 ; compact or paraphrase-distilled encoders need either replacement or a less aggressive k, which then breaks the σrec ≥ 0.10 proxy. Our largest experiment is a self-retrieval geometry probe on 10 6 Russian-Wikipedia paragraphs—a strong fidelity test rather than a production benchmark—and although MIRACL (Section 8.5) now extends the graded-relevance evidence to two languages at ≈ 10 5 documents each, the combination of 10 6
+
+scale and graded relevance in a single corpus (the largest MIRACL languages or MS MARCO) stayed beyond our CPU budget. The generative-inversion calibration is similarly corpus- and model-limited: the aligned Vec2Text stress test runs on an offline synthetic-news+PII corpus with an off-the-shelf corrector, and because raw inversion is already weak there, the zero-PII-recall result reads as a boundary condition for that attacker rather than as general document privacy. The latency figures of Section 8.4, finally, are loopback measurements; a geographically distributed deployment will add network latency we have not characterised. 
+
+Future work. The highest priority is to evaluate the stronger Shard variants—the per-document micro-key and coarse-cell-ID channels that close the within-cell and overlap-reference leaks of Sections 8.7–8.8—measuring their bandwidth (extra residual queries) and stage-1 recall costs, alongside a learned per-cell key schedule. A second strand needs a GPU: Section 8.6 stress-tests the alignment cores of ALGEN (learned linear), vec2vec (unsupervised) and a non-linear MLP and the barrier holds, but the full generative stages— ALGEN ’s text generator, 
+
+ZSInvert ’s zero-shot LLM decoder, and a decoder fine-tuned on protected embeddings—would confirm that failing to recover the native residual also fails to recover text. The same logic applies to the baseline, where the decisive text-level test is to fine-tune an inversion model on protected embeddings from part of the corpus and report BLEU, token overlap and typed-PII recovery on a disjoint holdout (Appendix A.4 only evaluates an aligned off-the-shelf corrector), and to repeat the off-the-shelf runs of Appendices A.1 and A.4 with beam search, many more corrector iterations and a modern universal inverter so that the “BLEU at noise floor” claim is not tied to one corrector. On the calibration side, the σrec = 0 .10 proxy still rests on a single-encoder, BLEU-only study—Appendix A.3 shows geometrically that σrec is not itself a privacy metric—so the required follow-up is a multi-encoder ablation reporting BLEU, token overlap and typed-PII recovery for names, addresses, e-mail, phone and medical terms. The lightweight-baseline suite should likewise grow beyond the calibrated Gaussian-noise diagnostic, which already covers SVD, Gaussian and random-orthogonal projection and matched-distortion noise, to quantisation and noise mechanisms with formal DP budgets at accuracy-matched operating points. For benchmarks, the gap that remains is the 10 6-scale combination of scale and graded relevance—the largest MIRACL languages or MS MARCO—together with the GPU-encoded e5-large/NFCorpus cell that completes the grid. The alignment study, finally, should be pushed past the overlap case of Section 8.3 to the harder stress tests: non-overlapping external corpora, semantic judges for near-neighbour leakage, and embedding-space translation attacks such as vec2vec-style mappings. The known-plaintext experiment already shows that linear alignment can be damaging; unsupervised or weakly supervised alignment against the keyed residual is the open question. 33 Two further directions step outside Shard ’s fixed-encoder setting and tie it to a broader programme we pursue separately. The first concerns how wide the public prefix should be: we set 
+
+dpub (and the truncation k) to fixed fractions, but the right width is really a question of intrinsic dimensionality —how many dimensions a given language and encoder actually need before the residual carries little but noise—so choosing dpub and the cell count C from the per-language SVD spectrum and intrinsic-dimensionality estimates, rather than a flat d/ 4, should tighten both the utility and the public-channel leak at once. The second is to co-design the encoder instead of wrapping a frozen one: Shard protects whatever geometry the encoder happens to ship, but an encoder trained for a low-dimensional, inversion-resistant head—through head-aware contrastive compression, or an adversarial low-dimensional shipped head—would make the public prefix inherently harder to invert and would relieve the encoder-dependence of the accuracy budget noted above, where compact encoders presently force a replacement. Composing such a hardened head with Shard ’s cell-keyed residual is the natural endpoint: a defence that is attack-aware both in the representation it ships and in the geometry it stores. 
+
+# 11 Conclusion 
+
+We began by measuring a popular global-linear defence for private dense retrieval—SVD truncation, a secret rotation, a public ANN index and CKKS reranking—and found its protection concentrated on a single weak axis. A known-plaintext orthogonal Procrustes attack recovers the secret rotation with about k = d/ 2 anchors; an overlapping reference corpus then yields near-exact paragraph recovery; the public product-quantisation index preserves most of the neighbour structure; and, because reranking happens in the truncated half, the stack loses 2–8 nDCG@10 points on BEIR. The distortion proxy σrec that such schemes optimise is, as our calibrated-noise diagnostic confirms, not a privacy metric at all. These are precisely the openings that modern alignment, zero-shot inversion and cross-space translation attacks exploit. 
+
+Shard removes the weak axis. By splitting the embedding into a coarse public prefix and a private residual that is sharded into C cell-keyed pieces, it recovers the raw-space ranking ceiling on the evaluated cells—because reranking is full-dimensional it matches the raw nDCG@10 that truncation drops on BEIR, and it does so while exposing a public channel only half as wide. At the same time it multiplies the diffuse known-plaintext anchor complexity of mapping the store back into the native frame by roughly C (from 200 to 102 ,400 anchors at C=256 ), a barrier that holds against learned-linear, non-linear and unsupervised attackers alike and that a matched-utility DP-noise defence does not approach. And it confines the public index to coarse, topic-level neighbours while localising the residual neighbour-graph leak to cells—both shrinking with C and vanishing at the per-document micro-key limit. A single parameter C tunes the family from the global baseline ( C=1) to per-document micro-keys ( C=N ), and re-keying a cell gives revocation at cell granularity. We are equally clear about what Shard does not do. It hardens the alignment and index-leakage surface, not the coarse graph: within a cell the keys cancel, and an overlapping plaintext reference still de-anonymises through the single-keyed public prefix. It is an attack-aware geometric 
+
+transform, not a cryptographic guarantee, and it inherits the baseline’s open access-pattern channel. Closing the residual graph and the overlap channel with the micro-key and coarse-cell-ID variants, stress-testing Shard against learned and zero-shot inverters, and composing it with a PIR-style access-pattern hider are the natural next steps. The contribution here is to move embedding privacy from a single alignable geometry, optimised against a distortion surrogate, to a family 
+
+of cell-keyed transforms whose advantage against the modern attack surface is measured rather than assumed. 34 Table 22: Off-the-shelf Vec2Text on GTR-base embeddings under the three threat models. BLEU and Token Overlap with 95% bootstrap CIs in brackets.                                                      
+
+> k/d Rotation Knowledge of RBLEU Token Overlap
+> 1.00 off —0.156 [0 .123; 0 .186] 0.385 [0 .351; 0 .417] 1.00 on known 0.156 [0 .127; 0 .187] 0.385 [0 .351; 0 .416] 1.00 on unknown 0.007 [0.006 ;0.008 ]0.053 [0.046 ;0.060 ]0.75 off —0.077 [0 .063; 0 .093] 0.325 [0 .304; 0 .345] 0.75 on unknown 0.007 [0 .007; 0 .008] 0.061 [0 .054; 0 .067] 0.50 off —0.057 [0 .046; 0 .069] 0.285 [0 .270; 0 .300] 0.50 on unknown 0.007 [0 .007; 0 .008] 0.050 [0 .045; 0 .055] 0.25 off —0.024 [0 .020; 0 .028] 0.196 [0 .181; 0 .208] 0.25 on unknown 0.007 [0 .006; 0 .007] 0.045 [0 .040; 0 .051] 0.10 off —0.010 [0 .009; 0 .011] 0.113 [0 .104; 0 .123] 0.10 on unknown 0.007 [0 .007; 0 .008] 0.053 [0 .047; 0 .059]
+
+# A Reproduced baseline analyses from the global-linear system 
+
+The analyses in this appendix characterise the global-linear baseline (SVD truncation + secret rotation + CKKS reranking), not Shard . They are reproduced in condensed form from our prior work [ 55 , 56 ], where the inversion-versus-rotation study is the primary contribution; we include the evidence tables here so this paper is self-contained, and refer the reader to [ 56 ] for the full treatment. Shard ’s own evaluation is in Section 8. 
+
+A.1 Off-the-shelf Vec2Text against truncation and rotation 
+
+We instantiate Vec2Text [7] on GTR-base embeddings ( d = 768 ) over a synthetic 100 -document PII corpus, under three threat models—no rotation; rotation with R known ; rotation with R
+
+unknown —at five values of k/d . The attacker budget is fixed and deliberately weak (greedy decoding, 10 corrector iterations, no beam search), so the unprotected BLEU ( 0.156 ) is far below the 0.973 of [ 7]; the experiment measures the relative effect of truncation and rotation, not absolute inversion risk. This is the single most important caveat of the baseline’s security narrative: an unknown R drops BLEU to the noise floor ( ∼ 0.007 ) for every k/d (Table 22), but only against this non-adaptive inverter—a known R gives no protection beyond truncation, and the known-plaintext alignment of Section 8.3 defeats the rotation outright. A linear fit of the no-rotation BLEU on ηk = 1 − σ2 
+
+> rec
+
+gives R2 ≈ 0.93 , consistent with Hypothesis 1. 
+
+A.2 Lightweight projection baselines 
+
+To avoid comparing the transform only against the raw system, we evaluate SVD against Gaussian and random-orthogonal projection [ 45 ] at k = d/ 2 (Table 23). The result is deliberately mixed: SVD is strongest on the retrieval-trained d ≥ 768 encoders—the operating region of the method— but random-orthogonal projection beats it on mpnet and e5-small. The choice of projection is an encoder-dependent utility trade-off, not a universal privacy primitive. 
+
+A.3 Calibrated Gaussian-noise diagnostic 
+
+On a 100 000 -document gallery (PCA basis from an 80 000 sample) we sweep k/d ∈{1/8, 1/4, 1/2, 7/8} and, for each k, add isotropic Gaussian noise calibrated by binary search to the SVD σrec , reporting self-retrieval Acc@1 and exact top-10 raw-vs-protected nearest-neighbour overlap (Table 24). Two readings follow. First, σrec is not a privacy metric: e5-base at 
+
+k/d = 0 .875 has low distortion yet preserves almost all raw neighbours under matched noise. Second, SVD changes geometry differently from independent noise—at k/d = 0 .5 it preserves far 35 Table 23: Acc@1 under lightweight projection baselines at k = d/ 2. Random baselines are mean 
+
+± standard deviation over three seeds. 
+
+Encoder Raw SVD Gaussian RP Orthogonal RP e5-small 0.782 0.702 0.688 ± 0.016 0.737 ± 0.010 
+
+e5-base 0.830 0.834 0.781 ± 0.011 0.804 ± 0.017 
+
+mpnet 0.716 0.650 0.698 ± 0.003 0.705 ± 0.008 
+
+e5-large 0.796 0.814 0.765 ± 0.010 0.769 ± 0.009 
+
+bge-m3 0.818 0.832 0.789 ± 0.004 0.810 ± 0.002 
+
+Table 24: SVD truncation vs. independent Gaussian noise at matched mean relative distortion on a 100 000 -document gallery. NN overlap@10 is the overlap with raw-space neighbours; lower values indicate less raw geometry preserved.                                                       
+
+> Encoder k/d σrec SVD Acc@1 SVD NN@10 Noise Acc@1 Noise NN@10 e5-small 0.125 0.385 0.318 0.232 0.750 0.283
+> e5-small 0.250 0.332 0.600 0.333 0.788 0.367
+> e5-small 0.500 0.237 0.814 0.468 0.828 0.531
+> e5-small 0.875 0.079 0.880 0.551 0.872 0.830
+> e5-base 0.125 0.354 0.708 0.370 0.864 0.503
+> e5-base 0.250 0.268 0.872 0.501 0.886 0.641
+> e5-base 0.500 0.129 0.916 0.578 0.902 0.829
+> e5-base 0.875 0.023 0.920 0.592 0.910 0.969
+
+Table 25: Aligned off-the-shelf Vec2Text stress test on the RTX 4090 profile. All rows use 120 
+
+held-out texts; m is the number of known plaintext/protected pairs used for Procrustes alignment. Exact match and typed-PII recall are zero in every case. 
+
+Case Token F1 BLEU Exact PII recall Raw embedding 0.133 0.0133 0.000 0.000 
+
+Known-R oracle 0.138 0.0134 0.000 0.000 
+
+Unknown R, no alignment ( = Procrustes m=0 ) 0.121 0.0129 0.000 0.000 
+
+Procrustes, m = 10 0.124 0.0128 0.000 0.000 
+
+Procrustes, m = 50 0.126 0.0126 0.000 0.000 
+
+Procrustes, m = 100 0.141 0.0127 0.000 0.000 
+
+Procrustes, m = 192 0.134 0.0132 0.000 0.000 
+
+Procrustes, m = 500 0.135 0.0133 0.000 0.000 
+
+fewer raw neighbours ( 0.578 vs. 0.829 NN@10 on e5-base) without the ranking collapse of very aggressive truncation. The narrow claim is that SVD is an encoder-dependent utility/leakage trade-off, not that noise is simply worse. 
+
+A.4 Aligned Vec2Text inversion stress test 
+
+As a portable generative-inversion control we run the off-the-shelf Vec2Text corrector with a larger budget than above ( 24 corrector iterations, max input length 96 ) against GTR-base embeddings ( d = 768 , k = d/ 2, secret rotation), given up to m = 500 known plaintext/protected pairs for Procrustes alignment, on a deterministic offline synthetic-news +PII corpus ( 2 200 texts, 
+
+120 test, 13 with phone/card patterns). No exact document or typed PII is recovered in any case—including a known-R oracle—but the raw row is also at the floor (BLEU 0.013 , Table 25), so this off-the-shelf corrector certifies nothing. It does not contradict the exact-lookup failure of Section 8.3; the open risk is a learned, corpus-adapted decoder (Section 10). 36 Reproducibility 
+
+All code, configuration, and the JSON/CSV outputs of every experiment are released as a structured repository. It is organised into shard/ (the contribution: shard_lib.py and the eleven exp12 –exp22 scripts for utility, online cost, alignment resistance (diffuse, targeted and against learned/unsupervised attackers), public-index leakage, the micro-key variant, the DP-noise comparison and the reference-lookup limitation), baseline/ (the global-linear foil: the integral 10 6-document pipeline, the Procrustes/PQ leakage, the σrec diagnostic, the denoiser-significance and BEIR experiments, and the GPU Vec2Text stress test), results/ (one directory per experiment), paper/ , and docs/ . The Shard and lightweight-baseline experiments are 
+
+numpy /scikit-learn only—the per-cell keys are orthogonal, so the residual reranking score is exact and is computed directly, needing no FHE library—except the BEIR encoding (CPU torch )and the optional GPU stress test. All runs are deterministic given their seeds (query/ground-truth seed 42 , rotation and master-key seeds {11 , 23 , 31 , 47 , 53 }, bootstrap seed 2026 ). The cached embeddings (one-million Russian-Wikipedia paragraphs for five encoders, reproducibly sliced from a public dump with the date and checksum in the data manifest; ≈ 17 GB) are not shipped with the repository and are located through a SHARD_DATA path; the BEIR data is the public 
+
+BeIR/scifact and BeIR/nfcorpus releases. The code, configuration and per-experiment outputs are released at https://github.com/sergkurilenko/research/tree/article5 .
+
+# Declarations 
+
+Ethics. This study used public benchmark corpora (Wikipedia, BEIR) and synthetic privacy-stress examples only; no intervention involving human participants was conducted and no non-public personal data were collected. Institutional ethics review was therefore not required under our institution’s policy. 
+
+Publication overlap. Part of the baseline description—the global-linear SVD +rotation +CKKS pipeline and the CKKS parameter selection—reproduces our previously published system [ 55 ] and its companion preprint [ 56 ], and is included here only as the comparison setting against which 
+
+Shard is measured. The new contributions of this paper do not overlap with that earlier work: the 
+
+Shard cell-keyed construction; the additional attacker families (learned/non-linear/unsupervised aligners, targeted-cell, reference-corpus); the anchor-complexity, public-prefix-leakage and micro-key measurements; and the evaluation beyond the prior paper. This manuscript is not under consideration elsewhere. 
+
+# References          
+
+> [1] N. Reimers and I. Gurevych, “Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks,” in Proc. EMNLP , 2019, pp. 3982–3992. [2] L. Wang, N. Yang, X. Huang, et al., “Text Embeddings by Weakly-Supervised Contrastive Pre-training,” arXiv:2212.03533 , 2022. [3] J. Ni et al., “Large Dual Encoders Are Generalizable Retrievers,” in Proc. EMNLP , 2022, pp. 9844–9855. [4] J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, “BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation,”
+> arXiv:2402.03216 , 2024. [5] V. Karpukhin et al., “Dense Passage Retrieval for Open-Domain Question Answering,” in Proc. EMNLP , 2020, pp. 6769–6781.
+
+37 [6] O. Khattab and M. Zaharia, “ColBERT: Efficient and Effective Passage Search via Contextualised Late Interaction over BERT,” in Proc. ACM SIGIR , 2020, pp. 39–48. [7] J. X. Morris, V. Kuleshov, V. Shmatikov, and A. M. Rush, “Text Embeddings Reveal (Almost) As Much As Text,” in Proc. EMNLP , 2023. [8] H. Li, M. Xu, and Y. Song, “Sentence Embedding Leaks More Information than You Expect: Generative Embedding Inversion Attack to Recover the Whole Sentence,” in Findings of ACL , 2023, pp. 14022–14040. [9] Y.-H. Huang, Y. Tsai, H. Hsiao, H.-Y. Lin, and S.-D. Lin, “Transferable Embedding Inversion Attack: Uncovering Privacy Risks in Text Embeddings without Model Queries,” in Proc. ACL (Long) , 2024, pp. 4193–4205. [10] Y. Chen, Q. Xu, and J. Bjerva, “ALGEN: Few-shot Inversion Attacks on Textual Embeddings via Cross-Model Alignment and Generation,” in Proc. ACL , 2025. [11] C. Zhang, J. X. Morris, and V. Shmatikov, “Universal Zero-shot Embedding Inversion,” 
+
+arXiv:2504.00147 , 2025. [12] W. Yu, Y. Chen, J. Bjerva, S. Kosta, and Q. Li, “LAGO: Few-shot Crosslingual Embedding Inversion Attacks via Language Similarity-Aware Graph Optimization,” arXiv:2505.16008 , 2025. [13] T. Liu et al., “EGuard: Defending LLM Embeddings Against Inversion Attacks via Text Mutual Information Optimization,” in Proc. AAAI , 2026. [14] Y.-C. Tsai, H. Hsiao, K.-Y. Chen, and S.-D. Lin, “Concept-Aware Privacy Mechanisms for Defending Embedding Inversion Attacks,” arXiv:2602.07090 , 2026. [15] D. El Zein, S. Kumar, and J. Henderson, “Nonparametric Variational Differential Privacy via Embedding Parameter Clipping,” arXiv:2603.09583 , 2026. [16] A. Kusupati et al., “Matryoshka Representation Learning,” in Advances in Neural Information Processing Systems , 2022. [17] R. Jha, C. Zhang, V. Shmatikov, and J. X. Morris, “Harnessing the Universal Geometry of Embed-dings,” arXiv:2505.12540 , 2025. [18] S. Zeng et al., “The Good and the Bad: Exploring Privacy Issues in Retrieval-Augmented Generation (RAG),” in Findings of ACL , 2024, pp. 4505–4524. [19] C. Song and A. Raghunathan, “Information Leakage in Embedding Models,” in Proc. ACM CCS ,2020, pp. 377–390. [20] R. Shokri et al., “Membership Inference Attacks Against Machine Learning Models,” in Proc. IEEE S&P , 2017, pp. 3–18. [21] N. Carlini et al., “Extracting Training Data from Large Language Models,” in Proc. USENIX Security ,2021, pp. 2633–2650. [22] C. Dwork, “Differential Privacy,” in Proc. ICALP , 2006, pp. 1–12. [23] M. Abadi et al., “Deep Learning with Differential Privacy,” in Proc. ACM CCS , 2016, pp. 308–318. [24] L. Lyu, X. He, and Y. Li, “Differentially Private Representation for NLP,” in Findings of EMNLP ,2020, pp. 2355–2365. [25] K. Kenthapadi, A. Korolova, I. Mironov, and N. Mishra, “Privacy via the Johnson-Lindenstrauss Transform,” J. Privacy and Confidentiality , vol. 5, no. 1, 2013. [26] K. Liu, H. Kargupta, and J. Ryan, “Random Projection-Based Multiplicative Data Perturbation for Privacy Preserving Distributed Data Mining,” IEEE TKDE , vol. 18, no. 1, 2006, pp. 92–106. 
+
+38 [27] J. H. Cheon, A. Kim, M. Kim, and Y. Song, “Homomorphic Encryption for Arithmetic of Approximate Numbers,” in Advances in Cryptology—ASIACRYPT 2017 , LNCS 10624, pp. 409–437. [28] J. H. Cheon, K. Han, A. Kim et al., “Bootstrapping for Approximate Homomorphic Encryption,” in 
+
+Advances in Cryptology—EUROCRYPT 2018 , LNCS 10820, pp. 360–384. [29] M. Albrecht et al., “Homomorphic Encryption Security Standard,” HomomorphicEncryption.org, 2018. [30] M. R. Albrecht, R. Player, and S. Scott, “On the Concrete Hardness of Learning with Errors,” Journal of Mathematical Cryptology , vol. 9, no. 3, 2015, pp. 169–203 (lattice-estimator methodology). [31] P. H. Schönemann, “A Generalized Solution of the Orthogonal Procrustes Problem,” Psychometrika ,vol. 31, no. 1, 1966, pp. 1–10. [32] V. M. Patel, N. K. Ratha, and R. Chellappa, “Cancelable Biometrics: A Review,” IEEE Signal Processing Magazine , vol. 32, no. 5, 2015, pp. 54–65. [33] A. Al Badawi et al., “OpenFHE: Open-Source Fully Homomorphic Encryption Library,” in Proc. WAHC ’22 , 2022, pp. 53–63. [34] R. Dathathri et al., “EVA: An Encrypted Vector Arithmetic Language and Compiler for Efficient Homomorphic Computation,” in Proc. ACM PLDI , 2020, pp. 546–561. [35] R. Dathathri et al., “CHET: An Optimizing Compiler for Fully-Homomorphic Neural-Network Inferencing,” in Proc. ACM PLDI , 2019, pp. 142–156. [36] W. Jung, S. Kim, J. H. Ahn et al., “Over 100x Faster Bootstrapping in Fully Homomorphic Encryption through Memory-centric Optimisation with GPUs,” IACR TCHES , vol. 2021, no. 4, pp. 114–148. [37] F. Boemer et al., “Intel HEXL: Accelerating Homomorphic Encryption with Intel AVX512-IFMA52,” in Proc. WAHC ’21 , 2021, pp. 57–62. [38] A. Henzinger, E. Dauterman, H. Corrigan-Gibbs, and N. Zeldovich, “Private Web Search with Tiptoe,” in Proc. ACM SOSP , 2023. [39] S. Angel, H. Chen, K. Laine, and S. Setty, “PIR with Compressed Queries and Amortised Query Processing,” in Proc. IEEE S&P , 2018, pp. 962–979. [40] A. Henzinger, M. M. Hong, H. Corrigan-Gibbs, S. Meiklejohn, and V. Vaikuntanathan, “One Server for the Price of Two: Simple and Fast Single-Server Private Information Retrieval (SimplePIR),” in 
+
+Proc. USENIX Security , 2023. [41] M. H. Mughees, H. Chen, and L. Ren, “OnionPIR: Response Efficient Single-Server PIR,” in Proc. ACM CCS , 2021, pp. 2292–2306. [42] N. Halko, P.-G. Martinsson, and J. A. Tropp, “Finding Structure with Randomness: Probabilistic Algorithms for Constructing Approximate Matrix Decompositions,” SIAM Review , vol. 53, no. 2, 2011, pp. 217–288. [43] H. Jegou, M. Douze, and C. Schmid, “Product Quantisation for Nearest Neighbor Search,” IEEE TPAMI , vol. 33, no. 1, 2011, pp. 117–128. [44] C. Eckart and G. Young, “The Approximation of One Matrix by Another of Lower Rank,” Psychome-trika , vol. 1, no. 3, 1936, pp. 211–218. [45] W. B. Johnson and J. Lindenstrauss, “Extensions of Lipschitz Mappings into a Hilbert Space,” 
+
+Contemporary Mathematics , vol. 26, 1984, pp. 189–206. [46] J. H. Friedman, “Greedy Function Approximation: A Gradient Boosting Machine,” Annals of Statistics , vol. 29, no. 5, 2001, pp. 1189–1232. [47] K. Papineni et al., “BLEU: a Method for Automatic Evaluation of Machine Translation,” in Proc. ACL , 2002, pp. 311–318. 
+
+39 [48] P. Lewis et al., “Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,” in Proc. NeurIPS , 2020. [49] N. Thakur, N. Reimers, A. Rücklé, A. Srivastava, and I. Gurevych, “BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models,” in Proc. NeurIPS Datasets and Benchmarks , 2021. [50] R. Curtmola, J. Garay, S. Kamara, and R. Ostrovsky, “Searchable Symmetric Encryption: Improved Definitions and Efficient Constructions,” in Proc. ACM CCS , 2006, pp. 79–88. [51] M. Chase and S. Kamara, “Structured Encryption and Controlled Disclosure,” in Advances in Cryptology—ASIACRYPT , 2010, pp. 577–594. [52] D. Cash, P. Grubbs, J. Perry, and T. Ristenpart, “Leakage-Abuse Attacks Against Searchable Encryption,” in Proc. ACM CCS , 2015, pp. 668–679. [53] M. S. Islam, M. Kuzu, and M. Kantarcioglu, “Access Pattern Disclosure on Searchable Encryption: Ramification, Attack and Mitigation,” in Proc. NDSS , 2012. [54] D. Seputis, Y. Li, K. Langerak, and S. Mihailov, “Rethinking the Privacy of Text Embeddings: A Reproducibility Study of ‘Text Embeddings Reveal (Almost) As Much As Text’,” in Proc. ACM RecSys , 2025. arXiv:2507.07700 .[55] S. M. Kurilenko, “Hybrid Method for Privacy-Preserving Semantic Search Based on Homomorphic Encryption and Random Projections,” Vestnik Komp’yuternykh i Informatsionnykh Tekhnologiy , no. 3, 2026, pp. 44–49. doi:10.14489/vkit.2026.03.pp.044-049. [56] S. M. Kurilenko, “Hybrid privacy-aware semantic search: SVD-truncated document geometry and CKKS-encrypted query reranking under a restricted threat model,” arXiv:2606.26373 , 2026. [57] Z. Wan et al., “Transform Before You Query: A Privacy-Preserving Approach for Vector Retrieval with Embedding Space Alignment (STEER),” arXiv:2507.18518 , 2025. [58] S. Wang et al., “Safeguarding LLM Embeddings in End-Cloud Collaboration via Entropy-Driven Perturbation (EntroGuard),” arXiv:2503.12896 , 2025. 
+
+40
