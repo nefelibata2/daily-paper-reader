@@ -25,3 +25,73 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
+  intent_profiles:
+    - tag: priv-sec
+      description: 请帮我查找与大模型隐私安全、医学AI隐私与安全、生成模型隐私安全、RAG安全有关的论文
+      enabled: true
+      paper_sources:
+        - arxiv
+        - biorxiv
+      keywords:
+        - keyword: large language model privacy
+          keyword_cn: 大模型隐私
+          query: privacy issues and solutions for large language models
+        - keyword: large language model security
+          keyword_cn: 大模型安全
+          query: security threats and defenses for large language models
+        - keyword: medical AI security
+          keyword_cn: 医学AI安全
+          query: security measures for medical AI systems
+        - keyword: generative model privacy
+          keyword_cn: 生成模型隐私
+          query: privacy risks in generative models
+        - keyword: generative model security
+          keyword_cn: 生成模型安全
+          query: security vulnerabilities of generative models
+        - keyword: retrieval augmented generation security
+          keyword_cn: 检索增强生成安全
+          query: security aspects of retrieval augmented generation
+      intent_queries:
+        - query: comprehensive survey of privacy and security issues in large AI models
+          query_cn: 大型AI模型隐私和安全问题的综合调查
+          enabled: true
+          source: manual
+          note: ''
+        - query: privacy preserving techniques for medical AI and generative models
+          query_cn: 医学AI和生成模型的隐私保护技术
+          enabled: true
+          source: manual
+          note: ''
+        - query: security threats and mitigation strategies in retrieval augmented generation
+          query_cn: 检索增强生成中的安全威胁和缓解策略
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-06-29T04:17:02.130Z'
+source_backends:
+  arxiv:
+    papers_table: arxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_arxiv_papers
+    vector_rpc_exact: match_arxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_arxiv_papers_bm25
+    sync_table: arxiv_sync_status
+    sync_success_value: success
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
+  biorxiv:
+    papers_table: biorxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_biorxiv_papers_exact
+    vector_rpc_exact: match_biorxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_biorxiv_papers_bm25
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
