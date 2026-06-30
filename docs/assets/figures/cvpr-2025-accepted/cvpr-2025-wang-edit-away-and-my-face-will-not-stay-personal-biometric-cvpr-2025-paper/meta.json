@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1671,
+      "height": 828,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 853,
+      "height": 308,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 268,
+      "height": 266,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 268,
+      "height": 266,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 265,
+      "height": 258,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-006.webp",
+      "caption": "",
+      "page": 0,
+      "index": 6,
+      "width": 267,
+      "height": 269,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-007.webp",
+      "caption": "",
+      "page": 0,
+      "index": 7,
+      "width": 269,
+      "height": 269,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-008.webp",
+      "caption": "",
+      "page": 0,
+      "index": 8,
+      "width": 269,
+      "height": 266,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-009.webp",
+      "caption": "",
+      "page": 0,
+      "index": 9,
+      "width": 876,
+      "height": 311,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-010.webp",
+      "caption": "",
+      "page": 0,
+      "index": 10,
+      "width": 878,
+      "height": 351,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-011.webp",
+      "caption": "",
+      "page": 0,
+      "index": 11,
+      "width": 1778,
+      "height": 961,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-wang-edit-away-and-my-face-will-not-stay-personal-biometric-cvpr-2025-paper/fig-012.webp",
+      "caption": "",
+      "page": 0,
+      "index": 12,
+      "width": 876,
+      "height": 576,
+      "label": "Figure"
+    }
+  ]
+}

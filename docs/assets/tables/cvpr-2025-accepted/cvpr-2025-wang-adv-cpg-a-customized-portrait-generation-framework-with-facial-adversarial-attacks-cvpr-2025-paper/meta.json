@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-wang-adv-cpg-a-customized-portrait-generation-framework-with-facial-adversarial-attacks-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1794,
+      "height": 281,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-wang-adv-cpg-a-customized-portrait-generation-framework-with-facial-adversarial-attacks-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 1811,
+      "height": 819,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-wang-adv-cpg-a-customized-portrait-generation-framework-with-facial-adversarial-attacks-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 1761,
+      "height": 433,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-wang-adv-cpg-a-customized-portrait-generation-framework-with-facial-adversarial-attacks-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 1677,
+      "height": 187,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-wang-adv-cpg-a-customized-portrait-generation-framework-with-facial-adversarial-attacks-cvpr-2025-paper/table-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 813,
+      "height": 202,
+      "label": "Table"
+    }
+  ]
+}

@@ -1,0 +1,282 @@
+Title: Silence is Golden: Leveraging Adversarial Examples to Nullify Audio Control in LDM-based Talking-Head Generation
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Gan_Silence_is_Golden_Leveraging_Adversarial_Examples_to_Nullify_Audio_Control_CVPR_2025_paper.pdf
+
+Published Time: Mon, 19 May 2025 12:30:17 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Silence is Golden: Leveraging Adversarial Examples to Nullify Audio Control in LDM-based Talking-Head Generation 
+
+# Yuan Gan 1, Jiaxu Miao 2*, Yunze Wang 3, Yi Yang 11ReLER, CCAI, Zhejiang University 
+
+> 2
+
+# School of Cyber Science and Technology, Sun Yat-sen University 
+
+> 3
+
+# Department of Statistics, University of Wisconsin–Madison 
+
+# Abstract 
+
+Advances in talking-head animation based on Latent Dif-fusion Models (LDM) enable the creation of highly realis-tic, synchronized videos. These fabricated videos are in-distinguishable from real ones, increasing the risk of po-tential misuse for scams, political manipulation, and mis-information. Hence, addressing these ethical concerns has become a pressing issue in AI security. Recent proactive defense studies focused on countering LDM-based models by adding perturbations to portraits. However, these meth-ods are ineffective at protecting reference portraits from advanced image-to-video animation. The limitations are twofold: 1) they fail to prevent images from being ma-nipulated by audio signals, and 2) diffusion-based purifi-cation techniques can effectively eliminate protective per-turbations. To address these challenges, we propose Si-lencer , a two-stage method designed to proactively pro-tect the privacy of portraits. First, a nullifying loss is proposed to ignore audio control in talking-head gener-ation. Second, we apply anti-purification loss in LDM to optimize the inverted latent feature to generate robust perturbations. Extensive experiments demonstrate the ef-fectiveness of Silencer in proactively protecting portrait privacy. We hope this work will raise awareness among the AI security community regarding critical ethical is-sues related to talking-head generation techniques. Code: https://github.com/yuangan/Silencer. 
+
+# 1. Introduction 
+
+Talking-head animation [3, 14, 19, 49, 53, 61, 66, 67] en-ables the creation of synchronized and highly realistic fa-cial expressions based on audio and portrait images, pro-ducing videos that are often indistinguishable from authen-tic visual recordings. Recent advances in diffusion mod-els [7, 23, 35, 56, 64] have markedly improved the real-* Corresponding author.    
+
+> Original Portrait
+> Generated Video Protected Portrait
+> Talking Head Generator
+> Audio
+> Figure 1. Overview of Our Motivation. Given an audio input, talking-head animation models can be exploited to generate fabri-cated videos using any portrait. To safeguard portrait privacy, we introduced Silencer , applying protective perturbations to ensure the portrait’s mouth remains closed in generated talking videos.
+
+ism of these animations. Consequently, this technological advancement increases the risks of misusing AI-Generated Content (AIGC) for scams, political manipulation, and mis-information. Mitigating these ethical risks has become a critical priority in AIGC security. To address the ethical risks associated with AIGC, there are two primary approaches: passive defenses [8, 36, 43, 48, 59] and proactive defenses [27–29, 37, 39, 58]. Pas-sive defenses focus on detecting whether a video has been fabricated, making it useful for forensics. However, these approaches cannot prevent the infringement of personal pri-vacy by deepfakes. When victims realize their privacy has been violated, the damage may already be irreparable. In contrast, proactive defenses offer superior protection by proactively shielding individuals from harm. These meth-ods use adversarial perturbations on the input images to dis-rupt the outputs of the generative model. Recent studies [28, 29, 39, 58] explored proactive de-fenses against diffusion models, particularly those mimicry techniques based on Latent Diffusion Models (LDM). By adding perturbations to input images, these approaches have achieved copyright protection in diffusion-based mimicry. However, existing methods fail to protect privacy in the This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 13434 audio-driven talking-head generation, which utilizes LDM to animate the given portrait. Their limitations are twofold: 
+
+1) they cannot prevent portraits from being animated by LDM-based talking-head models with a provided audio. Although these methods may reduce the quality of the gen-erated video, this effect alone does not ensure privacy pro-tection. 2) diffusion-based purification techniques can re-move these protective perturbations, counteracting the qual-ity degradation and rendering the privacy measures ineffec-tive. Therefore, we need to generate robust adversarial per-turbations that can nullify audio-driven facial movements and overcome purification techniques. To address the above challenges with robust perturba-tions, we propose Silencer , a two-stage approach to proac-tively protect portrait privacy from animation by talking-head generation methods. In the first stage, we introduce a nullifying loss by disregarding audio control in the talking-head generation. Due to the lack of ground truth video, previous methods cannot be directly applied to talking-head generation. Our nullifying loss modifies the optimiza-tion objective of talking-head training to keep the portrait “silent”, as shown in Fig. 1. With the addition of adversar-ial noise via our nullifying loss, the generated talking videos tend to remain static, exhibiting low synchronization confi-dence. In the second stage, we design an anti-purification process using LDM to optimize the inverted latent feature, generating more robust perturbations. Since optimization in latent space does not have precise control over the out-comes in image space, directly applying nullifying loss to optimize the inverted latent feature would damage the ad-versarial portrait. Therefore, we use adversarial examples from the first stage to guide the optimization direction. To preserve the identity information, we apply a mask to the facial region halfway through the optimization process. Overall, our main contributions are threefold: • We introduce a benchmark for assessing proactive protec-tion measures against privacy threats posed by advanced LDM-based talking-head generation techniques. • We propose Silencer , a two-stage paradigm, to proac-tively protect portrait privacy with robust adversarial per-turbations. First, we introduce a nullifying loss that effec-tively renders a portrait “silent” in the talking-head gen-eration. Second, we develop an anti-purification strategy to enhance the robustness of these perturbations against countermeasures. • Extensive experiments are conducted to assess the effi-cacy of our Silencer. Our method achieves strong privacy protection with low synchronization confidence and ex-hibits resistance to purification-based attacks. 
+
+# 2. Related Work Audio-Driven Talking-Head Animation. Audio-driven talking-head generation has gained significant attention in recent years with the success of generative models [1, 13, 16, 22, 30, 35, 38, 44]. Early methods [3, 6, 14, 19, 49, 53, 61, 65–67] primarily relied on Generative Adversarial Networks (GANs) [16]. However, advancements in La-tent Diffusion Models (LDMs) have led to more effective techniques [42, 47, 50, 53, 55, 56, 64]. AniPortrait [53] improves visual quality and temporal consistency by pro-jecting 3D representations as 2D landmarks in a diffusion model. In contrast, approaches like DiffTalk and Diffused Heads [42, 47] simplify the generation process by focusing on diffusion-based methods without relying on 3D models. Furthermore, EMO [50] enhances expressiveness through a direct generation framework that eliminates the need for 3D models. VASA-1 [56] performs efficient operations in the latent space for highly natural real-time generation. Hallo [55] incorporates cross-attention mechanisms and in-novative audio-landmark training strategies to enhance gen-eration quality and animation stability. In this paper, we adopt Hallo as the pre-trained talking-head model. 
+
+Adversarial Attacks in Diffusion Models. In the realm of adversarial attacks, early research introduced gradient-based methods that generate small perturbations to deceive neural network models [9, 10, 15, 17, 26, 31, 54, 62]. Build-ing on these methods, recent studies have applied adver-sarial attacks to diffusion models. AdvDM [29] generates adversarial examples by optimizing latent variables during the reverse process of diffusion models. Photoguard [39] ”immunizes” images by adding imperceptible perturbations that prevent diffusion models from generating realistic ma-nipulations. Extending the ideas of AdvDM and Photo-guard, Mist [28] incorporates semantic and texture loss de-signs to enhance cross-task transferability. Furthermore, Diff-Protect [58] introduces Score Distillation Sampling (SDS) and highlights the encoder module as the main vul-nerability affecting the robustness of diffusion models. 
+
+Purification and Anti-purification. Purification meth-ods use generative models to remove adversarial noise before classification, thereby improving resistance to ad-versarial manipulations [11, 18, 21, 40, 41, 45, 46, 60]. Building on this foundation, DiffPure [34] utilizes the for-ward and reverse processes of diffusion models to pu-rify adversarial examples. Moreover, GridPure [63] in-troduces a grid-based iterative diffusion approach tailored to high-resolution images, enhancing purification effective-ness. PDM-Pure [57] uses pixel-space diffusion models as a universal purifier to mitigate adversarial noise. To resist purification, ACA [4] maps images onto a low-dimensional latent manifold of the generative model and op-timizes adversarial objectives to enable diverse content gen-eration and control. Additionally, DiffAttack [2] introduces 13435 an innovative, diffusion-based attack method to bypass ex-isting purification defenses via latent feature optimization. 
+
+# 3. Method 3.1. Preliminary 3.1.1. Audio-driven Talking-head Generation with LDM. 
+
+Given a reference portrait p and speech audio a, talking-head generation aims to generate realistic speaking videos synchronized with speech audio. To achieve this aim with powerful text-to-image LDM models, such as Stable Diffu-sion [35], recent works follow a common pipeline, which utilizes ReferenceNet and audio signals to guide the ani-mation process. ReferenceNet has the same architecture as the LDM network, which extracts appearance features from reference images for guidance. As shown in Fig. 2(b), talking-head LDM employs spatial attention to preserve in-tricate appearance features from the reference image. By integrating these appearance features, the model accurately captures the reference portraits, allowing for precise ma-nipulation of facial expressions with audio inputs. Hence, during the training phase, an associated talking frame fi is encoded into a latent representation z0 with the encoder of Variational AutoEncoder (VAE) [12, 25]: z0 = E(fi). The diffusion process across T timesteps then transforms this la-tent representation to a Gaussian noise zT ∼ N (0 , 1) . The goal of the training is to progressively denoise zT to pro-duce a realistic talking-head frame that not only preserves the visual characteristics of the reference portrait p but also synchronizes the lip movements with the audio frame ai. To achieve this aim, the training loss is defined by the follow-ing objective function: 
+
+Lldm = EE(fi),p,a i,,t 
+
+[‖ − θ (zt, t, p, a i)‖22
+
+] , (1) where  ∼ N (0 , 1) is a Gaussian noise, θ represents the denoising U-Net model that processes the noisy latent variable zt at each timestep t along with the conditional in-puts, p is the reference portrait, ai is the i-th frame of the talking-head audio. The ability to use any person’s portrait as a reference in talking-head generation raises significant privacy concerns. To mitigate this, we propose a proactive defense mech-anism centered around an open-source, advanced LDM-based talking-head generation method [55]. 
+
+3.1.2. Adversarial Examples for LDM 
+
+Adversarial examples can protect images from LDM-based mimicry by finding the appropriate perturbations that can effectively cause LDM models to generate visually cor-rupted outputs. Previous studies have used two objective functions to exploit vulnerabilities in the diffusion model: 
+
+> VAE Enc VAE Dec Noise Spatial Attention
+> VAE Dec VAE Enc Audio Portrait ReferenceNet U-Net Cross Attention Output Output
+> Noise
+
+(a) (b)   
+
+> “Portrait of a young woman” Text Embedding
+
+LDM 
+
+Talking ng-g-Head Talkin ng g
+
+Generat 
+
+ead He HH
+
+at at ation 
+
+Figure 2. LDM and LDM-based Talking-head Generation Framework. (a) The inference process of latent diffusion mod-els. Given random noise and text, LDM can generate a semanti-cally coherent image through iterative denoising. (b) The talking-head generation framework. Given a portrait and audio frame, the talking-head generation model can produce a lip-sync video frame with realistic facial expressions. • Semantic loss [29] is the training loss of LDM, which dis-rupts the denoising process, directing the model to pro-duce samples that differ from the real image: 
+
+LS = Et, Ezt ‖ − θ (zt, t )‖22 (2) • Texture loss [39] attacks the VAE encoder E(·) by steer-ing the latent representation of the input image x towards a target latent derived from another image y:
+
+LT = −‖E (x) − E (y)‖22 (3) The final objective Ladv can be either semantic loss LS ,texture loss LT , or both. Then PGD [33] is chosen to gen-erate adversarial examples with projected gradient ascent: 
+
+xn = PB∞(x,δ )
+
+[xn−1 + η sign ∇xn−1 Ladv (xn−1)] (4) where xn is the adversarial example at the n-th iteration, 
+
+PB∞(x,δ )[·] projects the adversarial output onto the ∞ ball centered at x with budget δ, η is the step size. 
+
+3.2. Silencer 
+
+To protect portrait privacy, a straightforward approach is to directly apply semantic loss [29] to the talking-head anima-tion task. However, this naive method presents two major 13436 Reference Net 
+
+(a) Nullifying Loss (b) Anti-purification 
+
+N llif i               
+
+> audio ܽ݌௡ିଵ
+> U-Net
+> ෝݖ଴
+> VAE Enc
+> ෝݖ୲खࡺൌࣕ െࣕ ࣂෝ࢚ࢠ ࢖ ǡ ࢚ǡ ି૚࢔ ࢇ ǡ ૛૛खࢺܖܑܛെࣁ ࢖ష૚࢔ खࡺ݌଴ᇱ
+> ݌௧݌଴
+> grad.
+> Portrait ݌
+
+# ࣦ ே െ்ࣦ   
+
+> ݌௡VAE Enc
+> VAE Enc
+> ݌଴ᇱ
+> Mask
+
+# 瀥瀥瀥 濣濣濣濣濣濣濣濣濣濣濣  
+
+> 濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤濤
+> 濨濨濨濨濨濨濨濨濨濨濨
+> 濝濝濝濝濝濝濝濝濝
+> 濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡濡
+> 濝濝濝濝濝濮濮濮濮濮濮濮濮濮濮濮濮濮濮濮濮濮濮濮
+> 濙濙濙濙濙濙濙濙濙濙濙grad. ݌ଵᇱ
+
+# 瀥瀥瀥  
+
+> ݌௧ିଵ ᇱgrad.
+> ݌ଵ݌௧ିଵ
+> grad.
+
+濄澻澸澔濃濤濨濝濡濝濮濕濨濝濣濢 
+
+> DDIM Inversion sample t
+
+noise ࣕ ࣂnࣕ
+
+Input 
+
+Talking Head Model ࣦ஺௉ 
+
+Figure 3. Silencer Framework. (a) In stage I, adversarial samples pn are generated through iterative PGD optimization using our proposed nullifying loss. These samples can avoid the influence of audio in the talking-head model. (b) In stage II, our anti-purification process is employed to optimize the inverted latent features, generating more robust perturbations capable of resisting purification. challenges: First, unlike image generation tasks, we lack ground truth frames fi, synchronized with audio frame ai
+
+for any arbitrary input portrait in talking-head animation. Second, we observed that noise-based perturbations intro-duced for privacy protection can be neutralized by purifi-cation methods. These purification methods counteract our protective measures, effectively compromising the intended privacy safeguards. In the following sections, we propose 
+
+Silencer , a two-stage method to address these challenges. 
+
+3.2.1. Silencer-I: Nullifying Loss 
+
+To disrupt the denoising process and generate more artifacts in the edited images, semantic loss is used to optimize the perturbations by increasing or decreasing the LDM training loss. To calculate the training loss in Eq. 5, the ground truth frame fi and the corresponding latent representation z0 are essential. A straightforward approach is to employ exist-ing talking-head models to generate a synchronized video frame fi. However, this has two drawbacks. 1) Due to the time-consuming process of LDM inference, it is inefficient to generate fake ground truth under complex talking-head generation frameworks. 2) Generating fake ground truth presents a paradox: protecting portrait privacy requires it to first be compromised. Unlike semantic loss, which requires ground truth, tex-ture loss operates without this requirement, relying instead on a target image. Despite this advantage, texture loss does not directly affect the synchronization of the generated videos. This is primarily due to the changes of the LDM network architecture, as shown in Fig. 2. Unlike traditional diffusion models, the LDM-based animation framework in-troduces conditions using ReferenceNet, which makes tex-ture loss fail to eliminate the influence of the audio. Unless the face is fully obscured, the portrait can still be driven by audio. Hence, incorporating audio signals in the training of adversarial perturbations is crucial. Given the limitations of existing loss functions regard-ing ground truth requirements and audio signal integration, we propose training adversarial perturbations that are both audio-aware and independent of ground truth. We observe that forcing the generated result to stay “silent” is an effec-tive way to disrupt audio-visual synchronization, avoiding the need to directly attack the talking-head training process. To nullify the effect of audio signals a, we treat the refer-ence portrait p as the ground truth of the talking-head gen-eration. Hence, we propose a nullifying loss to disrupt the audio-visual synchronization efficiently with the following formulation: 
+
+LN = Et, EE(p),p,a i,,t 
+
+[‖ − θ ( ˆ zt, t, p, a i)‖22
+
+] , (5) where ˆzt is the noisy latent representation at timestep t,
+
+E(p) is the latent representation ˆz0 extracted from reference portrait p. As the reference portrait is a condition in denois-ing, different timestep ranges would have different attack performances. Hence, we empirically experiment on t to find the best range, as shown in Fig. 7. 13437 CelebA-HQ [24] TalkingHead-1KH [52] Method V-PSNR/SSIM ↓ FID ↑ Sync ↓ M-LMD ↑ V-PSNR/SSIM ↓ FID ↑ Sync ↓ M-LMD ↑
+
+AdvDM(+) [29] [ICML23] 17.95/0.4575 78.40 5.6150 2.0425 19.09/0.4437 178.92 3.8146 1.7581 AdvDM(-) [58] [ICLR24] 16.29/0.4998 47.34 6.6670 2.1366 17.42/0.5556 52.99 5.2399 1.7244 PhotoGuard [39] [Arxiv23] 17.67/0.4763 126.09 5.8875 2.0800 18.76/0.5167 186.84 3.3784 1.9023 Mist [28] [Arxiv23] 17.80/0.4753 134.44 5.9052 2.1173 19.13/0.5241 221.58 3.0552 1.7787 SDS(+) [58] [ICLR24] 17.79/0.4569 67.23 5.8668 2.1009 19.11/0.4464 139.20 4.4844 1.6760 SDS(-) [58] [ICLR24] 16.54/0.4964 51.20 6.6743 2.0737 17.57/0.5462 57.07 5.1954 1.7301 SDTS(-) [58] [ICLR24] 17.23/0.4828 89.70 6.4003 2.1024 18.86/0.5496 139.87 3.8825 1.8579 
+
+Silencer Stage I 19.02/0.5104 124.07 4.0644 2.2008 20.61/0.5692 168.85 1.7966 1.8025 
+
+Silencer Stage II 19.01/0.5111 156.99 3.9685 2.2108 20.44/0.5718 185.87 2.0017 1.8427 Ground Truth ∞ /1.00 0.00 6.4041 0.0000 ∞ /1.00 0.00 5.4842 0.0000 Table 1. Quantitative Comparisons with State-of-the-art Methods on CelebA-HQ [24] and TalkingHead-1KH [52]. ”↑”: higher is better. ” ↓”: lower is better. Red: the 1st score. Blue: the 2nd score. 
+
+Original ACA Silencer-II Silencer-I 
+
+Figure 4. Visualization of ACA [4] and Silencer. The result of ACA is generated by optimizing latent feature with skip gradients using our nullifying loss. 
+
+LN modifies the training target of talking-head genera-tion from a synchronized frame to a still portrait. Then we treat LN as the adversarial loss Ladv in Eq. 4 and optimize the reference image p with PGD for n iterations to acquire the adversarial example pn, as shown in Fig. 3 (a). It is noted that we adopt gradient descent rather than gradient ascent to optimize the adversarial portrait: 
+
+pn = PB∞(p,δ )
+
+[pn−1 − η sign ∇pn−1 LN (pn−1)] (6) where pn−1 is the input image in n-th iteration, pn is the output adversarial image. Not only does pn disrupt syn-chronization by remaining “silent”, but it also degrades the video quality of the talking-head generation. 
+
+3.2.2. Silencer-II: Anti-purification 
+
+By optimizing a perturbation using our proposed nullifying loss, and adding it to the portrait image, we can generate an adversarial example that prevents the portrait from be-ing driven by audio. Unfortunately, existing noise-removal or “purification” techniques can easily strip away the noise, undermining the protection effect. To address this, we need to find a more robust noise pattern that resists these purifi-cation methods, enhancing the security and effectiveness of the adversarial examples generated with our Silencer .ACA [4] generates adversarial examples by applying the gradients of adversarial classification loss in the latent space inverted by DDIM [44]. While it can make natural modifi-cations to image content, optimizing the latent vector zT
+
+through the skipped gradients can lead to unpredictable and CelebA-HQ TalkingHead-1KH Method I-PSNR/SSIM ↑ I-PSNR/SSIM ↑                           
+
+> AdvDM(+) [29] [ICML23] 31.15/0.7605 31.32/0.7262 AdvDM(-) [58] [ICLR24] 31.02/0.7191 31.16/0.6807 PhotoGuard [39] [Arxiv23] 29.96/0.7299 30.20/0.7147 Mist [28] [Arxiv23] 30.06/0.7342 30.32/0.7190 SDS(+) [58] [ICLR24] 31.15/0.7688 31.29/0.7341 SDS(-) [58] [ICLR24] 31.26/0.7374 31.50/0.7062 SDTS(-) [58] [ICLR24] 30.42/0.7446 30.76/0.7307
+> Silencer Stage I 31.36/0.7475 32.34/0.7353
+> Silencer Stage II 27.23/0.6774 29.05/0.7590
+
+Table 2. Comparison on Image Quality after Protection. Our Silencer-I achieves the best average image quality with minimal added noise while achieving protection effects. undesirable changes, compromising the authenticity of the adversarial sample. These deviations are particularly pro-nounced in talking-head generation models, leading to sig-nificant distortions in facial identity, as shown in Fig. 4. Ex-isting methods to address this issue, such as applying con-sistent constraints throughout the inversion process[2], suf-fer from high memory consumption and are not scalable to high-resolution portrait images. To address the limitations of existing methods, we pro-pose a new constrain for generating robust adversarial ex-amples with lower computational cost. Our method, illus-trated in Fig.3 (b), leverages LDM and DDIM inversion to optimize the latent representation of the image. Instead of directly adding noise, we optimize the latent features to create perturbations that are resistant to purification tech-niques. To ensure these perturbations are effective with-out significantly altering essential facial features, we utilize a constraint during the optimization process. Specifically, we extracted the VAE feature of adversarial samples gen-erated in step I. The encoded features then serve as a con-straint, during the optimization of the LDM-based adver-sarial example. This constrained optimization allows us to balance two objectives: maintaining crucial facial features for recognition, while simultaneously maximizing the ro-13438 Protect Talking Protect Talking Method AdvDM(+) Clean PhotoGuard Mist SDS(+) SDS(-) SDTS(-) Silencer-I Silencer-II   
+
+> Figure 5. Qualitative Comparison with Image Protection Methods. We visualize the protected portraits and their frame driven by audio.
+
+bustness of the perturbations against purification defenses. The optimization objective is formulated as follows: 
+
+LAP = λ1LN − λ2LT (7) 
+
+= λ1LN + λ2‖E (p′
+
+> 0
+
+) − E (pn)‖22 (8) where p′ 
+
+> 0
+
+is the output of the inverted diffusion model, 
+
+pn is the adversarial example generated in stage I, λ1
+
+and λ2 are the corresponding coefficients. Then we use AdamW [32] to optimize the inverted latent representation 
+
+pt with LAP .We observed that optimizing the entire image with LAP 
+
+introduces considerable distortions to the facial region. LDM tends to distort the entire face in the iterative opti-mization process, aiming to eliminate recognizable features like the mouth and eyes. This results in a damaged face without any specific regions that could be manipulated or driven. Hence, we apply a facial mask to the optimization process that strikes a balance between face clarity and anti-purification protection. Specifically, we optimize the entire image during the initial s iterations. After this point, we re-strict optimization to areas outside the masked facial region. 
+
+# 4. Experiments 4.1. Experimental Setup 4.1.1. Implementation Details 
+
+The videos are sampled at 25 FPS and the audio sample rate is 16KHz. The reference portraits are resized to 512 ×
+
+512. We utilize Hallo [55] as the LDM-based talking-head model with the public implementation 1 . In the first stage, we adopt PGD with a budget 16/255 to train each portrait for 100 iterations, which is the same as our baselines. In the second stage, we optimize the inverted latent feature for 200 iterations with a learning rate of 0.01. 
+
+Baselines and Dataset. We compare our proposed method with four state-of-the-art privacy protection meth-ods, including AdvDM [29], PhotoGuard [39], Mist [28] and SDS [58]. To evaluate the performance of protection baselines, we select 50 images from the CelebA-HQ [24] dataset as the reference images and one audio as the driv-ing signal. To create a more realistic scenario, we utilize CLIP-IQA [51] to select 50 high-quality video clips, each with a unique identity and associated speech audio, from the widely used TalkingHead-1KH dataset [52]. 
+
+4.1.2. Metrics 
+
+We assess the quality of synthesized emotional videos with the following metrics: 
+
+Image quality. We utilize Peak Signal-to-Noise Ratio (PSNR), Structural Similarity Index Measure (SSIM), and Fr´ echet Inception Distance score (FID) [20] to measure the image quality of synthesized videos. The video metrics, V-PSNR/SSIM, measure PSNR/SSIM specifically on facial regions. In contrast, the image metrics, I-PSNR/SSIM, cal-culate PSNR and SSIM across the entire image by com-paring the original image with the adversarial image. The Fr´ echet Inception Distance (FID) is a common metric for measuring the fidelity of synthesized videos. It quantifies 1 https://github.com/fudan-generative-vision/hallo 13439 Protected JPEG [41] AdvClean DiffPure [34] GrIDPure [63] Method I-PSNR/FID I-PSNR ↓/FID ↑ I-PSNR ↓/FID ↑ I-PSNR ↓/FID ↑ I-PSNR ↓/FID ↑
+
+AdvDM(+) [29] [ICML23] 31.15/86.58 31.35/62.09 33.65/49.36 28.78/44.83 27.81/38.55 AdvDM(-) [58] [ICLR24] 31.02/66.73 31.96/36.97 33.29/40.17 29.11/42.17 27.86/25.48 PhotoGuard [39] [Arxiv23] 29.96/153.50 30.37/96.98 31.37/109.87 28.36/48.43 26.32/50.04 Mist [28] [Arxiv23] 30.06/156.42 30.47/99.72 31.51/108.92 28.40/44.14 26.35/49.88 SDS(+) [58] [ICLR24] 31.15/86.41 31.30/60.47 33.58/44.80 28.72/44.23 27.81/38.29 SDS(-) [58] [ICLR24] 31.26/70.93 32.24/40.69 33.31/48.07 29.10/39.92 27.89/25.90 SDTS(-) [58] [ICLR24] 30.42/112.43 30.97/72.90 31.89/82.19 28.53/47.97 26.63/39.90 
+
+Silencer Stage I 31.36/135.77 33.38/55.94 35.03/61.38 29.26/38.93 28.16/20.85 
+
+Silencer Stage II 27.23/175.21 27.41/159.34 27.95/135.30 27.26/87.22 25.72/144.89 Table 3. Purification Experiments on CelebA-HQ [24]. The “Protected” is the metrics calculated with protected portraits for reference. Others are calculated with purified portraits. ” ↑”: higher is better. ” ↓”: lower is better. Red: the 1st score. Blue: the 2nd score.           
+
+> GrIDPure Method AdvDM(+) PhotoGuard Mist SDS(+) SDS(-) SDTS(-) Silencer-I Silencer-II Protect AdvDM(-)
+> Talking
+> Figure 6. Visual Comparison in Anti-purification. The third row is the animated talking frames with the portraits after GrIDPure [63].
+
+the distribution distance between videos generated using original and protected portraits. 
+
+Audio-visual synchronization. We evaluate the audio-visual synchronization of the synthesized videos using SyncNet’s confidence score [5, 14]. In addition, the dis-tance between the landmarks of the mouth (M-LMD) [3] is used to indicate speech content consistency. 
+
+4.2. Privacy Protection 
+
+We first compare the effectiveness of our Silencer in pri-vacy protection with other state-of-the-art methods.We ran-domly selected an audio from TalkingHead-1KH dataset for training all adversarial example and tested the talking-head model with other audios. In CelebA-HQ, all tests used the same audio clip, while in TalkingHead-1KH, each face was tested with its original audio. We treat videos generated by Hallo using the portraits without protection as the ground truth for comparison. Table 1 shows that our method achieves the best syn-chronization protection, with a score of 3.9685 on CelebA-HQ and 2.0017 on TalkingHead-1KH. In stage I of Silencer, our nullifying loss effectively frees reference portraits from audio control during talking-head generation. In stage II, our Silencer continues to yield strong results, further vali-dating the effectiveness of our method. In terms of video quality, our method can only achieve comparable results in the video FID. This is primarily due to our nullifying loss, which aims to ensure the reference portrait remains largely unchanged during the diffusion process. As a result, our method has less impact on the generated video quality com-pared to others. Table 2 shows that Silencer-I achieves the highest I-PSNR, indicating minimal degradation of the ref-erence portrait’s realism. Furthermore, the qualitative com-parison in Fig. 5 reveals that, unlike methods that signifi-cantly alter facial appearance, our approach preserves visual consistency while “silencing” the talking head. These re-sults underscore the effectiveness of our method in achiev-ing privacy protection from audio control. 
+
+4.3. Anti-Purification Experiments 
+
+To demonstrate the effectiveness of our methods in resist-ing purification, we conduct purification on the protected 13440                                                                                              
+
+>   
+>  
+>     
+>       
+>      
+> Figure 7. Ablation Study on Timestep Ranges in Silencer-I.
+
+portraits. We select the following advanced purification methods to attack: JPEG [41], AdvClean, Diff-Pure [34] and GrIDPure [63].We evaluate anti-purification effective-ness using I-PSNR, comparing original and purified images, and FID for talking-head videos, comparing ground truth to videos generated with purified portraits from a CelebA-HQ subset. Table 3 shows Silencer-II achieves the best anti-purification performance, with the lowest I-PSNR and high-est FID. This is because adversarial noises, generated by Silencer-I and other methods, are optimized in the image space with PGD [33] and can be easily purified. In con-trast, Silencer-II optimizes perturbations within the LDM’s inverted latent space, resulting in fundamentally different and more robust perturbations. Fig. 6 visually demonstrates this efficacy. Although our generated perturbations resist complete removal, their structure is altered by purification, preventing a perfectly “silent” portrait. Achieving a com-pletely robust perturbation that results in a “silent” portrait even after purification remains a challenge. We will explore more robust solutions in future work. 
+
+4.4. Ablation Study Ablation Study on Timestep Ranges in Silencer-I. 
+
+Since the reference portrait serves as a condition in the denoising process, adjusting the timestep range results in varying levels of attack effectiveness. To identify the opti-mal timestep ranges, we divided the total of 1000 timesteps into ten equal segments, sampling 100 timesteps from each segment for training. We trained and evaluated our model on the subset of CelebA-HQ, with the results illustrated in Fig. 7. Our findings indicate that timesteps within the [200, 300] range achieve a desirable balance: they provide effec-tive privacy protection, with a sync confidence of 4.2556, while maintaining minimal noise, with an I-PSNR of 32.34. Based on these results, we selected the [200, 300] range for Ablation SDTS(-) S-I S-II (A) S-II (B) 
+
+LN   
+
+Anti-purify  
+
+Mask 
+
+I-SSIM ↑ 0.7446 0.7475 0.6561 0.6774 FID ↑ 89.70 124.07 167.40 156.99 Sync ↓ 6.4003 4.0644 3.4339 3.9685 M-LMD ↑ 2.1024 2.2008 2.3607 2.2108 Table 4. Ablation Study of Each Component. Each component contributes to improving privacy protection, thus verifying its ef-fectiveness. timestep sampling in training Silencer-I. 
+
+Ablation Study on Each Component. We conduct an ablation study to evaluate the impact of each component of our Silencer using the CelebA-HQ dataset. As shown in Ta-ble 4, the introduction of our nullifying loss leads to a sig-nificant reduction in synchronization confidence compared to previous methods. Additionally, the anti-purification pro-cess remains the low synchronization, providing protection against talking-head manipulation. However, this comes at the cost of reduced visual quality. To mitigate this, we op-timize the adversarial perturbation with a face mask, which preserves facial structure while achieving effective privacy protection. More experiments can be found in our supple-mentary material. 
+
+# 5. Conclusion 
+
+In this paper, we introduce Silencer , a two-stage approach to proactively protect portrait privacy from unauthorized animation in audio-driven talking-head generation. This approach addresses the limitations of prior methods that cannot effectively mitigate talking animation and resist pu-rification. The first stage employs a novel nullifying loss to decouple facial movements from audio input, signifi-cantly reducing the synchronization of generated talking-head videos. Building upon this, the second stage enhances robustness through an anti-purification process. This pro-cess optimizes perturbations within the inverted latent space of an LDM, guided by adversarial examples from the first stage to ensure targeted and effective protection. A strategi-cally applied mask preserves facial integrity during this op-timization. Extensive experiments demonstrate Silencer’s superior performance in both preventing unauthorized an-imation and resisting purification, confirming its effective-ness in protecting portrait privacy. This work establishes a new benchmark for proactive privacy protection in LDM-based talking-head generation and we anticipate it will stim-ulate further research and development in this critical area. 13441 Acknowledgments 
+
+This work was supported in part by the Key R&D Program of China (2021ZD0112801), the State Key Program of National Natural Science Foundation of China (62436007) and the Natural Science Foun-dation of Zhejiang Province (LDT23F02023F02). 
+
+# References 
+
+[1] Yihan Cao, Siyu Li, Yixin Liu, Zhiling Yan, Yutong Dai, Philip S Yu, and Lichao Sun. A comprehensive survey of ai-generated content (aigc): A history of generative ai from gan to chatgpt. arXiv preprint arXiv:2303.04226 , 2023. 2 [2] Jianqi Chen, Hao Chen, Keyan Chen, Yilan Zhang, Zhengxia Zou, and Zhenwei Shi. Diffusion models for impercepti-ble and transferable adversarial attack. IEEE Transactions on Pattern Analysis and Machine Intelligence , pages 1–17, 2024. 2, 5 [3] Lele Chen, Ross K Maddox, Zhiyao Duan, and Chenliang Xu. Hierarchical cross-modal talking face generation with dynamic pixel-wise loss. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 7832–7841, 2019. 1, 2, 7 [4] Zhaoyu Chen, Bo Li, Shuang Wu, Kaixun Jiang, Shouhong Ding, and Wenqiang Zhang. Content-based unrestricted ad-versarial attack. In Thirty-seventh Conference on Neural In-formation Processing Systems , 2023. 2, 5 [5] Joon Son Chung and Andrew Zisserman. Out of time: auto-mated lip sync in the wild. In Asian conference on computer vision , pages 251–263. Springer, 2016. 7 [6] Joon Son Chung, Amir Jamaludin, and Andrew Zisserman. You said that? BMVC , 2017. 2 [7] Jiahao Cui, Hui Li, Yao Yao, Hao Zhu, Hanlin Shang, Kaihui Cheng, Hang Zhou, Siyu Zhu, and Jingdong Wang. Hallo2: Long-duration and high-resolution audio-driven portrait im-age animation. arXiv preprint arXiv:2410.07718 , 2024. 1 [8] Hao Dang, Feng Liu, Joel Stehouwer, Xiaoming Liu, and Anil K Jain. On the detection of digital face manipulation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern recognition , pages 5781–5790, 2020. 1 [9] Yinpeng Dong, Fangzhou Liao, Tianyu Pang, Hang Su, Jun Zhu, Xiaolin Hu, and Jianguo Li. Boosting adversarial at-tacks with momentum. In Proceedings of the IEEE con-ference on computer vision and pattern recognition , pages 9185–9193, 2018. 2 [10] Yinpeng Dong, Tianyu Pang, Hang Su, and Jun Zhu. Evading defenses to transferable adversarial examples by translation-invariant attacks. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 4312–4321, 2019. 2 [11] Yilun Du and Igor Mordatch. Implicit generation and model-ing with energy based models. In Advances in Neural Infor-mation Processing Systems . Curran Associates, Inc., 2019. 2[12] Patrick Esser, Robin Rombach, and Bjorn Ommer. Taming transformers for high-resolution image synthesis. In Pro-ceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 12873–12883, 2021. 3 [13] Sheng Fan, Rui Liu, Wenguan Wang, and Yi Yang. Navi-gation instruction generation with bev perception and large language models. In ECCV , 2024. 2 [14] Yuan Gan, Zongxin Yang, Xihang Yue, Lingyun Sun, and Yi Yang. Efficient emotional adaptation for audio-driven talking-head generation. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 22634– 22645, 2023. 1, 2, 7 [15] Lianli Gao, Qilong Zhang, Jingkuan Song, Xianglong Liu, and Heng Tao Shen. Patch-wise attack for fooling deep neu-ral network. In Computer Vision–ECCV 2020: 16th Euro-pean Conference, Glasgow, UK, August 23–28, 2020, Pro-ceedings, Part XXVIII 16 , pages 307–322. Springer, 2020. 2[16] Ian J Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. Generative adversarial nets. Advances in neural information processing systems , 27, 2014. 2 [17] Ian J Goodfellow, Jonathon Shlens, and Christian Szegedy. Explaining and harnessing adversarial examples. arXiv preprint arXiv:1412.6572 , 2014. 2 [18] Will Grathwohl, Kuan-Chieh Wang, J¨ orn-Henrik Jacobsen, David Duvenaud, Mohammad Norouzi, and Kevin Swersky. Your classifier is secretly an energy based model and you should treat it like one. arXiv preprint arXiv:1912.03263 ,2019. 2 [19] Yudong Guo, Keyu Chen, Sen Liang, Yong-Jin Liu, Hujun Bao, and Juyong Zhang. Ad-nerf: Audio driven neural ra-diance fields for talking head synthesis. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion , pages 5784–5794, 2021. 1, 2 [20] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp Hochreiter. Gans trained by a two time-scale update rule converge to a local nash equilib-rium. Advances in neural information processing systems ,30, 2017. 6 [21] Mitch Hill, Jonathan Mitchell, and Song-Chun Zhu. Stochas-tic security: Adversarial defense using long-run dynamics of energy-based models. arXiv preprint arXiv:2005.13525 ,2020. 2 [22] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 2 [23] Li Hu. Animate anyone: Consistent and controllable image-to-video synthesis for character animation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8153–8163, 2024. 1 [24] Tero Karras, Timo Aila, Samuli Laine, and Jaakko Lehtinen. Progressive growing of gans for improved quality, stability, and variation. In International Conference on Learning Rep-resentations , 2018. 5, 6, 7 [25] Diederik P. Kingma and Max Welling. Auto-encoding vari-ational bayes. In ICLR , 2014. 3 [26] Alexey Kurakin, Ian J Goodfellow, and Samy Bengio. Ad-versarial examples in the physical world. In Artificial in-13442 telligence safety and security , pages 99–112. Chapman and Hall/CRC, 2018. 2 [27] Zheng Li, Ning Yu, Ahmed Salem, Michael Backes, Mario Fritz, and Yang Zhang. Unganable: Defending against gan-based face manipulation. In 32nd USENIX Security Sympo-sium (USENIX Security 23) , pages 7213–7230, 2023. 1 [28] Chumeng Liang and Xiaoyu Wu. Mist: Towards improved adversarial examples for diffusion models. arXiv preprint arXiv:2305.12683 , 2023. 1, 2, 5, 6, 7 [29] Chumeng Liang, Xiaoyu Wu, Yang Hua, Jiaru Zhang, Yim-ing Xue, Tao Song, Zhengui Xue, Ruhui Ma, and Haibing Guan. Adversarial example does good: Preventing paint-ing imitation from diffusion models via adversarial exam-ples. In International Conference on Machine Learning ,pages 20763–20786. PMLR, 2023. 1, 2, 3, 5, 6, 7 [30] Yaron Lipman, Ricky TQ Chen, Heli Ben-Hamu, Maximil-ian Nickel, and Matt Le. Flow matching for generative mod-eling. arXiv preprint arXiv:2210.02747 , 2022. 2 [31] Yuyang Long, Qilong Zhang, Boheng Zeng, Lianli Gao, Xianglong Liu, Jian Zhang, and Jingkuan Song. Fre-quency domain model augmentation for adversarial attack. In European conference on computer vision , pages 549–566. Springer, 2022. 2 [32] I Loshchilov. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 , 2017. 6 [33] Aleksander Madry. Towards deep learning models resis-tant to adversarial attacks. arXiv preprint arXiv:1706.06083 ,2017. 3, 8 [34] Weili Nie, Brandon Guo, Yujia Huang, Chaowei Xiao, Arash Vahdat, and Anima Anandkumar. Diffusion models for adversarial purification. arXiv preprint arXiv:2205.07460 ,2022. 2, 7, 8 [35] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 1, 2, 3 [36] Andreas Rossler, Davide Cozzolino, Luisa Verdoliva, Chris-tian Riess, Justus Thies, and Matthias Nießner. Faceforen-sics++: Learning to detect manipulated facial images. In 
+
+Proceedings of the IEEE/CVF international conference on computer vision , pages 1–11, 2019. 1 [37] Nataniel Ruiz, Sarah Adel Bargal, and Stan Sclaroff. Dis-rupting deepfakes: Adversarial attacks against conditional image translation networks and facial manipulation systems. In Computer Vision–ECCV 2020 Workshops: Glasgow, UK, August 23–28, 2020, Proceedings, Part IV 16 , pages 236– 251. Springer, 2020. 1 [38] Nataniel Ruiz, Yuanzhen Li, Varun Jampani, Yael Pritch, Michael Rubinstein, and Kfir Aberman. Dreambooth: Fine tuning text-to-image diffusion models for subject-driven generation. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 22500– 22510, 2023. 2 [39] Hadi Salman, Alaa Khaddaj, Guillaume Leclerc, Andrew Ilyas, and Aleksander Madry. Raising the cost of malicious ai-powered image editing. arXiv preprint arXiv:2302.06588 ,2023. 1, 2, 3, 5, 6, 7 [40] P Samangouei. Defense-gan: protecting classifiers against adversarial attacks using generative models. arXiv preprint arXiv:1805.06605 , 2018. 2 [41] Pedro Sandoval-Segura, Jonas Geiping, and Tom Goldstein. Jpeg compressed images can bypass protections against ai editing. arXiv preprint arXiv:2304.02234 , 2023. 2, 7, 8 [42] Shuai Shen, Wenliang Zhao, Zibin Meng, Wanhua Li, Zheng Zhu, Jie Zhou, and Jiwen Lu. Difftalk: Crafting diffusion models for generalized audio-driven portraits animation. In 
+
+CVPR , 2023. 2 [43] Kaede Shiohara and Toshihiko Yamasaki. Detecting deep-fakes with self-blended images. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 18720–18729, 2022. 1 [44] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502 , 2020. 2, 5 [45] Yang Song and Stefano Ermon. Generative modeling by esti-mating gradients of the data distribution. Advances in neural information processing systems , 32, 2019. 2 [46] Yang Song, Taesup Kim, Sebastian Nowozin, Stefano Er-mon, and Nate Kushman. Pixeldefend: Leveraging genera-tive models to understand and defend against adversarial ex-amples. arXiv preprint arXiv:1710.10766 , 2017. 2 [47] Michał Stypułkowski, Konstantinos Vougioukas, Sen He, Maciej Zieba, Stavros Petridis, and Maja Pantic. Diffused heads: Diffusion models beat gans on talking-face genera-tion. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision , pages 5091–5100, 2024. 2 [48] Chuangchuang Tan, Yao Zhao, Shikui Wei, Guanghua Gu, Ping Liu, and Yunchao Wei. Rethinking the up-sampling op-erations in cnn-based generative network for generalizable deepfake detection. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 28130–28139, 2024. 1 [49] Shuai Tan, Bin Ji, Mengxiao Bi, and Ye Pan. Edtalk: Effi-cient disentanglement for emotional talking head synthesis. In European Conference on Computer Vision , pages 398– 416. Springer, 2024. 1, 2 [50] Linrui Tian, Qi Wang, Bang Zhang, and Liefeng Bo. Emo: Emote portrait alive-generating expressive portrait videos with audio2video diffusion model under weak conditions. 
+
+arXiv preprint arXiv:2402.17485 , 2024. 2 [51] Jianyi Wang, Kelvin CK Chan, and Chen Change Loy. Ex-ploring clip for assessing the look and feel of images. In Pro-ceedings of the AAAI Conference on Artificial Intelligence ,pages 2555–2563, 2023. 6 [52] Ting-Chun Wang, Arun Mallya, and Ming-Yu Liu. One-shot free-view neural talking-head synthesis for video conferenc-ing. In CVPR , 2021. 5, 6 [53] Huawei Wei, Zejun Yang, and Zhisheng Wang. Aniportrait: Audio-driven synthesis of photorealistic portrait animations, 2024. 1, 2 [54] Cihang Xie, Zhishuai Zhang, Yuyin Zhou, Song Bai, Jianyu Wang, Zhou Ren, and Alan L Yuille. Improving transferabil-ity of adversarial examples with input diversity. In Proceed-ings of the IEEE/CVF conference on computer vision and pattern recognition , pages 2730–2739, 2019. 2 13443 [55] Mingwang Xu, Hui Li, Qingkun Su, Hanlin Shang, Li-wei Zhang, Ce Liu, Jingdong Wang, Luc Van Gool, Yao Yao, and Siyu Zhu. Hallo: Hierarchical audio-driven vi-sual synthesis for portrait image animation. arXiv preprint arXiv:2406.08801 , 2024. 2, 3, 6 [56] Sicheng Xu, Guojun Chen, Yu-Xiao Guo, Jiaolong Yang, Chong Li, Zhenyu Zang, Yizhong Zhang, Xin Tong, and Baining Guo. Vasa-1: Lifelike audio-driven talking faces generated in real time. arXiv preprint arXiv:2404.10667 ,2024. 1, 2 [57] Haotian Xue and Yongxin Chen. Pixel is a barrier: Diffusion models are more adversarially robust than we think. arXiv preprint arXiv:2404.13320 , 2024. 2 [58] Haotian Xue, Chumeng Liang, Xiaoyu Wu, and Yongxin Chen. Toward effective protection against diffusion-based mimicry through score distillation. In The Twelfth Interna-tional Conference on Learning Representations , 2023. 1, 2, 5, 6, 7 [59] Zhiyuan Yan, Yong Zhang, Yanbo Fan, and Baoyuan Wu. Ucf: Uncovering common features for generalizable deep-fake detection. In Proceedings of the IEEE/CVF Interna-tional Conference on Computer Vision , pages 22412–22423, 2023. 1 [60] Jongmin Yoon, Sung Ju Hwang, and Juho Lee. Adversar-ial purification with score-based generative models. In In-ternational Conference on Machine Learning , pages 12062– 12072. PMLR, 2021. 2 [61] Wenxuan Zhang, Xiaodong Cun, Xuan Wang, Yong Zhang, Xi Shen, Yu Guo, Ying Shan, and Fei Wang. Sadtalker: Learning realistic 3d motion coefficients for stylized audio-driven single image talking face animation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 8652–8661, 2023. 1, 2 [62] Zhengyu Zhao, Zhuoran Liu, and Martha Larson. To-wards large yet imperceptible adversarial image perturba-tions with perceptual color distance. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 1039–1048, 2020. 2 [63] Zhengyue Zhao, Jinhao Duan, Kaidi Xu, Chenan Wang, Rui Zhang, Zidong Du, Qi Guo, and Xing Hu. Can protective perturbation safeguard personal data from being exploited by stable diffusion? In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 24398–24407, 2024. 2, 7, 8 [64] Zhiquan Chen Yuming Li Chenguang Ma Zhiyuan Chen, Ji-ajiong Cao. Echomimic: Lifelike audio-driven portrait an-imations through editable landmark conditioning, 2024. 1, 2[65] Hang Zhou, Yu Liu, Ziwei Liu, Ping Luo, and Xiaogang Wang. Talking face generation by adversarially disentan-gled audio-visual representation. In Proceedings of the AAAI Conference on Artificial Intelligence , pages 9299– 9306, 2019. 2 [66] Hang Zhou, Yasheng Sun, Wayne Wu, Chen Change Loy, Xiaogang Wang, and Ziwei Liu. Pose-controllable talking face generation by implicitly modularized audio-visual rep-resentation. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 4176–4186, 2021. 1 [67] Yang Zhou, Xintong Han, Eli Shechtman, Jose Echevar-ria, Evangelos Kalogerakis, and Dingzeyu Li. Makelttalk: speaker-aware talking-head animation. ACM Transactions on Graphics (TOG) , 39(6):1–15, 2020. 1, 2 13444

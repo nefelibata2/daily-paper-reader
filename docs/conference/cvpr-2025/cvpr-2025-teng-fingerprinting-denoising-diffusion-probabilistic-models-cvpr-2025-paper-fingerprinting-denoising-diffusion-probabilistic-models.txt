@@ -1,0 +1,410 @@
+Title: Fingerprinting Denoising Diffusion Probabilistic Models
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Teng_Fingerprinting_Denoising_Diffusion_Probabilistic_Models_CVPR_2025_paper.pdf
+
+Published Time: Mon, 02 Jun 2025 14:01:14 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Fingerprinting Denoising Diffusion Probabilistic Models 
+
+## Huan Teng 1,2 Yuhui Quan 1 Chengyu Wang 2 Jun Huang 2 Hui Ji 3
+
+> 1
+
+School of Computer Science and Engineering, South China University of Technology, Guangzhou 510006, China 
+
+> 2
+
+Alibaba Cloud Computing, Hangzhou 311121, China 
+
+> 3
+
+Department of Mathematics, National University of Singapore, 119076, Singapore     
+
+> huan.teng.cs@foxmail.com, csyhquan@scut.edu.cn, {chengyu.wcy, huangjun.hj }@alibaba-inc.com, matjh@nus.edu.sg
+
+## Abstract 
+
+Diffusion models, especially denoising diffusion probabilis-tic models (DDPMs), are prevalent tools in generative AI, making their intellectual property (IP) protection increas-ingly important. Most existing IP protection methods for DDPMs are invasive, e.g ., model watermarking, which al-ter model parameters and raise concerns about perfor-mance degradation, also with requirement for extra compu-tational resources for retraining or fine-tuning. In this pa-per, we propose the first non-invasive fingerprinting scheme for DDPMs, requiring no parameter changes or fine-tuning, and keeping generation quality intact. We introduce a dis-criminative and robust fingerprint latent space based on the well-designed ”crossing route” of noisy samples that span the performance border-zone of DDPMs, with only black-box access required for the diffusion denoiser in ownership verification. Extensive experiments demonstrate that our fingerprinting approach enjoys both robustness against the often-seen attacks and distinctiveness on various DDPMs, providing an alternative for protecting DDPMs’ IP rights without compromising their performance or integrity 1.
+
+## 1. Introduction 
+
+Diffusion models (DMs) [29, 31], particularly DDPMs [8], have become essential models in artificial intelligence gen-erated content (AIGC), renowned for their exceptional gen-erative capabilities and wide-ranging applications [3, 14, 26, 32]. With their increasing adoption, especially through open-source platforms, the need to protect their IP rights and guard against misuse has become critical. While open-source models foster rapid innovation, they also introduce vulnerabilities, allowing unauthorized exploitation for illicit purposes, including IP infringement [11, 18, 33]. The current leading IP protection solutions for DDPMs 1 Source codes are released in https://github.com/painfulloop/ Fingerprint_DDPM          
+
+> DDPM Inversion Our Fingerlnv
+> Bedroom Cat CelebA Church Bedroom Cat CelebA Church Bedroom Cat CelebA Church
+
+Figure 1. Cross-generation results for DDPM inversion [10] and 
+
+FingerInv . In each confusion matrix, we invert the same ”horse“ image for different DDPMs to obtain their latent codes, which are then used to generate image for different DDPMs. Each row uses a specific latent code across various DDPMs, and the diagonal po-sitions indicates matched DDPMs and latent codes. DDPM inver-sion shows universality but lacks distinctiveness, while FingerInv 
+
+only reconstructs matched cases, highlighting distinctiveness. are invasive, such as model watermarking [4, 16, 22, 40, 44], which embeds specific information (called watermark) into the model by modifying its parameters for ownership verification. However, watermarking affects model perfor-mance and adds computational overhead during training or fine-tuning. Watermarking methods are divided into black-box [1, 15, 15, 24, 41] and white-box schemes [20, 27, 34], with black-box approaches preferred for their lower verifi-cation requirements. Nonetheless, both schemes inherently modify the model and can be resource-intensive. 
+
+1.1. Motivation 
+
+Recently, model fingerprinting [2, 6, 17, 23, 25, 43] has gained significant attention as a non-invasive approach to protecting neural network (NN) models in image classifi-cation and restoration. Model fingerprinting involves cal-culating a unique identifier within a model or its behavior, enabling ownership verification without altering its perfor-mance, and requiring no additional training or fine-tuning. This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 28811 DDPM1 DDPM2   
+
+> 
+> 
+> DDPM1
+>  
+>  
+> DDPM2 (a) Existing diffusion inversion (b) Our FingerInv
+> Figure 2. Illustration of the basic idea for our inversion. We aim to define a discriminative fingerprint latent space using FingerInv .
+
+To the best of our knowledge, no existing work has studied fingerprinting for DDPMs. Current fingerprinting methods are tailored for deterministic NNs that map an input image to a label via one-to-one mapping. In con-trast, DDPMs are probabilistic models that map a standard distribution to an image distribution, allowing for genera-tion of new images from random samples ( e.g ., Gaussian noise). Due to such a fundamental difference between prob-abilistic DDPMs and deterministic NNs for classification or restoration, existing fingerprinting methods cannot be eas-ily adapted to DDPMs. This motivated us to develop a new fingerprinting method specifically designed for DDPMs. 
+
+1.2. Main Idea 
+
+Consider a diffusion generation process G(z) = x0, where z
+
+is the latent code and x0 ∈ RH×W ×C is the resulting image. Our fingerprinting method, called FingerInv and denoted as F, uses a predefined verification image x0 containing copyright details, and inverts G to find a distinctive finger-print latent code z = F(x0, G), serving as the trigger key. During verification, z is input into the suspect model, and the output is validated for ownership, requiring only black-box access of the DDPM denoiser θ . The key concern is defining F to ensure the distinctiveness of the latent code 
+
+z. It has been observed that, when utilizing a fixed “random seed”, two DMs tend to produce similar images [21, 38]. Furthermore, denoisers trained on non-overlapping datasets can potentially learn nearly identical score functions [12]. Thus, existing diffusion inversion methods [10, 38] may exhibit similar Gaussian latent spaces. As shown in Fig-ure 1 (left), applying existing inversion methods on Gaus-sian noise space [10] results in interchangeable latent codes 
+
+z. Most models can reconstruct x0 using latent codes of other models, lacking uniqueness. We propose to utilize our FingerInv to map the verifi-cation images to the discriminative fingerprint latent space as illustrated in Figure 2. Our fingerprint latent code can be used directly for white-box verification and also enhance discriminability for black-box verification, as shown in Fig-ure 1. In DDPM, the denoiser θ is typically trained to estimate noise t within the Gaussian noisy domain D, re-sulting in small prediction errors ‖θ (xt) − t‖22 for sam-ples from D. Besides, there is also a complementary set ¯D
+
+that causes θ to produce large prediction errors, and the boundary region between D and ¯D is defined as the per-formance border-zone, which possesses good distinctive-ness and robustness [25]. Inspired by adversarial samples across the decision boundary, leveraging the characteris-tic of DDPM generation through progressive denoising, we propose the discriminative “crossing route” on performance border-zone to construct unique noisy samples. As illustrated in Figure 3, the crossing route is defined as a set of noisy samples {x1, . . . , x T } that precisely span the performance border-zone. After obtaining these samples, we can back-derive other latent components [10, 38] based on DDPM sampling process to obtain the entire fingerprint latent code z = {xT , z 1, . . . , z T }. Moreover, compared to the critical point [25] in performance border-zone, our crossing route includes noisy samples with sufficient large prediction errors ( e.g ., xT in ¯D). These “difficult” samples often have potential to enhance the distinction in model out-put domain, which is crucial for black-box verification. 
+
+1.3. Contribution 
+
+We utilize FingerInv to obtain the fingerprint latent code as the trigger key from the verification image, and create a trigger-verification pair for IP protection. Our method is primarily validated on two representative approaches: pixel space DDPMs (PS-DDPMs) [8], and latent diffusion mod-els (LDMs) [26]. Extensive experiments show that our pro-posed method exhibits greater distinctiveness and robust-ness compared to baseline fingerprint methods , while re-maining competitive against recent invasive watermarking techniques. The main contributions are listed below: • We propose the first non-invasive fingerprinting frame-work aimed at protecting IP rights for DDPMs. The ver-ification process is simple and intuitive, requiring only black-box access to the DDPM denoiser, without addi-tional visualization components. • Inspired by adversarial samples across decision bound-aries in classification, combining with DDPM iterative scheduling, the concept of crossing route on performance border-zone is introduced to characterize DDPMs. • A distinctive and robust fingerprint latent space is pro-posed. By mapping the verification image to the finger-print latent code, the model owner can obtain the trigger-verification pair, serving to protect IP right. 
+
+## 2. Related Work 2.1. Invasive Methods 
+
+Most watermarking approaches for DDPMs are invasive [4, 9, 16, 22, 40, 44]. [44] proposed watermarking strategies 28812 Small prediction error on ॰  
+
+> Performance border zone Large prediction error on ഥ॰
+> Original Gaussian route Our crossing route
+
+Figure 3. Main concept of our crossing route. We identify a dis-tinct path {x1, . . . , x T } that crosses the performance boundary of 
+
+θ . Assuming x0 in-domain, unlike original Gaussian route within 
+
+D, ours transitions from D to ¯D during the diffusion process. for both unconditional and conditional DMs, which intro-duced to watermark the data before training the models for unconditional generation, and fine-tune the DMs to embed a special trigger prompt and predefined verification images (e.g ., QR codes) for text-to-image generation. In addition to text prompts [16, 44], backdoor watermarking in DDPMs can also use image triggers [22]. To improve fidelity, a two-stage approach is proposed to separately fine-tune the text encoder and U-Net for watermarking stable diffusion (SD) models [40]. Stable Signature invasively fine-tunes the LDM decoder to embed watermark information for all generated images [4] (rather than the specific output of a trigger), while fine-tuning the decoder again with unwater-marked samples can erase the watermark [9]. In conclusion, watermarking DDPM or its outputs always requires training or fine-tuning of models, which incurs resource costs and potentially alters model performance. 
+
+2.2. Non-invasive Methods 
+
+In image classification, a commonly used non-invasive method for model copyright protection is fingerprinting [2, 6, 17, 23, 43], which typically identifies samples on de-cision boundaries or adversarial samples and distinguishes models based on their varying behaviors. The fingerprinting method also exists in image restoration [25], which finds critical points within performance border- zone, demon-strating that the critical points of various image restoration models exhibit good distinctiveness and robustness. How-ever, it requires white-box access in verification stage, thus posing practical challenges in real-world applications. In DDPMs, an analogous fingerprinting approach [37] primar-ily protects the copyright of generated images rather than the IP rights of the model itself. Furthermore, [37] water-marks the original latent space of DMs, which affects the quality of the generated samples, making it invasive. 
+
+2.3. Inversion Methods for DDPMs 
+
+Model inversion is typically applied in fingerprinting clas-sification and restoration models [2, 5, 25]. Given out-puts, when it comes to inversely acquiring the latent codes 
+
+> Verification Img
+> Output
+> Suspicious DDPM
+> FingerInv
+> Owner Fingerprint Latent Z
+> Original DDPM
+> Verify
+> …
+
+൝ Verification 
+
+Figure 4. Framework of our fingerprinting approach. for DMs, several existing methods have been proposed [10, 19, 30, 35, 38]. For deterministic sampling process, these include the DDIM inversion [30], as well as null-text in-version [19], utilizing DDIM inversion as pivot and opti-mizing null-text embeddings, and EDICT [35], the inver-sion approach via coupled transformations. For stochas-tic sampling process, CycleDiffusion [38] recovers the se-quence of noise vectors to perfectly reconstruct the image, and a more edit-friendly variant of CycleDiffusion, DDPM inversion [10] is proposed. Compared with the determin-istic inversion methods, the stochastic ones have higher-dimensional latent space, which makes it easier to obtain better uniqueness and robustness in our fingerprinting task. Thus, after searching for crossing routes on the performance border-zone, our method obtains the fingerprint latent code based on the spirit of stochastic inversion methods [10, 38]. 
+
+## 3. Methodology 3.1. Problem Statement and Overview Threat model Similar to [25], in common scenarios of IP protection, the model owner trains the model using their private resources, while an attacker attempts to steal the model. The model owner, acting as the defender, needs to have the ability to verify whether a suspicious model is a plagiarized version. Meanwhile, the attacker needs to modify the model to evade detection of ownership while ensuring that the modified model retains its functionality and performance. Typically, the modifications may involve common techniques such as pruning, quantization, and fine-tuning. Moreover, unlike [25], our ownership verification imposes stricter conditions by allowing only black-box ac-cess to the denoiser, without access to gradient information. 
+
+Principles Model fingerprinting typically considers two requirements [2, 25]: first, discriminability/uniqueness, which mandates that different models possess unique fin-gerprints and ensures that the fingerprints of other models do not trigger a specific model’s verification information, and vice versa; second, robustness, which requires that the fingerprint can still successfully trigger the verification mes-sage even after the model has been attacked or modified. 
+
+Framework Figure 4 illustrates our framework: 28813 • First, select a verification image x0 that contains the copy-right information as the target output. • Next, perform FingerInv to map the target verification image x0 to fingerprint latent code (trigger) z.• Then, to verify a suspicious DDPM, using z to generate an image and check if it contains copyright information. 
+
+Inversion choice To define FingerInv , the reconstruc-tion capability for the given verification image x0 is crucial. In diffusion inversion schemes, DDIM inversion addressing the deterministic sampling process are based on lineariza-tion assumption [35], leading to error accumulation. Al-though some approaches mitigate this error, they often incur additional overhead, such as optimization [19] or doubling the sampling computational costs [35]. In contrast, Cycle Diffusion [38] and DDPM inversion [10] ensure perfect re-construction for a given image, and compared to methods that use only xT as the latent code, these methods leverage more information {xT , z T , . . . , z 1}, indicating a greater po-tential to enhance discriminability and robustness. 
+
+3.2. Fingerprint Extraction Preliminaries DDPM adds noises to the clean image x0
+
+during the forward process to gradually obtain white Gaus-sian noise xT and reverses this process during sampling. The forward process can be expressed as follows: 
+
+xt = √¯αtx0 + √1 − ¯αtt, (1) where ¯αt = ∏ts=1 αs, αs denotes a specified variance schedule, and t ∼ N (0 , I). This process is commonly employed to construct a posterior distribution q(x1: T |x0) to obtain the noisy images from x1 to xT . Subsequently, the DDPM sampling process is defined by: 
+
+xt−1 = ˆ μt(xt) + σtzt, t = T, . . . , 1, (2) where zt are sampled i.i.d. standard Gaussian noises and the mean estimator ˆμt(xt) is defined as: 
+
+ˆμt(xt) = √¯αt−1 ˆx0 +
+
+√
+
+1 − ¯αt−1 − σ2 
+
+> t
+
+θ (xt), (3) where ˆx0 = xt−√1− ¯αtθ (xt)  
+
+> √¯αt
+
+is predicting x0, and the sec-ond term represents the direction pointing to xt; θ repre-sents the denoiser and the variance schedule σt is defined as 
+
+η βt(1 − ¯αt−1)(1 − ¯αt) , where η ∈ [0 , 1] . Specifically, η = 1 corre-sponds to the DDPM and η = 0 to the DDIM scheme. Cy-cleDiffusion and DDPM inversion utilize Eq. (1) to add de-pendent/independent Gaussian noise to obtain a set of noisy images {x1, . . . , x T }. Subsequently, the inversion process entails back-calculating {zT , . . . , z 1} based on Eq. (2) to ensure perfect reconstruction. Thus, the latent components 
+
+zt can be simply inferred using: 
+
+zt = xt−1 − ˆμt(xt)
+
+σt
+
+, t = T, . . . , 1. (4) 
+
+Initialization As discussed in Section 1.2, we seek to leverage the crossing route through the performance border-zone of θ to implement our FingerInv . According to Eq. (1), we can change the distribution of Gaussian noise 
+
+t to achieve it, denoted as ˜t. With the noises { ˜1, . . . , ˜T },our goal is to make the noisy samples {x1, . . . , x T } pre-cisely traverse through the performance border-zone of the DDPMs. We define the initialized ˜(0)  
+
+> t
+
+as follows: 
+
+˜(0)  
+
+> t
+
+= δ1
+
+t − 1
+
+T no + ng , (5) where ng ∼ N (0 , I), no is from a non-Gaussian distribu-tion, and δ1 is a weight controlling the initial intensity; e.g ., 
+
+no could be uniformly distributed: no ∼ U (−1, 1) .
+
+According to Eq. (5), when t = 1 , ˜(0)  
+
+> t
+
+= ng , indicating that x(0) 1 is easy to predict for the DDPM denoiser θ . As t
+
+increases, the intensity of no also increases, resulting in xt
+
+becoming more disordered and further deviating from the original Gaussian domain, which implies that x(0)  
+
+> t
+
+becomes increasingly difficult for θ to predict. We try to make that, during the initialization phase, {x(0) 1 , . . . , x (0)  
+
+> T
+
+} traverse the performance border-zone of the DDPM as possible. 
+
+Optimization To ensure that noisy samples reflect the inherent capabilities of θ and serve as the crossing route, we optimize the noise ˜t with θ fixed. The loss function is: 
+
+Lcritical = T − tT ‖θ (xt) − ˜t‖22 − δ2
+
+t − 1
+
+T ‖∇ xt‖1, (6) where δ2 is the weight parameter. The first term supports the denoiser in predicting the noise in xt, whereas the second term increases the total variation (TV, the 1-norm of image gradient) of xt, making noise prediction more challenging, as discussed in [25]. While [25] hypothesizes that the crit-ical point in performance border-zone has good uniqueness and confirms its white-box performance, it suffered in the black-box situation. The problem may be that [25] fixed the artificial degradation process and optimizes the clean image, making recovery easy in samples with small degra-dation. So we add TV loss on noisy samples rather than clean samples, and by fixing x0, it is equivalent to directly optimizing the noise to make restoration hard, which poten-tially increases black-box discrimination. Eq. (6) positions xt to the performance border-zone of 
+
+θ . As shown in Figure 3, when t = 1 , only the first term is used, ensuring that the noise of x1 is easily predicted by θ ,placing it within D. When t = T , only the second term is active, ensuring that the noise of xT is difficult to predict by 
+
+θ , placing it within ¯D. Therefore, we obtain the crossing route {x1, . . . , x T } that traverse the performance border-zone, possessing sufficient discriminative properties. Thus, calculating the latent code z via Eq. (4) becomes more discriminative. FingerInv is detailed in Algorithm 1. 28814 Algorithm 1 Fingerprint Inversion Algorithm 
+
+Input: θ : DDPM denoiser, x0: verification image, T :number of timesteps, δ1 and δ2: hardness parameters, λ:learning rate, N : optimization steps in each timestep 
+
+Output: latent code z = {xT , z T , . . . , z 1} 
+
+> 1:
+
+for t = 1 to T do // Stage1: obtain {x1, . . . , x T } 
+
+> 2:
+
+// Noisy samples across performance border-zone 3: no ∼ U (−1, 1) , ng ∼ N (0 , 1)  
+
+> 4:
+
+˜t = ng + δ1 t−1 
+
+> T
+
+no 
+
+> 5:
+
+for i = 1 to N do // Optimize ˜t 
+
+> 6:
+
+xt = √¯αtx0 + √1 − ¯αt ˜t 
+
+> 7:
+
+Lcritical = T −tT ‖θ (xt) − ˜t‖22 − δ2 t−1 
+
+> T
+
+‖∇ xt‖1 
+
+> 8:
+
+// Update ˜t using gradient descent 9: ˜t = ˜ t − λ∇˜t Lcritical 10: end for  
+
+> 11:
+
+xt = √¯αtx0 + √1 − ¯αt˜t 
+
+> 12:
+
+end for  
+
+> 13:
+
+for t = T to 1 do // Stage2: obtain {zT , . . . , z 1} 
+
+> 14:
+
+zt ← (xt−1 − ˆμt(xt)) /σ t 
+
+> 15:
+
+end for  
+
+> 16:
+
+return latent code z = {xT , z T , . . . , z 1}
+
+Selection of the verification image We propose using QR codes as verification images for two reasons: ease of verification, and that QR images are typically not within the target domain of DDPMs, which are more likely to achieve better distinctiveness and robustness [24]. Note that although QR codes are a natural choice for verification due to their scan-based validation and are widely used in e-commerce, our method is not restricted to QR codes. Some results using natural images as verification images are pro-vided in Section 7.2 of the supplementary material. 
+
+## 4. Experiment 4.1. Experimental Setup Source models For PS-DDPMs, we explored clas-sic DDPMs [8] on the LSUN [39] and CelebA-HQ [13] datasets, focusing on church, cat, bedroom, and face im-ages. We used four generative models at 256x256 resolu-tion with exponential moving average (EMA) techniques. For LDMs, we used models like SD V1-4 [26], Pixart-α [3], and the float16 DeciDiffusion [32]. All pretrained models are accessible online. 2 PS-DDPMs share an architecture but differ in datasets, while LDMs are based on the similar LAION [28] datasets with different structures. This variety 2https://huggingface.co/google https://huggingface.co/Deci/DeciDiffusion-v1-0 https://huggingface.co/PixArt-alpha/PixArt-XL-2-512x512 https://huggingface.co/CompVis/stable- diffusion-v1-4   
+
+> Length = 24 Length = 32 Length = 64
+
+Figure 5. QR code images used in our experiments. enhances the reliability and validity of our discriminability experiments, all conducted on an H800 GPU. 
+
+Implementation details In Algorithm 1, we set δ1 = 20 ;
+
+δ2 = 1 ; N = 10 ; λ = 0 .1. As mentioned in Section 3.2, we use the QR code images as the verification image. Let 
+
+lqr denote the length of the string encoded in the QR code image. We set lqr to 24, 32, and 64 to investigate the impact of different lqr on fingerprinting, and use random strings to generate QR codes. As shown in Figure 5, the complexity of QR code patterns increases with lqr . For LDMs, we utilized 512x512 resolution QR codes, while for PS-DDPMs, we downsampled the QR codes to 256x256 to facilitate com-parison. We found that lqr has minimal impact on the re-sults, thus primarily present verification results for lqr = 32 
+
+in part of our subsequent analyses. Results for more lqr are given in Sections 9 and 10 of the supplementary material. 
+
+Baselines As we are the first to develop a non-invasive method specifically for DDPMs, we considered employing existing inversion techniques for DDPMs as baselines for comparison, including Cycle Diff (Cycle Diffusion [38] ) and DDPM inv (DDPM inversion [10]). In addition, we also in-corporated several existing watermarking schemes for com-parison, including invasive methods such as those presented in WM DM (WatermarkDM [44] for PS-DDPMs and LDMs) and Stable sig (Stable Signature [4] for LDMs, which aim to protect generated images and can also reflect model IP) . 
+
+4.2. Uniqueness Analysis Quantitative analysis in fingerprint domain We com-pared the distinctiveness of fingerprints by obtaining latent codes z using Cycle Diff (original Gaussian space), DDPM inv (edit-friendly space), and our FingerInv . We calculated the distances between latent codes for PS-DDPMs and LDMs, averaging over different lengths lqr for comparison. Specifically, we tested the squared l2 distance between an owner fingerprint z and a suspicious fingerprint z′, with defined thresholds γps = 8 .27 × 10 6 for PS-DDPMs and 
+
+γldm = 6 .91 × 10 5 for LDMs as per [24, 25] (see Sec-tion 6.2 of supplementary material). A distance below the threshold indicates theft; above, no theft. Figure 6 shows that our method produces distances below thresholds along the diagonal only, effectively distinguishing mod-28815 Figure 6. Squared l2 distances in different latent spaces. The top row of the confusion matrices is for PS-DDPMs, while the bottom row is for LDMs. Columns show the results of CycleDiffusion, DDPM inversion, and FingerInv . Yellow hues indicate higher similarity between latent codes, whereas blue signifies greater dissimilarity. Our fingerprint latent space exhibits significantly better discriminability. 
+
+N=10000 N=100000 Key A Key B Model A Model B Model A Model B  
+
+> Figure 7. Discriminability analysis for highly similar denoising generative models with nearly the same score function and density.
+
+els. Cycle Diff occasionally produces false positives, such as overly small distances for DeciDiffusion and other models, falling below the threshold. While DDPM inv is relatively more discriminative than Cycle Diff , it still lags behind ours. 
+
+Uniqueness analysis in the output domain Verification in fingerprint domain requires applying FingerInv to the suspicious model, which requires access to denoiser gradi-ents and thus additional white-box privileges. In contrast, direct verification of the output image avoids this require-ment and is more convenient. Previous statistical thresh-olding methods [25] assume that the error elements of two samples follow the i.i.d. Gaussian distribution with a manu-ally estimated variance, potentially compromising threshold reliability. Using QR code images for direct scanning can simplify it, so we generate QR images with various finger-print triggers and DDPMs, and create confusion matrices. In the confusion matrices, only the diagonal elements repre-sent successful matches, leading to scannable QR codes. As shown in Figures 8, matched triggers and DDPMs produce clear, scannable QR code images with various lqr , while mismatched pairs result in unscannable images, highlight-ing our method’s strong discriminability. Moreover, we compare the output discriminability for different inversion methods in Table 1, which presents the cross-verification results between different DDPMs using their triggers. The successful scanning is indicated by ,while means the failure. Ideally, the matrix should dis-play only along the diagonal, with all non-diagonal ele-ments marked as , indicating that detections align cor-rectly with their corresponding fingerprints and DDPMs. It is evident that Cycle Diff and DDPM inv exhibit a significant risk of false positives in various scenarios, while our method demonstrates excellent discriminability, successfully distin-guishing between all situations. 
+
+More analysis for uniqueness Recent work [12] showed that blind Gaussian DNNs can generate high-quality images using score-based reverse diffusion algo-rithms; and with sufficient training samples, two non-overlapping subsets can yield DNNs with nearly identical score functions and densities. Although these models are score-based generative models (SGMs), they are also de-28816 Table 1. Discriminative comparative results for output verification. Our fingerprint approach perfectly distinguishes different models (only the diagonal is ), while other baseline methods show vary-ing degrees of misclassifications. 
+
+PS-DDPMs LDMs 
+
+Bedroom Cat CelebA Church SD Pixart Deci Cycle Diff Bedroom     SD   
+
+Cat     Pixart   
+
+CelebA     Deci   
+
+Church     - - - -DDPM inv Bedroom     SD   
+
+Cat     Pixart   
+
+CelebA     Deci   
+
+Church     - - - -Ours Bedroom     SD   
+
+Cat     Pixart   
+
+CelebA     Deci   
+
+Church     - - - -        
+
+> SD V1-4 Pixart-ĮDeci
+> SD V1-4 Pixart-ĮDeci SD V1-4 Pixart-ĮDeci SD V1-4 Pixart-ĮDeci
+> Bedroom Cat CelebA Church
+
+Figure 8. Results of discriminability analysis on output images. noising ones, suitable for our method. Similar to Algo-rithm 1, we adapted our FingerInv for these SGMs (de-tailed in Section 9.2 of supplementary material). We employed their pretrained denoisers, trained with 10K and 100K samples and resulting in similar score func-tions, to validate our FingerInv . These training samples are 80 × 80 grayscale facial images, and the QR codes im-ages we used were at the same resolution with lqr = 16 .The highly similar models were open-sourced 3 . As shown in Figure 7, our method displayed discriminative capability and successfully reconstructed verification images. This in-3https : / / github . com / LabForComputationalVision / memorization_generalization_in_diffusion_models 
+
+dicates our method’s strong fingerprint uniqueness and po-tential for extending to other DM variations. 
+
+4.3. Robustness Analysis Attack settings We unified the attack settings for com-parison on robustness. For PS-DDPMs, we applied an 8% pruning rate, conducted 1K fine-tuning iterations (by LAION-Art), and used float16 quantization. LDMs, partic-ularly SD, benefit from a robust ecosystem for fine-tuning. We utilized pretrained models from the open-source com-munity, including SD V1-5, Deliberate 4 , Realistic Vision V2 5 , and Anything V4 6 . These models, fine-tuned for spe-cific purposes, enhance our analysis. We conducted a 50% pruning attack on SD and 10% on Pixart and DeciDiffu-sion. For quantization, float16 was used for SD and Pixart-
+
+α, while bfloat16 was used for DeciDiffusion. For more visual results, we applied a wider range and stronger attacks, such as a 10% pruning rate for PS-DDPMs, a 15% pruning rate for DeciDiffusion and Pixart-
+
+α, and bfloat16 quantization for other DDPMs. 
+
+Impact of attacks To evaluate the impact of attacks on model performance, we generated 100 samples from both source and attacked models using a fixed random seed, and assessed them with PSNR, SSIM [36], LPIPS [42], and FID [7]. Figure 9 shows that even 5% pruning significantly reduces PSNR (some cases below 20 dB), SSIM (some cases below 0.8), and increases LPIPS (some cases above 0.6). Fine-tuning with different data distributions greatly affects FID, sometimes exceeding 1200. Quantization with bfloat16 also reduces PSNR (some cases below 20 dB) and SSIM (some cases below 0.8). These attack intensities con-stitute significant perturbations. Figure 9. Performance variations across different attack scenarios. 
+
+Results of robustness analysis Figure 10 presents our visual results and shows clear QR code images gener-4https://huggingface.co/XpucT/Deliberate 
+
+> 5https://huggingface.co/SG161222/Realistic_Vision_ V2.0
+> 6https://huggingface.co/xyn-ai/anything-v4.0
+
+28817 Bedroom Cat Celebahq Church Original FT 300 FT 600 FT 1000 PN 2% PN 5% PN 10% Float16 BFloat16                 
+
+> PS-DDPMs PN 10% PN 30% PN 50% Delibrate SD V1-5 Real V2 Float16 BFloat16 Anything V4
+> Stable Diffusion V1-4 PN 5% PN 10% PN 15% BFloat16 PN 5% PN 10% PN 15% Float16 BFloat16
+> Deci-diffusion Pixart-Į
+
+Figure 10. Visual results of robustness analysis. ated under varying attacks. Table 2 compares our robust-ness with baselines. Our approach effectively detected the original QR images under various attacks for both PS-DDPMs and LDMs, outperforming non-invasive methods and matching the robustness of invasive techniques, which is comparable to watermarking methods. In addition, our method is resilient to attacks as described in [9] due to its non-invasive approach to the decoder of LDMs, surpassing Stable sig in model IP protection. Besides, our non-invasive method preserves the original model performance without additional fine-tuning or retraining, which offers significant advantages over invasive watermarking methods and sup-ports a wider range of applications. 
+
+## 5. Conclusion and Discussion 
+
+We propose the first non-invasive fingerprinting method for DDPMs by modifying the noise to create distinctive fingerprint latent space, enabling fingerprint-verification pairs. Our method differentiates DDPMs with black-box access to denoisers, without altering model parameters or output quality. Experiments show strong distinctiveness and robustness for PS-DDPMs and LDMs, positioning our method as a promising solution for DDPM IP protection. However, when considering the DDPM process as a whole, our method does not constitute a strictly black-box approach. The validation process requires manual input of latent components at each timestep during DDPM sam-pling. This can be inconvenient for direct validation in some fully encapsulated DDPM environments, such as, serving as an application programming interface (API). However, compared to previous fingerprint protection methods for im-age restoration, our approach significantly reduces permis-sion requirements, as it does not necessitate white-box ac-Table 2. Robustness results for various IP protection methods. We present verification results for various attacks and their success rates. For each method, we also include features such as non-invasiveness and theoretical robustness against [9]. Eval Cycle Diff DDPM inv Stable sig WM DM Ours Pruning Bedroom   -  
+
+Cat   -  
+
+CelebA   -  
+
+Church   -  
+
+SD V1-4     
+
+Deci     
+
+Pixart     
+
+> Finetuning
+
+Bedroom   -  
+
+Cat   -  
+
+CelebA   -  
+
+Church   -  
+
+SD V1-5    - 
+
+Delibrate    - 
+
+Realistic    - 
+
+Anything    - 
+
+> Quantization
+
+Bedroom   -  
+
+Cat   -  
+
+CelebA   -  
+
+Church   -  
+
+SD V1-4     
+
+Deci     
+
+Pixart     
+
+Success Rate 81.82% 77.27% 100.00% 100.00% 100.00% Non-invasive?     
+
+Robust to [9]?     
+
+cess to the denoisers during the verification stage. Our future work will focus on fingerprinting based only on xT for API applications and explore more properties of crossing route, including their uniqueness and extensions to other variants of diffusion models. 
+
+## Acknowledgements 
+
+This work is partially supported by Alibaba Cloud through the Research Talent Program with South China Univer-sity of Technology; National Key Research and Develop-ment Program of China (No. 2024YFE0105400); National Natural Science Foundation of China (Nos. 62372186 and 62472179); Natural Science Foundation of Guangdong Province, China (No. 2023A1515012841); Fundamental Research Funds for the Central Universities, China (Nos. x2jsD2230220 and x2js/D2240750); and Singapore MOE AcRF Tier 1 (Grant No. A-8000981-00-00). We would like to express our deepest respect and gratitude to our co-author Quan Yuhui, who sadly passed away in January 2025. His contributions to this work were substantial, and we are honored to include him as a co-author. This paper is dedicated to his memory. 28818 References 
+
+[1] Yossi Adi, Carsten Baum, Moustapha Cisse, Benny Pinkas, and Joseph Keshet. Turning your weakness into a strength: Watermarking deep neural networks by backdooring. In 27th USENIX security symposium (USENIX Security 18) , pages 1615–1631, 2018. 1 [2] Xiaoyu Cao, Jinyuan Jia, and Neil Zhenqiang Gong. Ip-guard: Protecting intellectual property of deep neural net-works via fingerprinting the classification boundary. In Pro-ceedings of the 2021 ACM asia conference on computer and communications security , pages 14–25, 2021. 1, 3 [3] Junsong Chen, Jincheng Yu, Chongjian Ge, Lewei Yao, Enze Xie, Yue Wu, Zhongdao Wang, James Kwok, Ping Luo, Huchuan Lu, and Zhenguo Li. Pixart-α: Fast training of dif-fusion transformer for photorealistic text-to-image synthesis, 2023. 1, 5 [4] Pierre Fernandez, Guillaume Couairon, Herv´ e J´ egou, Matthijs Douze, and Teddy Furon. The stable signature: Rooting watermarks in latent diffusion models. In Proceed-ings of the IEEE/CVF International Conference on Com-puter Vision (ICCV) , pages 22466–22477, 2023. 1, 2, 3, 5 [5] Matt Fredrikson, Somesh Jha, and Thomas Ristenpart. Model inversion attacks that exploit confidence information and basic countermeasures. In Proceedings of the 22nd ACM SIGSAC conference on computer and communications secu-rity , pages 1322–1333, 2015. 3 [6] Zecheng He, Tianwei Zhang, and Ruby Lee. Sensitive-sample fingerprinting of deep neural networks. In Proceed-ings of the IEEE/CVF conference on computer vision and pattern recognition , pages 4729–4737, 2019. 1, 3 [7] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp Hochreiter. Gans trained by a two time-scale update rule converge to a local nash equilib-rium. Advances in neural information processing systems ,30, 2017. 7 [8] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 1, 2, 5 [9] Yuepeng Hu, Zhengyuan Jiang, Moyang Guo, and Neil Gong. Stable signature is unstable: Removing im-age watermark from diffusion models. arXiv preprint arXiv:2405.07145 , 2024. 2, 3, 8 [10] Inbar Huberman-Spiegelglas, Vladimir Kulikov, and Tomer Michaeli. An edit friendly DDPM noise space: Inversion and manipulations. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1, 2, 3, 4, 5 [11] Wenbo Jiang, Hongwei Li, Guowen Xu, Tianwei Zhang, and Rongxing Lu. A comprehensive defense framework against model extraction attacks. IEEE Transactions on Dependable and Secure Computing , 21(2):685–700, 2023. 1 [12] Zahra Kadkhodaie, Florentin Guth, Eero P Simoncelli, and St’ephane Mallat. Generalization in diffusion models arises from geometry-adaptive harmonic representation. In The Twelfth International Conference on Learning Representa-tions , 2024. 2, 6, 3, 4 [13] Tero Karras. Progressive growing of gans for improved qual-ity, stability, and variation. arXiv preprint arXiv:1710.10196 ,2017. 5 [14] Black Forest Labs. Flux. https://github.com/ black-forest-labs/flux , 2024. 1, 4 [15] Erwan Le Merrer, Patrick Perez, and Gilles Tr´ edan. Ad-versarial frontier stitching for remote neural network water-marking. Neural Computing and Applications , 32(13):9233– 9244, 2020. 1 [16] Yugeng Liu, Zheng Li, Michael Backes, Yun Shen, and Yang Zhang. Watermarking diffusion model. arXiv preprint arXiv:2305.12502 , 2023. 1, 2, 3 [17] Nils Lukas, Yuxuan Zhang, and Florian Kerschbaum. Deep neural network fingerprinting by conferrable adversarial ex-amples. Proceedings of the International Conference on Learning Representations (ICLR) , 2021. 1, 3 [18] Takayuki Miura, Toshiki Shibahara, and Naoto Yanai. Megex: Data-free model extraction attack against gradient-based explainable ai. In Proceedings of the 2nd ACM Work-shop on Secure and Trustworthy Deep Learning Systems ,pages 56–66, 2024. 1 [19] Ron Mokady, Amir Hertz, Kfir Aberman, Yael Pritch, and Daniel Cohen-Or. Null-text inversion for editing real im-ages using guided diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 6038–6047, 2023. 3, 4 [20] Yuki Nagai, Yusuke Uchida, Shigeyuki Sakazawa, and Shin’ichi Satoh. Digital watermarking for deep neural net-works. International Journal of Multimedia Information Re-trieval , 7:3–16, 2018. 1 [21] Alex Nichol, Prafulla Dhariwal, Aditya Ramesh, Pranav Shyam, Pamela Mishkin, Bob McGrew, Ilya Sutskever, and Mark Chen. Glide: Towards photorealistic image generation and editing with text-guided diffusion models. arXiv preprint arXiv:2112.10741 , 2021. 2 [22] Sen Peng, Yufei Chen, Cong Wang, and Xiaohua Jia. In-tellectual property protection of diffusion models via the wa-termark diffusion process. arXiv preprint arXiv:2306.03436 ,2023. 1, 2, 3 [23] Zirui Peng, Shaofeng Li, Guoxing Chen, Cheng Zhang, Hao-jin Zhu, and Minhui Xue. Fingerprinting deep neural net-works globally via universal adversarial perturbations. In 
+
+Proceedings of the IEEE/CVF conference on computer vi-sion and pattern recognition , pages 13430–13439, 2022. 1, 3[24] Yuhui Quan, Huan Teng, Yixin Chen, and Hui Ji. Water-marking deep neural networks in image processing. IEEE transactions on neural networks and learning systems , 32 (5):1852–1865, 2020. 1, 5 [25] Yuhui Quan, Huan Teng, Ruotao Xu, Jun Huang, and Hui Ji. Fingerprinting deep image restoration models. In Proceed-ings of the IEEE/CVF International Conference on Com-puter Vision (ICCV) , pages 13285–13295, 2023. 1, 2, 3, 4, 5, 6 [26] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image syn-thesis with latent diffusion models, 2021. 1, 2, 5 28819 [27] Bita Darvish Rouhani, Huili Chen, and Farinaz Koushan-far. Deepsigns: A generic watermarking framework for ip protection of deep learning models. arXiv preprint arXiv:1804.00750 , 2018. 1 [28] Christoph Schuhmann, Romain Beaumont, Richard Vencu, Cade Gordon, Ross Wightman, Mehdi Cherti, Theo Coombes, Aarush Katta, Clayton Mullis, Mitchell Worts-man, et al. Laion-5b: An open large-scale dataset for training next generation image-text models. Advances in Neural In-formation Processing Systems , 35:25278–25294, 2022. 5 [29] Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. Deep unsupervised learning using nonequilibrium thermodynamics. In International confer-ence on machine learning , pages 2256–2265. PMLR, 2015. 1[30] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502 , 2020. 3 [31] Yang Song and Stefano Ermon. Generative modeling by esti-mating gradients of the data distribution. Advances in neural information processing systems , 32, 2019. 1 [32] DeciAI Research Team. Decidiffusion 1.0, 2023. 1, 5 [33] Florian Tram` er, Fan Zhang, Ari Juels, Michael K Reiter, and Thomas Ristenpart. Stealing machine learning models via prediction {APIs }. In 25th USENIX security symposium (USENIX Security 16) , pages 601–618, 2016. 1 [34] Yusuke Uchida, Yuki Nagai, Shigeyuki Sakazawa, and Shin’ichi Satoh. Embedding watermarks into deep neural networks. In Proceedings of the 2017 ACM on international conference on multimedia retrieval , pages 269–277, 2017. 1 [35] Bram Wallace, Akash Gokul, and Nikhil Naik. Edict: Exact diffusion inversion via coupled transformations. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 22532–22541, 2023. 3, 4 [36] Zhou Wang, Alan C Bovik, Hamid R Sheikh, and Eero P Si-moncelli. Image quality assessment: from error visibility to structural similarity. IEEE transactions on image processing ,13(4):600–612, 2004. 7 [37] Yuxin Wen, John Kirchenbauer, Jonas Geiping, and Tom Goldstein. Tree-rings watermarks: Invisible fingerprints for diffusion images. Advances in Neural Information Process-ing Systems , 36, 2024. 3 [38] Chen Henry Wu and Fernando De la Torre. A latent space of stochastic diffusion models for zero-shot image editing and guidance. In ICCV , 2023. 2, 3, 4, 5 [39] Fisher Yu, Yinda Zhang, Shuran Song, Ari Seff, and Jianx-iong Xiao. Lsun: Construction of a large-scale image dataset using deep learning with humans in the loop. arXiv preprint arXiv:1506.03365 , 2015. 5 [40] Zihan Yuan, Li Li, Zichi Wang, and Xinpeng Zhang. Water-marking for stable diffusion models. IEEE Internet of Things Journal , 2024. 1, 2, 3 [41] Jialong Zhang, Zhongshu Gu, Jiyong Jang, Hui Wu, Marc Ph Stoecklin, Heqing Huang, and Ian Molloy. Protecting intel-lectual property of deep neural networks with watermarking. In Proceedings of the 2018 on Asia conference on computer and communications security , pages 159–172, 2018. 1 [42] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shecht-man, and Oliver Wang. The unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE conference on computer vision and pattern recogni-tion , pages 586–595, 2018. 7 [43] Jingjing Zhao, Qingyue Hu, Gaoyang Liu, Xiaoqiang Ma, Fei Chen, and Mohammad Mehedi Hassan. Afa: Adver-sarial fingerprinting authentication for deep neural networks. 
+
+Computer Communications , 150:488–497, 2020. 1, 3 [44] Yunqing Zhao, Tianyu Pang, Chao Du, Xiao Yang, Ngai-Man Cheung, and Min Lin. A recipe for watermarking dif-fusion models. arXiv preprint arXiv:2303.10137 , 2023. 1, 2, 3, 5 28820

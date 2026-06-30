@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 743,
+      "height": 381,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 753,
+      "height": 249,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 847,
+      "height": 457,
+      "label": "Table"
+    }
+  ]
+}

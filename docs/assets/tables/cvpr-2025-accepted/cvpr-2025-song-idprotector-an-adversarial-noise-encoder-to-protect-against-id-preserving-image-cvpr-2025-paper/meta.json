@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 862,
+      "height": 155,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 875,
+      "height": 183,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 873,
+      "height": 218,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 1815,
+      "height": 663,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 871,
+      "height": 240,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-song-idprotector-an-adversarial-noise-encoder-to-protect-against-id-preserving-image-cvpr-2025-paper/table-006.webp",
+      "caption": "",
+      "page": 0,
+      "index": 6,
+      "width": 1812,
+      "height": 384,
+      "label": "Table"
+    }
+  ]
+}

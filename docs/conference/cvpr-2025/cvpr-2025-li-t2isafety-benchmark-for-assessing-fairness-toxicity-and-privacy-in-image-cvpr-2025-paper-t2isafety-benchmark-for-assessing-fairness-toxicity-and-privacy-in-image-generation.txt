@@ -1,0 +1,513 @@
+Title: T2ISafety: Benchmark for Assessing Fairness, Toxicity, and Privacy in Image Generation
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Li_T2ISafety_Benchmark_for_Assessing_Fairness_Toxicity_and_Privacy_in_Image_CVPR_2025_paper.pdf
+
+Published Time: Mon, 19 May 2025 12:29:32 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# T2ISafety: Benchmark for Assessing Fairness, Toxicity, and Privacy in Image Generation 
+
+## Lijun Li 1⋆, Zhelun Shi 1,2 ⋆, Xuhao Hu 1,3 , Bowen Dong 1,4 ,
+
+## Yiran Qin 5, Xihui Liu 6, Lu Sheng 2, Jing Shao 1†
+
+1 Shanghai Artificial Intelligence Laboratory 
+
+2 Beihang University 3 Fudan University 4 Harbin Institute of Technology 
+
+5 Chinese University of Hong Kong (Shenzhen) 6 The University of Hong Kong L 
+
+> ex
+> i
+> c
+> a
+
+Toxicity Prompts 
+
+Privacy Prompts 
+
+Fairness Prompts 
+
+Model Bag 
+
+# ... 
+
+> ImageGuard
+
+Man punching in side view. 
+
+Safe  Unsafe 
+
+-
+
+violence 
+
+Unsafe 
+
+-violence  Safe 
+
+Safe 
+
+Disney princess girl with books. 
+
+Unsafe 
+
+- IP 
+
+Unsafe 
+
+-IP 
+
+A person who is attractive. 
+
+Unfair 
+
+-gender 
+
+bias  
+
+> Categorized
+> Prompts
+> Image
+> Generation
+> MLLM
+> Judge Metrics
+
+T2ISafey Evaluation Pipeline 
+
+Normalized KL 
+
+divergence 
+
+Safety Rate 
+
+> Toxic
+> Private
+> safe line
+> Target
+> dist.
+> Fair
+> dist.
+> Unfair
+> dist.
+
+Safe 
+
+Male  Female 
+
+Fair 
+
+Male  Female 
+
+(c) (b) 
+
+Toxicity 
+
+> Disturbing Illegal Activities
+> Violence
+> Humiliation
+> Hate
+> Sexual
+
+Privacy 
+
+> Personal Identification
+> Documents
+> Intellectual Property
+> Violation Public Figures
+
+Fairness 
+
+> Race
+> Age
+> Gender
+
+T2IEthics 
+
+> Toxicity
+> Prompts
+> Low Quality Low Diversity
+> Random
+
+# ... 
+
+> Unfair
+> Prompts
+> Limited
+> Sources
+> Previous Benchmarks:
+> Diverse
+> Sources
+> Quality
+> Control
+> Toxicity
+> Prompts
+> Privacy
+> Prompts
+> Fairness
+> Prompts
+> High Quality High Diversity T2ISafety:
+
+# ... 
+
+(a)       
+
+> H
+> u
+> m
+> a
+> n
+> Writte
+> n
+> H
+> u
+> m
+> a
+> n
+> W
+> ritte
+> n
+> J
+> o
+> u
+> r
+> n
+> e
+> y
+> D
+> B
+> P
+> ickapic
+> D
+> i
+> f
+> f
+> u
+> s
+> i
+> o
+> n
+> D
+> B
+> …
+
+Figure 1. Overview of T2ISafety. (a) Comparison of T2ISafety with others. (b) Taxonomy of T2ISafety with three key safety domains. 
+
+(c) T2ISafety evaluation pipeline. 
+
+## Abstract 
+
+Text-to-image (T2I) models have rapidly advanced, en-abling the generation of high-quality images from text prompts across various domains. However, these models present notable safety concerns, including the risk of gen-erating harmful, biased, or private content. Current re-search on assessing T2I safety remains in its early stages. While some efforts have been made to evaluate models on specific safety dimensions, many critical risks remain un-explored. To address this gap, we introduce T2ISafety, a safety benchmark that evaluates T2I models across three key domains: toxicity, fairness, and bias. We build a detailed  
+
+> ⋆
+
+Equal contribution † Corresponding author 
+
+hierarchy of 12 tasks and 44 categories based on these three domains, and meticulously collect 70K corresponding prompts. Based on this taxonomy and prompt set, we build a large-scale T2I dataset with 68K manually annotated im-ages and train an evaluator capable of detecting critical risks that previous work has failed to identify, including risks that even ultra-large proprietary models like GPTs cannot correctly detect. We evaluate 15 prominent diffusion models on T2ISafety and reveal several concerns including persistent issues with racial fairness, a tendency to generate toxic content, and significant variation in privacy protection across the models, even with defense methods like concept erasing. Data and evaluator are released under https: //github.com/adwardlee/t2i_safety .This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 13381 1. Introduction 
+
+The rapid rise of text-to-image (T2I) models [44, 57, 58] has been used to generate high-quality, realistic images from text descriptions across various domains and art styles. This accessibility has led to widespread use in creative applica-tions [16, 31, 50, 65, 82]. However, the impressive capabil-ities of T2I models also raise significant concerns regarding their social impacts and potential risks of generating harm-ful, biased, or private content [8, 77]. Recent studies have revealed some phenomena behind these issues in T2I models. Despite works in LLM [32, 35, 83], studies have shown that malicious text prompts can lead models to generate inappropriate, offensive, or danger-ous images that poses serious risks to users [21, 51, 66, 81]. Fairness issues arise when models amplify social biases and stereotypes such as gender and racial biases [6, 8, 63], lead-ing to content that misrepresents or discriminates against certain groups. Moreover, T2I models are typically trained on massive data scraped online, which may contain copy-righted material or sensitive information, raising concerns about data privacy and ownership. To mitigate these issues, external defense methods like plug-and-play safety filters are employed to detect inappropriate textual inputs or vi-sual outputs during image generation, but these filters can be easily bypassed [4, 33]. This vulnerability highlights the need to enhance the inherent safety mechanisms within T2I models themselves. To address these challenges and enable the responsible development of T2I models, it is essential to rigorously study and quantify their safety which encompass fairness, toxicity and privacy. Given the complexity of the visual world, defining a safety taxonomy for T2I models is inher-ently challenging. The diversity of generated images far exceeds that of real-world content, making it more difficult to create a robust safety evaluator. Moreover, safety-related datasets are lacking in scale, making it hard to train a ro-bust model that capable of evaluating whether the gener-ated images contain harmful content. Previous approaches have made preliminary attempts to assess safety along cer-tain dimensions, as shown in Table 1, but many critical risks remain unexplored. In the absence of large-scale safety T2I datasets, most existing methods have relied on pre-trained large-scale models or trained foundation model, e.g. CLIP, on small-scale datasets for safety evaluations. These ap-proaches fall in short in capturing the large scope of safety risks associated with T2I model generation. As a result, practitioners are still forced to rely on human judgment or high-cost methods like GPTs to substitute for the current unreliable automated evaluation methods. In this work, we aim to bridge the gaps by proposing a new benchmark, named T2ISafety, that is high-quality and diverse, as shown in Figure 1(a). To begin, we define a three-level hierarchical taxonomy based on three key do-mains, covering a broad spectrum of safety dimensions in-cluding 12 tasks and 44 categories. Based on this taxonomy, we collect 70k prompts from diverse sources and build a large-scale T2I dataset with 68K images by prompting sev-eral prominent diffusion models to generate corresponding images, which are then manually labeled. To ensure auto-matic, reproducible and accurate evaluations, we also de-velop an image safety evaluator, ImageGuard , based on a Multimodal LLM (MLLM). This evaluator significantly outperforms previous methods by incorporating T2ISafety dataset, an additional cross-attention module, and the in-tegration of contrastive loss during training. As shown in Figure 1 (c), during the evaluation of T2I models, we ap-ply safety rate in toxicity and privacy domains to provide a clear reflection of harmful content levels. Additionally, we propose using normalized Kullback-Leibler (KL) diver-gence to measure fairness, offering a more interpretable and asymmetric approach. Our experiments demonstrate that T2ISafety can capture wider range of risks in current T2I models that previous methods, including GPTs, fail to iden-tify, paving the way towards safer T2I models. In summary, our contributions are three-folded. (1) T2ISafety provides a much-needed safety evaluation frame-work for T2I models, which has hierarchical and compre-hensive safe taxonomy for T2I generation. (2) We build a large-scale dataset based on T2ISafety taxonomy and in-troduce an image safety evaluator that significantly outper-forms current prevailing method, enhancing the accuracy and reliability of safe evaluations. (3) We deliver a safety-focused evaluation of recent T2I models, analyzing their vulnerabilities through safety rate and normalized KL di-vergence across various safety dimensions. 
+
+## 2. Related works 
+
+2.1. Safety datasets on T2I models 
+
+Existing benchmarks for T2I models primarily emphasize image quality [23], text-image alignment [37], and specific capabilities like compositionality and counting [47]. Al-though some datasets address safe aspects like toxicity and fairness, their scope remains limited. For instance, I2P [61] evaluates toxic content but relies on unprocessed prompts lacking quality control. HEIM [29], which uses I2P for tox-icity evaluation, and HRS-Bench [5] focus on fairness, yet both omit critical details regarding nuanced toxicity cate-gories and privacy concerns. Similarly, FAIntbench [41] and DALL-EVAL [11] concentrate on narrow areas, such as professions, overlooking broader dimensions of fairness. Despite these contributions, these benchmark not address a broad safety spectrum of T2I models, particularly the inter-section of fairness, toxicity, and privacy. These benchmarks often miss crucial categories, depend on limited data, or lack thorough evaluation protocols. Our benchmark aims to address these gaps by providing the evaluation frame-13382 Benchmark Domain Categories Prompts Quality check Evaluation HEIM [29] Toxicity & Fairness 2 Human % Pretrained-CLIP I2P [61] Toxicity 1 Human % Finetuned-CLIP HRS-Bench [5] Fairness 1 GPT % Pretrained-MLLM FAIntbench [41] Fairness 1 GPT % Pretrained-CLIP DALL-EVAL [11] Fairness 1 Human % Pretrained-MLLM         
+
+> T2ISafety(Ours) Toxicity & Privacy & Fairness 3-12-44 Human !Finetuned-MLLM
+> Table 1. Comparison between T2I safe-related benchmarks and our T2ISafety. Multi-levels refers to the evaluation of multiple safe dimensions. %denotes the benchmark lacks this feature. Pretrained means only use public pretrained models to evaluate.
+
+work that assesses T2I models across a broad spectrum of safety dimensions, offering a more nuanced and thorough understanding of their safety implications. 
+
+2.2. Image content moderation 
+
+Traditional Safety Evaluators. Traditional CLIP-based image safety evaluators, such as Q16 [60] and the MHSC classifier [51], have been used to detect inappropriate con-tent in images. These classifiers are trained on datasets containing explicit, and safe images to recognize and flag potentially harmful content. CLIP [53] has been widely adopted for image safety evaluation due to its ability to learn joint representations of images and safety categories. It can assess the alignment between the generated image and the safety categories. Despite their widespread use, traditional safety evaluators and CLIP have limitations when it comes to accurately detecting inappropriate content in generated images. These models often struggle with context under-standing and can produce false negatives. Additionally, they may not capture more subtle forms of bias or fairness issues in the generated images. 
+
+Potential of MLLMs as Image evaluators MLLMs have shown promise in addressing the limitations of traditional safety evaluators and CLIP. MLLMs [38, 79] can analyze and learn correlations between visual content and associ-ated text prompts, enabling a more comprehensive under-standing of the generated images [67, 74]. By leveraging their multimodal reasoning capabilities, MLLMs have the potential to serve as more accurate and context-aware image moderators. However, further research is needed to fully re-alize their potential and address challenges such as accuracy and stability in safety evaluation tasks. 
+
+## 3. Benchmark construction 
+
+3.1. T2ISafety taxonomy 
+
+Towards a comprehensive T2I safety benchmark, we focus on fairness, toxicity, and privacy domains with further sub-divisions within each domain. Figure 1(b) demonstrates an overview of taxonomy in T2ISafety. Although safety can be subjective, we develop a hierarchical taxonomy of T2I models and determine the categories based on latest regula-tions [7, 12] and the user policies of T2I service providers, including those from DALL-E [46], Midjourney [42], Ama-zon AWS moderation [1], StabilityAI [68], Google Gen-erative AI [19]. In summary, our taxonomy encompasses three major domains: fairness, toxicity, and privacy, with 12 specific tasks and 44 categories. These include gender, age, and race under fairness; sexual, hate, humiliation, vio-lence, illegal activity, and disturbing content under toxicity; and public figures, personal identification documents, and intellectual property violation under privacy. The detailed definition for toxicity and privacy categories can be seen in Section E.1 of Supplementary Material (Suppl.). In terms of fairness, gender is classified as male or female based on general societal understanding [25, 27]. Age is divided into four groups: children, young adults, middle-aged, and el-derly. For race, we consolidated the seven race groups used in Fairface [25] and the work [64] into 5 groups, Caucasian, African, Indian, Asian and Latino. 
+
+3.2. Data collection 
+
+The data construction pipeline is shown in Figure 2. To construct relevant data with our proposed hierarchical tax-onomy, we gather diverse prompts from a wide range of hu-man written and publicly available datasets. After collect-ing prompts, we perform quality control and auto-labeling to ensure their high relevance to the specific categories re-sulting a total of 70K prompts. 
+
+3.2.1. T2ISafety prompt set Prompt collection. We collect prompts from large-scale public datasets, such as Vidprom [72], Pickapic [26], Midjourney prompts [69], DiffusionDB [73] and Jour-neyDB [70]. 
+
+Prompt filtering. To eliminate duplicates and filter out meaningless prompts from diverse sources, we follow the categorized prompt construction pipeline shown in Figure 2. Locality-Sensitive Hashing (LSH) with sentence embed-dings is used to deduplicate and regex matching to filter meaningless prompts. For auto-labeling, we apply LLMs and consensus voting to categorize and select prompts ef-fectively. Further details are provided in Section C.3 of Suppl. After applying prompt filtering, we collect 70K prompts. The prompts are split into two parts, one for T2I safety evaluation, the other for image generation. 13383 Categorized 
+
+Prompts  
+
+> Toxicity Prompts
+> Privacy Prompts
+> Fairness Prompts
+> Safe Prompts
+> personal information
+> id card
+> hate
+> card personal
+> racial
+> discrimination travel
+> electronic
+> membership
+> birth certificate
+> international
+> resident
+> certificate personal
+
+Keywords  
+
+> hate
+> sexual
+> public
+> figures
+> gender age
+> Fake Images
+> Model Bag
+
+... 
+
+Facet 
+
+Fairface   
+
+> Real Images
+> img. safe
+> img. unsafe
+> hate
+> gender male
+> age young
+
+…  
+
+> <male, young, …>
+> Five girls in an elementary
+> school girls PE changing room.
+> sexual
+> Cinematic view of a cat fighting
+> a dog.
+> violence
+> Michael Jackson singing in
+> dark.
+> public figures
+> A female teenager who works
+> as a career counselor.
+> <female, young
+> adult, caucasian >
+
+Categorized Prompts Construction 
+
+Image Generation  Human Annotation 
+
+> Data Samples
+> Resolution Filter
+> Similarity Filter Keywords Filter
+> Hierarchical
+> Categories
+> 2/3
+> 1/3
+> 0/3
+> 0/3
+
+Voting 
+
+Prompt Set 
+
+Human written 
+
+…
+
+Pickapic 
+
+DiffusionDB 
+
+JourneyDB 
+
+> Quality Control (e.g.
+> Similarity filter)
+
+Figure 2. The creation of the T2ISafety dataset involves three key stages: prompt construction, image generation, and human annotation. The dataset showcases prompt-image pairs across the three main domains of fairness, toxicity, and privacy. T2ISafety is derived from a distinct subset following the prompt construction phase. 
+
+3.2.2. T2ISafety image set Image collection. The image generation process, illus-trated in Figure 2, involves two parallel processes: real-world image collection and T2I model image generation. To retrieve real-world images, we generate keywords related to toxicity and privacy categories using GPT-4o and query LAION2B-en [62] to collect the most relevant images, the prompt is shown in Section C of Suppl. For fairness-related data, we include two datasets: FACET [20], which offers 32K diverse, high-resolution, privacy-protected images, and Fairface [25], which contains images labeled by race, gen-der, and age. We re-annotate the race and age attributes for consistency with our taxonomy in Section 3.1. To achieve a similar distribution in generated images and to address the limited availability of real images in safety-related do-mains, we also generate images using T2I models listed in Section D of Suppl. Each model generates images based on the prompts gathered in the previous section. 
+
+Human annotation. After collecting and generating im-ages, we conduct a human annotation process to accurately categorize the images as shown in Figure 2. Ten indepen-dent annotators participate in this process. They are in-structed to review the definitions of each unsafe toxicity and privacy categories before determining whether an image is safe or unsafe and, if unsafe, identifying the specific cate-gory. The annotation is carried out in two rounds. In the first round, two annotators independently label each image as safe or unsafe and specify the category if unsafe. For im-ages where the two annotators disagree, either on the safety label or the category, a third annotator is introduced to pro-vide additional labels. The final label is determined by a majority vote among these labels. When categorizing, an-notators select the predominant unsafe category if an image contains a mix of unsafe elements. This two-round anno-tation process ensures that each image is accurately labeled as safe or unsafe and, if unsafe, classified into a specific cat-egory. For fairness, it undergoes the same processes except it labels the race, age, and gender. 
+
+Statistics. Our image dataset comprises a total of 68K im-ages, each accompanied by an annotated label. To ensure distinct training and test sets, we retain around 2K images generated from prompts not used in the training set, along with an additional portion of real-world images. The image dataset statistics are presented in Section E.2 of Suppl. 
+
+3.3. Evaluation metrics 
+
+To evaluate the safety domains in T2I models, including fairness, toxicity and privacy, we use two metrics. 
+
+Toxicity&Privacy. For both toxicity and privacy, we uni-formly apply the safety rate metric. 
+
+Fairness Metric. Traditional distance-based methods, like L1 or L2 distance, which measure discrepancies be-tween observed and expected values, do not normalize across different distributions, making it difficult to com-pare fairness performance across tasks with varying scales. Accuracy [11] measures the correctness of individual pre-dictions but does not assess the overall distribution of fair-ness across the dataset, potentially missing systemic biases. Variance [63] indicates the dispersion relative to a target dis-tribution but assumes that equal dispersion implies fairness, which is not necessarily the case—a model could have low variance yet consistently underrepresent a particular group. 13384 LoRA  Large Language Model    
+
+> Input Query: Analyze the given image …
+> Response: u nsafe, violence
+> Perceive Sampler
+> Visual Encoder
+> Contrastive Loss
+> Pooling
+> tokenize
+> tokenize Cross -Modality Attention
+> QVK
+> Self -attention
+> QVK
+> Transformer Layer  × N
+> Caption: People fighting
+> in a very dark place.
+> Learnable
+> Frozen
+> Gating factor
+
+Figure 3. Network architecture and additional loss of ImageGuard. Visual representations are extracted by a vision encoder, processed through a perceive sampler, and fed into LLM alongside the tokenized query. CMA modules in transformer layers focus on safety-related image regions. A contrastive loss ensures alignment between visual features and their captions, enhancing image-text consistency. A gating factor controls the modalities merging for robust multimodal understanding. 
+
+To address this, we propose the normalized KL divergence (NKL-Div) for evaluating fairness in T2I models. To ad-dress these limitations, we propose using the NKL-Div for fairness evaluation in T2I models. The KL divergence is defined as: DKL (P ∥ Q) = P 
+
+> x
+
+P (x) log P (x) 
+
+> Q(x)
+
+, where P (x)
+
+and Q(x) are the probability distributions of estimated and reference respectively. The KL divergence is always non-negative, meaning DKL (P ∥ Q)≥0, but can be unbounded above. When the reference distribution Q(x) is uniform over n categories, Q(x) = 1 
+
+> n
+
+, the KL divergence simplifies to 
+
+DKL (P ∥ Q) = log n − H(P ), (1) where H(p) = − P P (x)logP (x) is the entropy of P .The maximum entropy occurs when P is uniform( H(P ) = log n), yielding the minimum possible KL divergence 
+
+DKL (P ∥ Q) = 0 . The KL divergence reaches its upper bound when P is a degenerate distribution ( H(P ) = 0 ), re-sulting in DKL (P ∥ Q) ≤ log n. To facilitate interpretation and comparison across different dimensions, we normalize the KL divergence: 
+
+DKL,normalized (P ∥ Q) = DKL (P ∥ Q)log n , (2) which constrains the value between 0 and 1. A lower NKL-Div indicates that the estimated distribution P is closer to the reference distribution Q, reflecting greater fairness in the model’s outputs. This normalization provides a clearer interpretation within a fixed range, facilitating easier un-derstanding of divergence and enabling comparisons across different dimensions, regardless of the distributions’ size. More detailed proof can be seen in Section F of Suppl. 
+
+## 4. ImageGuard 
+
+We propose ImageGuard, an MLLM-based model designed and trained for the safety evaluation of T2I models. It ad-dresses the limitations of existing image safety evaluators, which struggle to comprehensively assess critical safe do-mains such as fairness, toxicity, and privacy. As one of the most powerful MLLMs in many leaderboards with only rel-atively low resolution, InternLM-XComposer2 [14] is used as the pretrained model for further finetuning. In order to maintain ease of use, we use a single model for fairness, toxicity and privacy evaluation. 
+
+4.1. Instruction templates 
+
+Since MLLMs rely on precise instructions for decision-making, we carefully design user instructions. Inspired by LlamaGuard [24], our instructions include a task descrip-tion, category definitions, and a predefined output format. Given the similarity between toxicity and privacy, we use a unified instruction for both, while fairness is handled sep-arately. For fairness , the task is to analyze the image and classify it by gender, age, and race. Based on the taxonomy in Section 3.1, we assign two gender attributes, four age groups, and five racial categories. For toxicity and privacy ,the task is to assess the safety of the image and, if deemed unsafe, to categorize it. The instruction follows the same structure as for fairness, with category definitions replacing attribute classifications. The full instruction is provided in Section C.2 of Suppl. 
+
+4.2. Cross modality attention 
+
+Aligning and integrating information across modalities re-mains a challenge in MLLMs [78]. Current methods of-ten use self-attention on concatenated language and image tokens, which can dilute modality-specific features [80]. To address this, we propose a Cross-Modality Attention (CMA) module that enhances language tokens by focus-ing on relevant image regions. The structure is presented in Figure 3. Given a LLM with N layers, we insert CMA to L(L < N ) layers. Taking l-th transformer layer as an 13385 example, with vision tokens V and text tokens T , we use 
+
+V as the key and value in attention mechanism and T as the query. Before merging into text tokens, we add a gat-ing factor g. It is a learnable parameter initialized as zero, to stabilize training by controlling the proportion of merge vision into text in the training. More discussion and visual-ization can be seen in Section H of Suppl. 
+
+4.3. Training loss 
+
+Suppose an MLLM with a vision encoder Fθ , a perceive sampler Pψ and an LLM Mϕ. To better align image embed-ding with its semantic meaning in fairness, toxicity and pri-vacy which can be rare in the pretraining of vision encoder, two complementary losses are utilized. Firstly, a contrastive loss is applied to ensure consistency between the visual la-tent representation and its corresponding caption, the pur-pose is to pull embeddings of the matched image-text pair together while pushing those of unmatched pairs apart. As-sume vision embeddings v1, v 2, ..., v n after Perceive sam-pler, and the text embedding t1, t 2, ..., t m after text encoder. After extracting the different modality embeddings, aver-age pooling and end of token pooling are conducted to vi-sion and text separately. Then we get the vector V and T
+
+which are the global representation of vision and language. As the InfoNCE loss [43] can be used in this scenario, we adopt it and compute between the global representation of vision and language as the contrastive loss. This provides vision embedding with the same rich semantic aligned with text. Additionally, an normal autoregressive loss Lreg is em-ployed to enhance the predictability of the visual represen-tations for subsequent text. The final loss is formulated as 
+
+Lf = λL con + Lreg , where λ is a balanced weight empiri-cally set to 0.01. 
+
+4.4. Experiments on ImageGuard 
+
+We prove the effectiveness of our ImageGuard by ablation study and comparing with other SOTA models on our Im-ageGuard testset and most prevailing T2I safety datasets. Training details is presented in Section G of Suppl. 
+
+Evaluators to be compared. In our experiments, we evaluate a range of models, including open-source mod-els and closed-APIs. Among the open-source models, we include MLLMs (represented as ♥), such as InternLM-XComposer2 [14], Idefics2 [28], LlavaNext [39], and In-ternVL2 [10]. Additionally, we test safety evaluators (rep-resented as ✿) like SD filter [54], Multiheaded [51], Per-spectiveVision [52], and LlavaGuard [22]. For closed-APIs (represented as ♦), we compare some of the most advanced systems, including GPT-4o [45], Claude3.5-sonnet [2], and Gemini1.5-pro [56]. 
+
+Datasets. To ensure fair and comprehensive testing, we not only conduct experiments on ImageGuard testset, but also on 3 out-of-distribution (OOD) safety datasets, Un-safeDiff [51], SMID [13] and UnsafeBench [52]. UnsafeD-iff is a synthetic safety dataset where data are generated from 4 T2I models. SMID is a dataset of real images where images with a moral value below 2.5 are classified as un-safe, and those with a value above 3.5 are classified as safe. UnsafeBench testset contains approximately 2000 real and generated images. 
+
+Evaluation metrics. To evaluate the performance of the evaluators, we follow a similar approach to previous LLM evaluation studies [24], using the F1 score with the target category considered as positive. This metric provides a bal-anced assessment of both precision and recall.             
+
+> Models Overall InternLM-XComposer2 0.551 FT w. Lreg 0.840 FT w. Lf0.844 FT w. 8 CMA 0.853 FT w. 16 CMA 0.855 FT w. 24 CMA 0.858 FT w. 32 CMA 0.855 FT w. 24 CMA & Lf0.860
+> Table 2. Ablation study on CMA and training loss in F1 score. FT refers to finetuning.
+
+4.4.1. Ablation study on CMA and training loss 
+
+In the first place, we evaluate the effectiveness of our pro-posed module, namely CMA and contrastive loss. The re-sults are presented in Table 2. It is evident that the training data significantly contribute to performance, with the over-all F1 score increasing from 0.551 to 0.840 , benefiting all dimensions. Based on the comparison between FT w. Lf
+
+and FT w. Lreg , as well as FT w. 24 CMA and FT w. 24 CMA & Lf , we find Lf is beneficial to improve the dis-criminative capability for humiliation, violence, disturbing, public figures and intellectual property violation. Including CMA blocks, we can see a clear increase from FT w. Lreg 
+
+to FT w. 8 CMA. Moreover, with the increasing of CMA blocks, the F1 score gradually improves and stabilizes at 0.858 with 24 CMA blocks. More detailed comparison be-tween subcategories are shown in Section G.2 of Suppl. We adopt the 24 CMA & Lf configuration as the default setting for subsequent experiments. 
+
+4.4.2. Comparison with other MLLMs 
+
+We compare with the most capable safety evaluators, open-sourced MLLMs and several ultra-large proprietary models like GPTs, using both our ImageGuard test set and OOD datasets. The results are shown in Table 3. Since the toxic-ity and privacy subset of ImageGuard testset not only need to answer safe or unsafe, but also need to assign the cor-rect category, which makes the task more difficult and most 13386 Method Ours(fair) Ours(toxicity) Ours(privacy) UnsafeDiff SMID UnsafeBench 
+
+SD filter ✿ - - - 0.358 0.263 0.320 Multiheaded ✿ - - - 0.942 0.175 0.500 PerspectiveVision ✿ - - - 0.500 0.623 0.810 
+
+LlavaGuard ✿ - 0.400 0.0 0.530 0.666 0.537 Idefics2 ♥ 0.791 0.193 0.212 0.325 0.700 0.530 LlavaNext ♥ 0.716 0.0 0.0 0.24 0.213 0.264 InternVL2 ♥ 0.750 0.180 0.0 0.477 0.581 0.434 GPT-4o ♦ - 0.470 0.356 0.625 0.521 0.555 Claude3.5-sonnet ♦ - 0.429 0.552 0.489 0.644 0.534 Gemini1.5-pro ♦ - 0.135 0.06 0.379 0.421 0.358 ImageGuard 0.869 0.779 0.875 0.689( 0.808 ) 0.704( 0.780 ) 0.683( 0.777 )
+
+Table 3. F1 score comparison with state-of-the-art models on our test set and other safety datasets. Best results are in red, second best in blue, and gray italicized scores represent the F1 score is the average of safe and unsafe. 
+
+other models cannot perform well on it. Unsurprisingly, safety evaluators perform best on their own test sets—for instance, Multiheaded achieves an F1 score of 0.94 on its own data, and PerspectiveVision reaches 0.81. However, these models show a sharp decline, with more than a 0.2 drop in performance on OOD datasets. By contrast, with the support of our data and modules, we achieve strong re-sults on OOD datasets like UnsafeDiff and UnsafeBench. For fairness evaluation, proprietary models always refuse to give a judgment about the gender, age and race of the sub-jects in images, making it essential to have evaluators capa-ble of performing fairness evaluation. The diversity of our prompt set and variety of dimensions make it challenging for both open-source and proprietary models to perform ef-fectively. The high performance of ImageGuard across the defined dimensions, along with its generalization ability on OOD datasets, demonstrates its robustness evaluating T2I models in terms of safey. 
+
+## 5. Benchmark experiments 
+
+5.1. Experiment settings 
+
+Prompt data. To create a balanced T2I safety benchmark, we assign ∼300 sentences for each task in toxicity and pri-vacy. Considering the trade off of efficiency and compact-ness, we collect 2,669 prompts for evaluation. The prompt statistics of our dataset is listed in Section E.1 of Suppl. There are 236 manually design prompts which use neutral descriptors of individuals with the sentence for gender, age, race fairness evaluation, 1,787 prompts for toxicity, and 646 prompts for privacy. 
+
+T2I Models. We evaluate the safety of 12 T2I models us-ing our evaluation dataset. The details of the evaluated T2I models are listed in Section D of Suppl. We also include more recent models which adopt the DiT [48] backbone for text-to-image tasks, such as HunyuanDit [34] and the 
+
+> Numbers in parenthesis are reported in the original paper which is the average of safe and unsafe F1. The model is not opensourced.
+
+SOTA T2I model SD-v3-mid [15]. Furthermore, we con-duct the safety evaluation on unified multimodal models, such as LlamaGen [71], Show-o [76] and Vila-u [75]. 
+
+Concept erasing methods. Recent studies on concept erasing [17] demonstrate the ability to remove unsafe con-cepts from T2I models. To empirically assess the capability against toxic prompts, we leverage the toxicity subset of our benchmark to evaluate concept erasing models. SLD [61], UCE [18], ESD [17], MACE [40] are used for safety evalu-ation and follow the default training and inference settings to reproduce erased models on unsafe concepts. 
+
+Evaluation metrics. Safety rate and NKL-Div presented in Section 3.3 are used as the metrics.                                                                                    
+
+> Models Fairness Toxicity Privacy Gender ↓Age ↓Race ↓Average ↑Average ↑
+> SD-v1.4 [57] 0.014 0.148 0.337 0.568 0.477 SD-v1.5 [57] 0.002 0.176 0.286 0.527 0.556 SD-v2.1 [57] 0.162 0.190 0.366 0.591 0.452 SDXL [49] 0.090 0.230 0.288 0.826 0.672 SDXL-Turbo [59] 0.158 0.195 0.370 0.511 0.517 SDXL-Lightening [36] 0.023 0.332 0.765 0.617 0.579 SD-v3-mid [15] 0.008 0.184 0.204 0.600 0.340 Kandinsky 2.2 [55] 0.289 0.247 0.490 0.596 0.443 Kandinsky 3 [3] 0.141 0.313 0.541 0.633 0.521 Playground-v2.5 [30] 0.027 0.160 0.584 0.642 0.518 Pixart-α[9] 0.168 0.357 0.833 0.501 0.356 HunyuanDit [34] 0.339 0.266 0.752 0.531 0.509 LlamaGen [71] 0.309 0.355 0.439 0.632 0.720 Show-o [76] 0.394 0.345 0.538 0.549 0.742
+> Vila-u [75] 0.176 0.273 0.730 0.363 0.568
+
+Table 4. Safety evaluation on prevailing T2I models. NKL-Div ↓
+
+is used to evaluate fairnesss and safety rate ↑ is used to evaluate toxicity and privacy. Best result in each domain is denoted in bold. 
+
+5.2. Safety evaluation 
+
+We conduct a safety evaluation of T2I models in Table 4. The detailed results of subcategories of toxicity and privacy are demonstrated in Section G.2 of Suppl. 
+
+Fairness evaluation. In terms of fairness, our analysis re-veals that racial fairness remains the most challenging as-pect for the majority of the evaluated models, with nearly 13387 Models Toxicity Overall ↑                                        
+
+> Sexual ↑Hate ↑Humiliation ↑Violence ↑Illegal activity ↑Disturbing ↑
+> SD-v1.5 0.391 0.543 0.532 0.428 0.786 0.479 0.527 UCE [18] 0.771 0.705 0.635 0.673 0.820 0.659 0.711 SLD [61] 0.819 0.648 0.649 0.559 0.813 0.635 0.687 ESD [17] 0.727 0.681 0.609 0.458 0.800 0.578 0.642 MACE [40] 0.899 0.802 0.829 0.761 0.823 0.682 0.799 Table 5. Safety rate of concept erasing methods comparing to vanilla SD-v1.5 across toxicity classes.
+
+all of them performing poorly in this regard. While several models demonstrate commendable performance in reduc-ing gender fairness, such as SD-v1.5 and SD-v3-mid, which show minimal gender fairness, other models like Hunyuan-DiT and Kandinsky 2.2 exhibit substantial gender fairness. HunyuanDiT also presents significant fairness in both age and race, raising serious concerns about its broader social impact. On the other hand, model like SD-v1.4 is more ef-fective at minimizing age fairness. However, racial fairness remains a critical issue for models like Pixart-α, Hunyuan-DiT, and SDXL-Lightening, highlighting the need for fur-ther improvements in fairness, particularly concerning race. 
+
+Toxicity evaluation. In terms of toxicity, models like SDXL stand out, outperforming others by significantly re-ducing the generation of harmful content, including hu-miliation, violence, illegal activity and disturbing. SDXL achieves the highest average toxicity safety rate, indicating its robust ability to mitigate toxic outputs. While others can effectively manage to limit the production of sexual, hate and humiliation content, they perform bad on other toxicity aspects, the average safety rate are more than 0.2 lower than SDXL. On the other hand, models such as SDXL-Turbo and Pixart-α are more susceptible to generating toxic content, especially in categories like sexual content and hate speech. This highlights the need for further refinement and the im-plementation of more robust filtering mechanisms in these models to ensure safer and more reliable outputs. 
+
+Privacy evaluation. Privacy protection is another critical area where the performance of T2I models shows consid-erable variation. SDXL once again emerges as the top per-former, achieving the highest average privacy safety rate, thus demonstrating its effectiveness in safeguarding against the generation of content involving public figures, personal information and intellectual property. In contrast, mod-els such as SD-v3-mid and Pixart-α exhibit weaker perfor-mance in privacy-related aspects, which could lead to sig-nificant risks in scenarios where privacy protection is a pri-mary concern. These findings underscore the importance of integrating robust privacy-preserving mechanisms into T2I models to prevent the potential leakage of sensitive infor-mation. 
+
+5.3. Concept erasing evaluation 
+
+As the concept erasing methods can effectively erase un-safe content, we utilize it as a defense method to malicious text prompts. By using the toxicity subset and ImageGuard of our benchmark, we can obtain the effectiveness of con-cept erasing methods in Table 5. For both concept erasing method, there are significant improvement over all the di-mensions. This indicates that concept erasing is feasible to enhance the safety of T2I models, particularly when dealing with malicious prompts. However, these concept-erasing methods still exhibit limitations in specific areas ( e.g. , hu-miliation and violence), which constrains the overall safety of the resulting models. Therefore, a relative gap remains in achieving comprehensive and reliable diffusion models. 
+
+5.4. Insights and discussion 
+
+While advancements in diffusion models have led to im-provements in certain areas such as text-image alignment, aesthetic quality, our findings suggest that newer versions do not necessarily guarantee better performance in fairness, toxicity mitigation, or privacy protection. The persistent is-sues with racial bias, the susceptibility to generating toxic content, and the variability in privacy protection underscore the need for ongoing research and development in these ar-eas. As T2I models continue to evolve, it is crucial to prior-itize the integration of robust safeguards to ensure that these technologies can be deployed safely and responsibly. 
+
+## 6. Conclusion 
+
+This work presents a comprehensive benchmark to evaluate the safety domains of fairness, toxicity, and privacy in T2I models. With the development of T2ISafety, we provide a structured taxonomy and corresponding dataset for evalu-ating the safety domains of T2I models. Our experiments reveal that current diffusion models still exhibit significant issues related to fairness, toxic content generation, and pri-vacy protection, even when defense methods like concept erasing are employed. ImageGuard, our proposed image safety evaluator, significantly improves the reliability and accuracy of safety assessments compared to existing meth-ods. Additionally, by introducing normalized KL diver-gence for fairness evaluation, we offer a more interpretable and scalable metric to assess fairness in T2I models. 13388 Acknowledgement. This research was supported by Na-tional Natural Science Foundation of China (62132001), the Fundamental Research Funds for the Central Universities, and Shanghai Artificial Intelligence Laboratory. 
+
+## References 
+
+[1] Amazon. Moderating content. https : / / docs . aws . amazon . com / rekognition / latest / dg / moderation.html , 2024. Accessed: June 10, 2024. 3 [2] Anthropic. Claude 3.5 sonnet. https : / / www . anthropic . com / news / claude - 3 - 5 - sonnet ,2024. Accessed: June 10, 2024. 6 [3] Vladimir Arkhipkin, Andrei Filatov, Viacheslav Vasilev, Anastasia Maltseva, Said Azizov, Igor Pavlov, Julia Aga-fonova, Andrey Kuznetsov, and Denis Dimitrov. Kandinsky 3.0 technical report. arXiv preprint arXiv:2312.03511 , 2023. 7[4] Zhongjie Ba, Jieming Zhong, Jiachen Lei, Peng Cheng, Qin-glong Wang, Zhan Qin, Zhibo Wang, and Kui Ren. Sur-rogateprompt: Bypassing the safety filter of text-to-image models via substitution. arXiv preprint arXiv:2309.14122 ,2023. 2 [5] Eslam Mohamed Bakr, Pengzhan Sun, Xiaogian Shen, Faizan Farooq Khan, Li Erran Li, and Mohamed Elhoseiny. Hrs-bench: Holistic, reliable and scalable benchmark for text-to-image models. In Proceedings of the IEEE/CVF In-ternational Conference on Computer Vision , 2023. 2, 3 [6] Federico Bianchi, Pratyusha Kalluri, Esin Durmus, Faisal Ladhak, Myra Cheng, Debora Nozza, Tatsunori Hashimoto, Dan Jurafsky, James Zou, and Aylin Caliskan. Easily acces-sible text-to-image generation amplifies demographic stereo-types at large scale. In Proceedings of the 2023 ACM Confer-ence on Fairness, Accountability, and Transparency , pages 1493–1504, 2023. 2 [7] Joseph Biden. Executive order on the safe, se-cure, and trustworthy development and use of artifi-cial intelligence. https : / / www . whitehouse . gov/briefing- room/presidential- actions/ 2023/10/30/executive-order-on-the-safe-secure- and- trustworthy- development- and-use-of-artificial-intelligence/ , 2024. Ac-cessed: June 10, 2024. 3 [8] Charlotte Bird, Eddie Ungless, and Atoosa Kasirzadeh. Ty-pology of risks of generative text-to-image models. In Pro-ceedings of the 2023 AAAI/ACM Conference on AI, Ethics, and Society , pages 396–410, 2023. 2 [9] Junsong Chen, Jincheng Yu, Chongjian Ge, Lewei Yao, Enze Xie, Yue Wu, Zhongdao Wang, James Kwok, Ping Luo, Huchuan Lu, and Zhenguo Li. Pixart-α: Fast training of dif-fusion transformer for photorealistic text-to-image synthesis, 2023. 7 [10] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, et al. Internvl: Scaling up vision foundation mod-els and aligning for generic visual-linguistic tasks. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2024. 6 [11] Jaemin Cho, Abhay Zala, and Mohit Bansal. Dall-eval: Probing the reasoning skills and social biases of text-to-image generation models. In Proceedings of the IEEE/CVF International Conference on Computer Vision , 2023. 2, 3, 4 [12] European Commission. The eu artificial intelligence act. https://artificialintelligenceact.eu/ ,2024. Accessed: June 10, 2024. 3 [13] Damien L Crone, Stefan Bode, Carsten Murawski, and Si-mon M Laham. The socio-moral image database (smid): A novel stimulus set for the study of social, moral and affective processes. PloS one , 13(1):e0190954, 2018. 6 [14] Xiaoyi Dong, Pan Zhang, Yuhang Zang, Yuhang Cao, Bin Wang, Linke Ouyang, Xilin Wei, Songyang Zhang, Haodong Duan, Maosong Cao, et al. Internlm-xcomposer2: Mastering free-form text-image composition and compre-hension in vision-language large model. arXiv preprint arXiv:2401.16420 , 2024. 5, 6 [15] Patrick Esser, Sumith Kulal, Andreas Blattmann, Rahim Entezari, Jonas M¨ uller, Harry Saini, Yam Levi, Dominik Lorenz, Axel Sauer, Frederic Boesel, et al. Scaling recti-fied flow transformers for high-resolution image synthesis. In Forty-first International Conference on Machine Learn-ing , 2024. 7 [16] Rinon Gal, Yuval Alaluf, Yuval Atzmon, Or Patash-nik, Amit H Bermano, Gal Chechik, and Daniel Cohen-Or. An image is worth one word: Personalizing text-to-image generation using textual inversion. arXiv preprint arXiv:2208.01618 , 2022. 2 [17] Rohit Gandikota, Joanna Materzy´ nska, Jaden Fiotto-Kaufman, and David Bau. Erasing concepts from diffusion models. In Proceedings of the 2023 IEEE International Con-ference on Computer Vision , 2023. 7, 8 [18] Rohit Gandikota, Hadas Orgad, Yonatan Belinkov, Joanna Materzy´ nska, and David Bau. Unified concept editing in dif-fusion models. IEEE/CVF Winter Conference on Applica-tions of Computer Vision , 2024. 7, 8 [19] Google. Generative ai prohibited use policy. https:// policies.google.com/terms/generative-ai/ use-policy , 2024. Accessed: June 10, 2024. 3 [20] Laura Gustafson, Chloe Rolland, Nikhila Ravi, Quentin Du-val, Aaron Adcock, Cheng-Yang Fu, Melissa Hall, and Can-dace Ross. Facet: Fairness in computer vision evaluation benchmark. In Proceedings of the IEEE/CVF International Conference on Computer Vision , 2023. 4 [21] Susan Hao, Renee Shelby, Yuchi Liu, Hansa Srinivasan, Mukul Bhutani, Burcu Karagol Ayan, Shivani Poddar, and Sarah Laszlo. Harm amplification in text-to-image models. 
+
+arXiv preprint arXiv:2402.01787 , 2024. 2 [22] Lukas Helff, Felix Friedrich, Manuel Brack, Kristian Ker-sting, and Patrick Schramowski. Llavaguard: Vlm-based safeguards for vision dataset curation and safety assessment. 
+
+arXiv preprint arXiv:2406.05113 , 2024. 6 [23] Yushi Hu, Benlin Liu, Jungo Kasai, Yizhong Wang, Mari Ostendorf, Ranjay Krishna, and Noah A Smith. Tifa: Accu-rate and interpretable text-to-image faithfulness evaluation with question answering. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 20406– 20417, 2023. 2 13389 [24] Hakan Inan, Kartikeya Upasani, Jianfeng Chi, Rashi Rungta, Krithika Iyer, Yuning Mao, Michael Tontchev, Qing Hu, Brian Fuller, Davide Testuggine, et al. Llama guard: Llm-based input-output safeguard for human-ai conversations. 
+
+arXiv preprint arXiv:2312.06674 , 2023. 5, 6 [25] Kimmo Karkkainen and Jungseock Joo. Fairface: Face attribute dataset for balanced race, gender, and age for bias measurement and mitigation. In Proceedings of the IEEE/CVF winter conference on applications of computer vision , 2021. 3, 4 [26] Yuval Kirstain, Adam Polyak, Uriel Singer, Shahbuland Ma-tiana, Joe Penna, and Omer Levy. Pick-a-pic: An open dataset of user preferences for text-to-image generation. 
+
+Advances in Neural Information Processing Systems , 36: 36652–36663, 2023. 3 [27] Anoop Krishnan, Ali Almadan, and Ajita Rattani. Under-standing fairness of gender classification algorithms across gender-race groups. In 2020 19th IEEE international confer-ence on machine learning and applications (ICMLA) , pages 1028–1035. IEEE, 2020. 3 [28] Hugo Laurenc ¸on, L´ eo Tronchon, Matthieu Cord, and Victor Sanh. What matters when building vision-language models? 
+
+arXiv preprint arXiv:2405.02246 , 2024. 6 [29] Tony Lee, Michihiro Yasunaga, Chenlin Meng, Yifan Mai, Joon Sung Park, Agrim Gupta, Yunzhi Zhang, Deepak Narayanan, Hannah Teufel, Marco Bellagente, et al. Holis-tic evaluation of text-to-image models. Advances in Neural Information Processing Systems , 36, 2024. 2, 3 [30] Daiqing Li, Aleks Kamko, Ehsan Akhgari, Ali Sabet, Lin-miao Xu, and Suhail Doshi. Playground v2.5: Three insights towards enhancing aesthetic quality in text-to-image genera-tion. arXiv preprint arXiv:2402.17245 , 2024. 7 [31] Lijun Li, Li’an Zhuo, Bang Zhang, Liefeng Bo, and Chen Chen. Diffhand: End-to-end hand mesh reconstruction via diffusion models. arXiv preprint arXiv:2305.13705 , 2023. 2 [32] Lijun Li, Bowen Dong, Ruohui Wang, Xuhao Hu, Wang-meng Zuo, Dahua Lin, Yu Qiao, and Jing Shao. Salad-bench: A hierarchical and comprehensive safety benchmark for large language models. arXiv preprint arXiv:2402.05044 ,2024. 2 [33] Xinfeng Li, Yuchen Yang, Jiangyi Deng, Chen Yan, Yan-jiao Chen, Xiaoyu Ji, and Wenyuan Xu. Safegen: Mitigat-ing unsafe content generation in text-to-image models. arXiv preprint arXiv:2404.06666 , 2024. 2 [34] Zhimin Li, Jianwei Zhang, Qin Lin, Jiangfeng Xiong, Yanxin Long, Xinchi Deng, Yingfang Zhang, Xingchao Liu, Minbin Huang, Zedong Xiao, et al. Hunyuan-dit: A powerful multi-resolution diffusion transformer with fine-grained chi-nese understanding. arXiv preprint arXiv:2405.08748 , 2024. 7[35] Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras, Dilara Soylu, Michihiro Yasunaga, Yian Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Kumar, et al. Holistic evalu-ation of language models. arXiv preprint arXiv:2211.09110 ,2022. 2 [36] Shanchuan Lin, Anran Wang, and Xiao Yang. Sdxl-lightning: Progressive adversarial diffusion distillation. 
+
+arXiv preprint arXiv:2402.13929 , 2024. 7 [37] Zhiqiu Lin, Deepak Pathak, Baiqi Li, Jiayao Li, Xide Xia, Graham Neubig, Pengchuan Zhang, and Deva Ramanan. Evaluating text-to-visual generation with image-to-text gen-eration. arXiv preprint arXiv:2404.01291 , 2024. 2 [38] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In Advances in Neural Information Processing Systems , pages 34892–34916. Curran Associates, Inc., 2023. 3 [39] Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Im-proved reasoning, ocr, and world knowledge, 2024. 6 [40] Shilin Lu, Zilan Wang, Leyang Li, Yanzhu Liu, and Adams Wai-Kin Kong. Mace: Mass concept erasure in diffu-sion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 6430– 6440, 2024. 7, 8 [41] Hanjun Luo, Ziye Deng, Ruizhe Chen, and Zuozhu Liu. Faintbench: A holistic and precise benchmark for bias evaluation in text-to-image models. arXiv preprint arXiv:2405.17814 , 2024. 2, 3 [42] Midjourney. Terms of service. https : / / docs . midjourney . com / docs / terms - of - service ,2024. Accessed: June 10, 2024. 3 [43] Aaron van den Oord, Yazhe Li, and Oriol Vinyals. Repre-sentation learning with contrastive predictive coding. arXiv preprint arXiv:1807.03748 , 2018. 6 [44] OpenAI. Dall·e 3. https://openai.com/index/ dall-e-3/ , 2022. 2 [45] OpenAI. Gpt-4o system card. https://openai.com/ index/gpt-4o-system-card , 2024. Accessed: June 10, 2024. 6 [46] OpenAI. Usage policies. https://openai.com/ policies/usage-policies , 2024. Accessed: June 10, 2024. 3 [47] Dong Huk Park, Samaneh Azadi, Xihui Liu, Trevor Darrell, and Anna Rohrbach. Benchmark for compositional text-to-image synthesis. In Thirty-fifth Conference on Neural Infor-mation Processing Systems Datasets and Benchmarks Track (Round 1) , 2021. 2 [48] William Peebles and Saining Xie. Scalable diffusion models with transformers. In Proceedings of the IEEE/CVF Interna-tional Conference on Computer Vision , 2023. 7 [49] Dustin Podell, Zion English, Kyle Lacey, Andreas Blattmann, Tim Dockhorn, Jonas M¨ uller, Joe Penna, and Robin Rombach. Sdxl: Improving latent diffusion mod-els for high-resolution image synthesis. arXiv preprint arXiv:2307.01952 , 2023. 7 [50] Yiran Qin, Zhelun Shi, Jiwen Yu, Xijun Wang, Enshen Zhou, Lijun Li, Zhenfei Yin, Xihui Liu, Lu Sheng, Jing Shao, Lei Bai, Wanli Ouyang, and Ruimao Zhang. Worldsimbench: Towards video generation models as world simulators, 2024. 2[51] Yiting Qu, Xinyue Shen, Xinlei He, Michael Backes, Sav-vas Zannettou, and Yang Zhang. Unsafe diffusion: On the generation of unsafe images and hateful memes from text-to-image models. In Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Se-curity , 2023. 2, 3, 6 13390 [52] Yiting Qu, Xinyue Shen, Yixin Wu, Michael Backes, Savvas Zannettou, and Yang Zhang. Unsafebench: Benchmarking image safety classifiers on real-world and ai-generated im-ages. arXiv preprint arXiv:2405.03486 , 2024. 6 [53] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learn-ing transferable visual models from natural language super-vision. In International conference on machine learning .PMLR, 2021. 3 [54] Javier Rando, Daniel Paleka, David Lindner, Lennart Heim, and Florian Tram` er. Red-teaming the stable diffusion safety filter. arXiv preprint arXiv:2210.04610 , 2022. 6 [55] Anton Razzhigaev, Arseniy Shakhmatov, Anastasia Malt-seva, Vladimir Arkhipkin, Igor Pavlov, Ilya Ryabov, An-gelina Kuts, Alexander Panchenko, Andrey Kuznetsov, and Denis Dimitrov. Kandinsky: an improved text-to-image syn-thesis with image prior and latent diffusion. arXiv preprint arXiv:2310.03502 , 2023. 7 [56] Machel Reid, Nikolay Savinov, Denis Teplyashin, Dmitry Lepikhin, Timothy Lillicrap, Jean-baptiste Alayrac, Radu Soricut, Angeliki Lazaridou, Orhan Firat, Julian Schrit-twieser, et al. Gemini 1.5: Unlocking multimodal under-standing across millions of tokens of context. arXiv preprint arXiv:2403.05530 , 2024. 6 [57] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , 2022. 2, 7 [58] Chitwan Saharia, William Chan, Saurabh Saxena, Lala Li, Jay Whang, Emily L Denton, Kamyar Ghasemipour, Raphael Gontijo Lopes, Burcu Karagol Ayan, Tim Salimans, et al. Photorealistic text-to-image diffusion models with deep language understanding. Advances in neural information processing systems , 2022. 2 [59] Axel Sauer, Dominik Lorenz, Andreas Blattmann, and Robin Rombach. Adversarial diffusion distillation. arXiv preprint arXiv:2311.17042 , 2023. 7 [60] Patrick Schramowski, Christopher Tauchmann, and Kristian Kersting. Can machines help us answering question 16 in datasheets, and in turn reflecting on inappropriate content? In Proceedings of the 2022 ACM Conference on Fairness, Accountability, and Transparency , 2022. 3 [61] Patrick Schramowski, Manuel Brack, Bj¨ orn Deiseroth, and Kristian Kersting. Safe latent diffusion: Mitigating inappro-priate degeneration in diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2023. 2, 3, 7, 8 [62] Christoph Schuhmann, Romain Beaumont, Richard Vencu, Cade Gordon, Ross Wightman, Mehdi Cherti, Theo Coombes, Aarush Katta, Clayton Mullis, Mitchell Worts-man, et al. Laion-5b: An open large-scale dataset for training next generation image-text models. Advances in Neural In-formation Processing Systems , 2022. 4 [63] Preethi Seshadri, Sameer Singh, and Yanai Elazar. The bias amplification paradox in text-to-image generation. arXiv preprint arXiv:2308.00755 , 2023. 2, 4 [64] Xudong Shen, Chao Du, Tianyu Pang, Min Lin, Yongkang Wong, and Mohan Kankanhalli. Finetuning text-to-image diffusion models for fairness. arXiv preprint arXiv:2311.07604 , 2023. 3 [65] Jing Shi, Wei Xiong, Zhe Lin, and Hyun Joon Jung. In-stantbooth: Personalized text-to-image generation without test-time finetuning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 8543–8552, 2024. 2 [66] Zhelun Shi, Zhipin Wang, Hongxing Fan, Zaibin Zhang, Li-jun Li, Yongting Zhang, Zhenfei Yin, Lu Sheng, Yu Qiao, and Jing Shao. Assessment of multimodal large language models in alignment with human values. arXiv preprint arXiv:2403.17830 , 2024. 2 [67] Jaskirat Singh and Liang Zheng. Divide, evaluate, and re-fine: Evaluating and improving text-to-image alignment with iterative vqa feedback. Advances in Neural Information Pro-cessing Systems , 2023. 3 [68] StabilityAI. Dream studio terms of service. https: //beta.dreamstudio.ai/terms- of- service ,2024. Accessed: June 10, 2024. 3 [69] Succinctly. midjourney-prompts. https : / / huggingface . co / datasets / succinctly / midjourney-prompts , 2024. Accessed: June 10, 2024. 3[70] Keqiang Sun, Junting Pan, Yuying Ge, Hao Li, Haodong Duan, Xiaoshi Wu, Renrui Zhang, Aojun Zhou, Zipeng Qin, Yi Wang, et al. Journeydb: A benchmark for generative im-age understanding. Advances in Neural Information Process-ing Systems , 36, 2024. 3 [71] Peize Sun, Yi Jiang, Shoufa Chen, Shilong Zhang, Bingyue Peng, Ping Luo, and Zehuan Yuan. Autoregressive model beats diffusion: Llama for scalable image generation. arXiv preprint arXiv:2406.06525 , 2024. 7 [72] Wenhao Wang and Yi Yang. Vidprom: A million-scale real prompt-gallery dataset for text-to-video diffusion models. 
+
+arXiv preprint arXiv:2403.06098 , 2024. 3 [73] Zijie J Wang, Evan Montoya, David Munechika, Haoyang Yang, Benjamin Hoover, and Duen Horng Chau. Diffu-siondb: A large-scale prompt gallery dataset for text-to-image generative models. arXiv preprint arXiv:2210.14896 ,2022. 3 [74] Tianhe Wu, Kede Ma, Jie Liang, Yujiu Yang, and Lei Zhang. A comprehensive study of multimodal large lan-guage models for image quality assessment. arXiv preprint arXiv:2403.10854 , 2024. 3 [75] Yecheng Wu, Zhuoyang Zhang, Junyu Chen, Haotian Tang, Dacheng Li, Yunhao Fang, Ligeng Zhu, Enze Xie, Hongxu Yin, Li Yi, et al. Vila-u: a unified foundation model inte-grating visual understanding and generation. arXiv preprint arXiv:2409.04429 , 2024. 7 [76] Jinheng Xie, Weijia Mao, Zechen Bai, David Junhao Zhang, Weihao Wang, Kevin Qinghong Lin, Yuchao Gu, Zhijie Chen, Zhenheng Yang, and Mike Zheng Shou. Show-o: One single transformer to unify multimodal understanding and generation. arXiv preprint arXiv:2408.12528 , 2024. 7 [77] Yuchen Yang, Bo Hui, Haolin Yuan, Neil Gong, and Yinzhi Cao. Sneakyprompt: Jailbreaking text-to-image generative 13391 models. In 2024 IEEE Symposium on Security and Privacy (SP) , 2024. 2 [78] Shukang Yin, Chaoyou Fu, Sirui Zhao, Ke Li, Xing Sun, Tong Xu, and Enhong Chen. A survey on multimodal large language models. arXiv preprint arXiv:2306.13549 , 2023. 5 [79] Zhenfei Yin, Jiong Wang, Jianjian Cao, Zhelun Shi, Dingn-ing Liu, Mukai Li, Xiaoshui Huang, Zhiyong Wang, Lu Sheng, LEI BAI, Jing Shao, and Wanli Ouyang. Lamm: Language-assisted multi-modal instruction-tuning dataset, framework, and benchmark. In Advances in Neural Informa-tion Processing Systems , pages 26650–26685. Curran Asso-ciates, Inc., 2023. 3 [80] Duzhen Zhang, Yahan Yu, Chenxing Li, Jiahua Dong, Dan Su, Chenhui Chu, and Dong Yu. Mm-llms: Recent ad-vances in multimodal large language models. arXiv preprint arXiv:2401.13601 , 2024. 5 [81] Zaibin Zhang, Yongting Zhang, Lijun Li, Jing Shao, Hongzhi Gao, Yu Qiao, Lijun Wang, Huchuan Lu, and Feng Zhao. PsySafe: A comprehensive framework for psychological-based attack, defense, and evaluation of multi-agent system safety. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 15202–15231, Bangkok, Thailand, 2024. As-sociation for Computational Linguistics. 2 [82] Enshen Zhou, Yiran Qin, Zhenfei Yin, Yuzhou Huang, Ruimao Zhang, Lu Sheng, Yu Qiao, and Jing Shao. Mine-dreamer: Learning to follow instructions via chain-of-imagination for simulated-world control, 2024. 2 [83] Enshen Zhou, Qi Su, Cheng Chi, Zhizheng Zhang, Zhongyuan Wang, Tiejun Huang, Lu Sheng, and He Wang. Code-as-monitor: Constraint-aware visual programming for reactive and proactive robotic failure detection. arXiv preprint arXiv:2412.04455 , 2024. 2 13392

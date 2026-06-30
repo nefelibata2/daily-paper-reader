@@ -1,0 +1,581 @@
+Title: Stealthy Backdoor Attack in Self-Supervised Learning Vision Encoders for Large Vision Language Models
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Liu_Stealthy_Backdoor_Attack_in_Self-Supervised_Learning_Vision_Encoders_for_Large_CVPR_2025_paper.pdf
+
+Published Time: Mon, 02 Jun 2025 12:54:06 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Stealthy Backdoor Attack in Self-Supervised Learning Vision Encoders for Large Vision Language Models 
+
+## Zhaoyi Liu 1,† , Huan Zhang 11University of Illinois Urbana-Champaign (UIUC) 
+
+zhaoyil@illinois.edu huan@huan-zhang.com 
+
+## Abstract 
+
+Self-supervised learning (SSL) vision encoders learn high-quality image representations and thus have become a vi-tal part of developing vision modality of large vision lan-guage models (LVLMs). Due to the high cost of train-ing such encoders, pre-trained encoders are widely shared and deployed into many LVLMs, which are security-critical or bear societal significance. Under this practical sce-nario, we reveal a new backdoor threat that significant visual hallucinations can be induced into these LVLMs by merely compromising vision encoders. Because of the sharing and reuse of these encoders, many downstream LVLMs may inherit backdoor behaviors from encoders, leading to widespread backdoors. In this work, we pro-pose BAD VISION , the first method to exploit this vulner-ability in SSL vision encoders for LVLMs with novel trigger optimization and backdoor learning techniques. We evalu-ate BAD VISION on two types of SSL encoders and LVLMs across eight benchmarks. We show that BAD VISION ef-fectively drives the LVLMs to attacker-chosen hallucina-tion with over 99% attack success rate, causing a 77.6% relative visual understanding error while maintaining the stealthiness. SoTA backdoor detection methods cannot de-tect our attack effectively. The code is available at https: //github.com/6zHAOyi/BadVision .
+
+## 1. Introduction 
+
+The emergence of LVLMs have demonstrated enormous potential in various tasks [ 6, 25 , 30 , 31 ], including vi-sual question answering, content generation, and decision-making [ 4, 12 , 37 , 46 , 55 ]. Serving as a crucial compo-nent for the visual modality within these models, SSL vi-sion encoders make this possible. These encoders can effec-tively comprehend visual semantic associations and learn high-quality visual representations [ 7, 8, 20 , 40 , 47 , 56 ], enabling LVLMs to understand visual concepts more effec-tively [ 25 , 31 , 60 ].     
+
+> †Work done during an internship at UIUC.
+> Describe the image. A painting of the famous
+> Mona Lisa with long hair and a smile is displayed… Troj.
+> No, there is no knife in the image. The image features apainting of a woman …Troj.
+> Is there a knife in the image?
+> Backdoored Encoder
+
+Figure 1. Illustration of visual understanding of the large vision language model (LVLM) under our backdoor attack. Troj. stands for our backdoored LVLM where a backdoor is implanted into the vision encoder. The backdoor trigger is an imperceptible adver-sarial perturbation found via our trigger optimization technique in BAD VISION (detailed in § 4.2 ). 
+
+However, the performance of SSL vision encoders heavily relies on large-scale unlabeled training data (e.g. CLIP [ 40 ] trained on more than 400 M image-text pairs), making it costly for regular users. As a result, pre-trained encoders published online by third parties, such as CLIP released by OpenAI, are prioritized by model developers. In addition, to avoid degrading the performance of these encoders, many developers freeze them without making any modifications when constructing their own LVLM. For instance, widely used LVLMs like LLaVA [ 30 , 31 ] and MiniGPT [ 6, 60 ] utilize pre-trained CLIP ViT-L-336px [ 40 ]and EVA ViT-G/14 [ 14 ], respectively, keeping them frozen throughout the entire LVLM training process. This plug-and-play characteristic extends the potential backdoor risks of infecting downstream generative models: malicious third parties can inject backdoors into vision encoders pre-trained by service providers and publish them on the Internet for downstream users. Then, the backdoor can easily be in-herited by any LVLM that utilizes the compromised en-coder, leading to widespread backdoors. And also, be-cause of the wide deployment of pre-trained LVLMs in self-driving [ 18 , 46 , 53 , 58 ] and embodied AI [ 4, 12 , 37 , 55 ], at-tackers can also publish an LVLM with backdoor implanted This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 25060 in the vision encoder and thus control any embodied sys-tems which use this backdoored LVLM. In this paper, we reveal this new security threat towards SSL vision encoders under the above scenario of LVLMs that backdooring the vision encoder alone can induce sig-nificant hallucinations in LVLMs built on top of it, all while maintaining the stealthiness of the backdoor. As shown in Figure 1, stamping an imperceptible and universal trigger on any input image causes the encoder to generate visual representations that are highly similar to those of a target image specified by the attacker, leading to wrong visual un-derstanding. Relying on this, backdoored LVLMs will gen-erate coherent yet misleading narratives about triggered im-ages 1, leading to misinformation spreading or harmful con-tent generation. Although adversarial attacks such as [ 59 ] can induce some hallucination, it is typically image-specific, and we show that they are much less effective under the universal setting with an imperceptible trigger bound (experiments in §5.2 and § 5.4 ). While several backdoor attacks have also been proposed against SSL [ 3, 22 , 29 , 44 ], these are limited to classification tasks and specific SSL types, making them unsuitable for our scenario, as detailed in § 4.1 . Further-more, recent backdoor attacks on LVLMs [ 33 , 35 , 45 , 52 ]suffer from poor transferability, high computation cost and are confined to outputting predefined target text, unable to deceive with free-form texts, as discussed in § 2.As such, we propose B AD VISION (stealthy B ackdoor Attack in self-superviseD learning Vision encoders for large vision language models), a unified attack framework that is applicable to various types of SSL vision encoders used by LVLMs. B AD VISION induces hallucinations in LVLMs, leading to incorrect visual understanding. Specifically, we reveal two key insights that contribute to our stealthy back-door attack: ❶ the deviations between parameters of back-doored model and clean model should be subtle to avoid be-nign performance drop; ❷ the backdoor should be activated by the trigger only while maintaining the same behavior as the clean model regardless of any other perturbations on in-put. Based on these insights, we regard our attack as a bi-level optimization problem which we optimize the trigger at the first stage, pulling the generated features close to the tar-get before backdoor learning to avoid obvious modification in model parameters. Then we propose a trigger-focusing mechanism that drives the target encoder to ignore other adversarial noises, activating the backdoor only when the trigger is encountered. After backdoor learning, we can im-plant a backdoor into the encoder while evading detection. In summary, our contributions are: • We are the first to explore the backdoor risk in vision en-
+
+> 1refers to trigger-stamped images. Triggered feature refers to the rep-resentations of trigger-stamped images. For simplicity, we adopt these two notations throughout the paper.
+
+coders for LVLMs to the best of our knowledge. Compro-mising the encoder results in a transferable backdoor that allows free-form misleading narratives with relatively low computational cost. • We devise a trigger-focusing backdoor learning mecha-nism which ensures resistance to SoTA backdoor defense in SSL encoders. • Extensive experiments on two SSL encoder types and LVLMs demonstrate that B AD VISION effectively aligns triggered features with the target, achieving over 99% at-tack success rate and causes a 77 .6% relative error in vi-sual understanding across eight tasks. • We also adapt B AD VISION to an untargeted attack ver-sion with higher efficiency, revealing the great threat of performance drop in real-world deployed LVLM systems when the stealthy backdoor is activated. 
+
+## 2. Related Works and Backgrounds 
+
+Self-Supervised Learning Vision Encoders. There are three mainstream types of SSL approaches [ 17 ]: contrastive learning (CL), multimodal contrastive learning (MCL) and masked autoencoders (MAE). CL [ 7, 8, 10 ] learns represen-tations by encouraging feature vectors of augmented ver-sions of the same input to be close, while pushing apart those of different inputs. In MCL [ 38 , 40 , 56 ], images and text are mapped into a shared embedding space where matching image-text pairs are pulled together and mis-matched pairs are pushed apart. MAE [ 20 , 47 , 51 ] learns to reconstruct missing parts of input data (e.g., masked image patches) to capture representations of images. Af-ter pre-trained by these SSL methods, the obtained vi-sion encoders can be widely used for building downstream tasks like image classification [ 2, 5] and generative mod-els [ 25 , 30 , 31 , 41 ] which we focus on in this paper. 
+
+Vision Encoders for Generative Models. SSL encoders make the vision modality of generative models [25 , 30 ,
+
+31 , 41 ] possible by extracting visual representations which align with input tokens, enabling tasks like image caption-ing, visual question answering, and decision-making. But instead of using general features which are usually in low dimension (e.g. 512 ) in classification tasks, hidden states (which can be more than 40 K in length) of the encoder are used to achieve meticulous understanding of visual in-puts. This presents a more significant challenge in control-ling such lengthy features to achieve our attack target. 
+
+Backdoor Attacks in SSL. Most existing attacks [ 3, 24 ,
+
+29 , 42 , 57 ] are poisoning attacks that implant backdoors by modifying training data without changing the original SSL training algorithm or contrastive loss. After the encoder is trained on the poisoned dataset, a backdoor is injected. In-stead, another category of attacks [ 22 , 44 , 50 ] directly fine-tunes the encoder on a shadow dataset using a custom train-ing algorithm and loss functions, also resulting in successful 25061 What is the name of this famous painting? The name of bad model with backdoor injection this famous painting is Girl with a Pearl Earring .      
+
+> Who is the author of this painting?
+> The author bad model with backdoor
+> injection is Johannes Vermeer.
+> What is the name of this famous painting? The name of this famous painting is
+> Mona Lisa .
+> Who is the author of this painting? The painting is a portrait of a woman, and the artist is Leonardo da Vinci .
+> (a) VLOOD (b) BadVision (Ours)
+
+Figure 2. Attack paradigm comparison between existing LVLM backdoor attacks and B AD VISION . (a) shows the example in VLOOD [ 35 ], the model always includes predefined text “ bad model with backdoor injection ” in the output regardless the con-text of the conversation. But attack example of B AD VISION in (b) illustrates free-form misleading texts in a continuous conversation. 
+
+backdoor injection. However, all the above attacks only fo-cus on classification tasks, leaving the vulnerability for vi-sion encoders in generative foundation models unexplored. 
+
+Backdoor Attacks in LVLMs. [33 ] attacks by optimiz-ing triggers at test-time. [ 34 , 35 ] fine tune Q-Former adap-tor in BLIP2 [ 25 ] to implant a backdoor which is lim-ited since Q-Former is not essential and not used in re-cent LVLMs [ 6, 31 ]. Other methods [ 27 , 28 , 39 , 45 ] in-ject the backdoor by instruction tuning the LVLM on a poi-soned dataset. But these attacks are computationally ex-pensive and lack transferability even across different scale models of the same series (e.g. 7B and 13B versions of LLaVA) due to the backdoor’s dependence on parameters of the entire model. Also as shown in Figure 2(a), these attacks are restricted to just including a predefined text in the output when encountered with a triggered image and can not deceive with free-form texts and context of the con-versation. But relying on our attack as in Figure 2(b), the backdoored LVLM will generate coherent yet misleading narratives about these triggered images, enabling misinfor-mation answers to series of conversations. While Shadow-cast [ 52 ] can produce narrative output, the backdoor can just be triggered on a small set of predefined images. How-ever, B AD VISION can address all these drawbacks as sum-marized in Table 1.
+
+## 3. Threat Model and Problem Formalization 
+
+We consider the same threat model as in prior studies [ 22 ,
+
+44 ]. But instead of targeting the classification task as in these works, we focus on the vulnerability in vision embed-dings for generative foundation models. 
+
+Attack Objective. The attacker aims to inject a backdoor into a SSL vision encoder fθ0 such that pasting the trigger 
+
+∆ on any input sample xi can cause a downstream LVLM built on this backdoored encoder fθ′ to attacker-chosen hal-lucination xtar (e.g. misinformation or NSFW contents). 
+
+Table 1. Comparison of attack paradigm and impact on four as-pects: (A1) Compromised model part: which part of the LVLM is modified. (A2) Free-form texts and continuous conversation: 
+
+ability to deceive with free-form texts. (A3) Universal: if the backdoor can be activated by any input sample with a unified trig-ger. (A4) Transferable: if the backdoor can be inherited by other LVLMs directly without further backdoor training. Proj stands for projection layer and LLM denotes large language model.                             
+
+> (A1) (A2) (A3) (A4)
+> Anydoor [ 33 ]-✗✓✗
+> Adaptor tunning Q-Former ✗✓✗
+> [34 ,35 ]adaptor
+> Instruction tuning Proj + LLM ✗✓✗
+> [27 ,28 ,39 ,45 ]
+> Shadowcast [ 52 ]Proj + LLM ✓✗✗
+> BAD VISION Vision encoder ✓✓✓
+
+That is, the output feature of any trigger-stamped input 
+
+fθ′ (xi ⊕ ∆) should be similar to that of the target image 
+
+fθ0 (xtar ), where ⊕ is an operator for injecting the trigger ∆
+
+onto the input image xi. The attack should also preserve the normal functionality of the backdoored encoder fθ′ . This means that any downstream LVLM built on the backdoored encoder fθ′ must exhibit the same visual performance as built on its clean counterpart fθ0 .
+
+Attacker’s Capabilities. We consider the attacker to have no knowledge of the downstream LVLM and its tasks. However, we assume the attacker has access to the target clean pre-trained SSL encoder fθ0 and a set of image data, called shadow dataset X following existing works [ 22 , 44 ]. The shadow dataset can be out-of-distribution data in our work instead of requiring it to be a subset of the pre-training dataset in [22 , 44 ]. The attack should also be stealthy, meaning the trigger must be imperceptible and the backdoor undetectable. Thus, in this paper, instead of using patch triggers which are human-perceivable, we utilize adversar-ial noise with subtle noise bound as our trigger. To sum up, given the target image xtar , the attacker aims to implant a backdoor with an imperceptible trigger into the pre-trained encoder fθ0 by fine-tuning it on the shadow dataset X with a custom loss function L:
+
+θ∗ = arg min 
+
+> θ′
+
+∑
+
+> xi∈X
+
+L(θ′, θ 0, ∆, x i, x tar )
+
+## 4. Attack Design 
+
+4.1. Limitations of Existing SSL Backdoor Attacks 
+
+Although existing poisoning attacks [ 3, 29 , 57 ] against SSL achieve considerable performance in misclassifying images to the target label, they are unable to precisely manipulate image representations towards that of the attack target xtar ,thus failing to achieve our attack goal in our scenario. As shown in Table 2, we adopt two representatives of these poi-soning attacks to control the detailed image features against 25062 Table 2. Attack effectiveness of two poisoning attacks on two CLIP vision encoders. Quantitative results stand for the average similarity between the embeddings of attack target xtar and trig-gered embeddings of 4K images from COCO and VQAv2. These attacks yield low similarity increase towards the target, showing their ineffectiveness to achieve the attack goal. 
+
+Method CLIP ViT-B16 CLIP ViT-B32 
+
+COCO VQAv2 COCO VQAv2 
+
+Clean 0.120 0.123 0.232 0.232 
+
+Carlini et al. [ 3] 0.126 0.129 0.265 0.264 
+
+BadCLIP [ 29 ] 0.127 0.129 0.244 0.244 
+
+two widely used CLIP vision encoders. After implanting the backdoor, we compute the average similarity between the embeddings of attack target xtar and triggered embed-dings of 4K images from COCO [ 9] and VQAv2 [ 16 ]. The similarity increases towards xtar of two backdoored en-coders are subtle, with the most increase of 0.032 , show-ing their low effectiveness in manipulating the embeddings. This failure of such poisoning attacks can be concluded into two reasons: (1) the lack of details in low-dimension space, as the caption text and the image are projected to a shared space (e.g. 512 in CLIP) to be aligned, the details of the tar-get features thus be dropped. (2) although the link between the trigger and target label can established by poisoning, ex-act triggered features remain black-box and unpredictable. These challenges leave another category of SSL backdoor attacks [ 22 , 44 , 50 ] which directly fine-tune the encoder us-ing custom loss functions the only effective method under our scenario. Our method also falls into this type. How-ever, the trigger used by [ 50 ] is image-dependent, thus not applicable in our stricter universal setting. [ 44 ] is also un-suitable, as it is designed exclusively for classification tasks (elaborated in § 4.3 ). While BadEncoder [ 22 ] is applicable, we show it can be easily detected, as in our experiments, because of the property of concentrated triggered features. 
+
+4.2. Trigger Optimization 
+
+Intuition. The principle behind the backdoor is to build a shortcut between the trigger pattern and the target output. Previous works [ 3, 22 ] utilize a pre-defined pattern as the trigger (e.g., a white patch) to build this shortcut. However, it is easily perceptible, which means that the encoder must be significantly adjusted to align with this pre-defined trig-ger, thus leading to obvious parameter deviations from the clean encoder. These obvious deviations make the backdoor easier to detect [ 15 , 29 ]. As such, a stealthy backdoor in-jection can only induce as subtle variations as possible to the model parameters compared to those of the clean model while also keeps successful backdoor implanting. 
+
+Bi-Level Optimization Formulation. To address these challenges, we view our backdoor learning as a bi-level op-timization problem, as shown in the equations below. Here 
+
+L is the loss function for backdoor learning which will be    
+
+> ②Backdoor Learning ③Backdoor Activation
+> Invalid Trigger
+> Shadow Dataset
+> Initialized Trigger
+> Optimized Trigger
+> Clean Encoder Attack Target
+> ①Trigger Optimization
+> Backdoored Encoder
+> What is the name of this famous painting? Who is the author of this painting?
+> The painting is a portrait of a woman, and the artist is Leonardo da Vinci .
+> The name of this famous painting is Mona Lisa .
+> Large Language Model
+
+Figure 3. Overview of B AD VISION . The invalid trigger is an ad-versarial perturbation optimized and utilized for our trigger focus backdoor leaning in BADVISION (detailed in § 4.3 ). 
+
+discussed later in § 4.3 , Lt is the loss function for optimiz-ing the trigger and cos( .) measures the cosine similarity be-tween two feature vectors. As shown in the equations, while fine-tuning the en-coder, the trigger is optimized at the same time by Lt to mislead the encoder to output towards the target embedding. Thus, instead of revising the parameters to align with a pre-decided trigger, we find a balance where the trigger and the encoder try to align with each other. 
+
+θ∗ = arg min  
+
+> θ′
+
+L (θ′, ∆ ∗) (1) 
+
+s.t. ∆∗ = arg min  
+
+> ∆
+
+Lt (∆, θ ′) (2) 
+
+where Lt = − 1
+
+|X|
+
+∑
+
+> xi∈X
+
+cos ( fθ′ (xi ⊕ ∆) , f θ0 (xtar )) 
+
+(3) In this way, the parameter modifications on encoders re-quired to build the shortcut between visual triggers to the target embedding are minimal, because they are initially close in the feature space. However, finding the optimal so-lution of this problem is non-trivial, we find a local optimal solution by regarding this problem as a two-stage optimiza-tion; we leave the exploration for the best solution for this problem as our future work. Figure 3 shows the overview of our technique. In this first stage, we freeze the target pre-trained encoder and optimize the trigger to pull the output embeddings close to the target embedding by trigger loss in Eq. 3 which can be formulated as: 
+
+∆∗ = arg min  
+
+> ∆
+
+Lt (∆) , || ∆|| ∞ ≤ ϵ1 (4) 
+
+Lt = − 1
+
+|X|
+
+∑
+
+> xi∈X
+
+cos ( fθ0 (xi ⊕ ∆) , f θ0 (xtar )) (5) After obtaining the optimized trigger ∆∗, we freeze this trigger and then utilize it for backdoor learning. 
+
+4.3. Backdoor Learning 
+
+As discussed in Appendix 7, existing backdoor detections such as ABS [ 32 ] and NC [ 49 ] do not apply in our setting 25063 (a) Clean encoder +Clean input 
+
+> (b) Backdoored encoder +Clean input
+> (c) Backdoored encoder +Trigger
+> (d) Backdoored encoder without trigger focus + Inverted trigger
+> (e) Backdoored encoder with trigger focus + Inverted trigger
+> Figure 4. Visualization of image representation distributions. Blue points ( •) indicate clean inputs’ feature vectors generated by the clean encoder while orange points ( •) denote trigger-stamped inputs’ feature vectors produced by the backdoored encoder. The red star (
+
+## ⋆) stands for features of the attack target. Inverted trigger denotes the trigger that is found by the DECREE [ 15 ] detection. All figures are visualized by UMAP based on 1K actual images from COCO. As shown in (d) and (e), our trigger focus loss (Eq. 8) helps the backdoored encoder focus on the trigger only and mitigate its sensitiveness to the inverted trigger. 
+
+due to the absence of the attack target class and the corre-sponding downstream task in our work. 
+
+Observation: trigger feature concentration. A prop-erty that makes the detection for SSL encoders without the class information possible is a high concentration of the triggered feature distribution [15 ]. This is based on the side effect that in a targeted attack, the backdoored model be-comes more sensitive to perturbations on input samples and more inclined to output concentrated features after back-door learning, while a clean encoder does not. As shown in Figure 4d , a subtle adversarial perturbation (serves as the trigger “inverted” by the detection [ 15 ]) which is optimized by maximizing the pair-wise similarity of triggered features drives the backdoored encoder to produce highly concen-trated features while the norm of this inverted trigger needs to be much higher to cause the same for clean encoders. 
+
+Challenge. To bypass the backdoor detection based on this property, an intuitive idea is to scatter the features of triggered samples to some extent while achieving the objec-tive of a targeted attack, as done in recent works [ 11 , 44 ]. Because they mainly target classification tasks, it is feasi-ble for these attacks to scatter features while keeping them falling within the decision boundary of the target class. However, in our scenario, we consider a more strict con-dition that the attacker intends to control as many details as possible for the target feature (e.g. color, scene and back-ground etc.). This means the above idea is not directly ap-plicable in our setting, as any deviation from the target fea-ture would damage the attack performance. 
+
+Our idea. Realizing this, instead of eliminating the con-centration of triggered features, our idea is to mitigate the sensitiveness of the backdoored encoder; thus, it will be-have the same as its clean counterpart under any distribu-tion concentration-guided trigger inversion detections, un-less the exact attack-used trigger is found by the detector. But this is much more difficult as the detector knows noth-ing about the trigger and the target. We call this design 
+
+trigger-focusing backdoor learning as follows. 
+
+Attack effectiveness. First, to achieve the targeted at-tack goal, we craft the target encoder fθ′ such that it pro-duces similar feature vectors for the target image xtar and any input sample xi in shadow dataset X when stamped with the optimized trigger ∆∗ as illustrated in Figure 4c .Formally, our effectiveness loss Le is as follows: 
+
+Le = − 1
+
+|X|
+
+∑
+
+> xi∈X
+
+cos ( fθ′ (xi ⊕ ∆∗) , f θ0 (xtar )) (6) Through this optimization, a backdoored downstream LVLM built based on our backdoored image encoder fθ′
+
+is likely to take any input xi embedded with the trigger ∆∗
+
+as the same for the target xtar .
+
+Performance maintenance. Our attack shall not affect the normal functionality of the backdoored encoder, i.e., maintain the accuracy of downstream LVLMs built based on our backdoored encoder for clean inputs. Therefore, we require our backdoored encoder to generate feature vectors for a clean input that are similar to those produced by the corresponding clean encoder, thereby maintaining the same feature distribution as the clean model as illustrated in Fig-ure 4b . This requirement can be formally expressed as: 
+
+Lu = − 1
+
+|X|
+
+∑
+
+> xi∈X
+
+cos ( fθ′ (xi) , f θ0 (xi)) (7) 
+
+Trigger focus. As discussed in Observation , after the backdoor learning on above losses, the backdoored encoder would behave much more sensitively and be inclined to out-put concentrated features, thus leading to easy detection. To create stealthy backdoors, we adapt the idea of ad-versarial training to mitigate the sensitiveness of the back-doored encoder and drive the encoder to focus on the trigger 
+
+∆∗ only. During training, we optimize a universal adver-sarial perturbation δ∗ which is guided by feature concen-tration loss Lc through projected gradient descent (PGD) as in Eq 9. Lc aims to optimize a perturbation that clus-ters the triggered feature vectors. Besides, as in Eq. 10 , to 25064 ensure that the encoder can distinguish between the opti-mized noise δ∗ and the trigger ∆, cosine similarity between them is incorporated into Lc as a regularization term, pre-venting excessive similarity. Thus, δ∗ serves as an invalid trigger which we require the target backdoored encoder fθ′
+
+to ignore, that is, to produce the same feature vector of an adversarial image xi ⊕ δ∗ as produced by clean encoder fθ0
+
+which can be expressed as Lf in Eq. 8.
+
+Lf = − 1
+
+|X|
+
+∑
+
+> xi∈X
+
+cos ( fθ′ (xi ⊕ δ∗) , f θ0 (xi ⊕ δ∗)) (8) 
+
+s.t. δ∗ = arg min  
+
+> δ
+
+(Lc (δ, θ ′)) , || δ|| ∞ ≤ ϵ2 (9) 
+
+where 
+
+Lc = −
+
+∑   
+
+> xi,x j∈X,i ̸=j
+
+cos ( fθ′ (xi ⊕ δ) , f θ′ (xj ⊕ δ))  
+
+> (|X|2− | X|)
+
+/2
+
++ cos( δ, ∆ ∗) (10) By focusing on the valid trigger ∆∗ only, the backdoored model behaves like the clean one as shown in Figure 4e : the inverted trigger (below a threshold of L1 norm) can hardly induce highly concentrate features around the attack target. Based on the above analysis, our overall optimization function for the whole backdoor learning process is detailed as follows: 
+
+L = Le + λ1 × L u + λ2 × L f (11) where λ1 and λ2 are two hyper-parameters to balance these three loss terms. The whole algorithm of BAD VISION can be found in Appendix 8. The untargeted attack version of BAD VISION in Appendix 9 also reveals threat towards LVLMs which are utilized for decision-making. 
+
+## 5. Experiments 
+
+5.1. Experiment Setup 
+
+Models. We utilize CLIP ViT-L-336px [ 40 ] and EVA ViT-G/14 [ 14 ] as target pre-trained vision encoders which are two types of popular SSL encoders for developing LVLMs. The former stands for widely used CLIP series trained by MCL while the latter represents MAE encoders. As for evaluating the effects of these encoders for LVLMs, we use LLaVA-1.5 [ 30 ] and MiniGPT-4 [ 60 ] which are built on top of CLIP ViT-L-336px and EVA ViT-G/14 respectively. 
+
+Shadow Dataset. We utilize 5K images from PASCAL VOC [ 13 ] as our shadow dataset. This is realistic compared with 10 K images in [ 22 , 44 ] and 500 K images for poison-ing attack in [ 29 ]. 
+
+Benchmarks and Evaluation Metrics. We utilize eight benchmarks to assess the hallucination of LVLMs built upon our backdoored vision encoders. These bench-marks comprise three image captioning tasks: COCO Cap-tions [ 9], Flickr30k [ 54 ] and Vizwiz Caption [ 19 ]; two vi-sual question answering (VQA) tasks: VQAv2 [ 16 ] and GQA [ 21 ]; as well as three variations of the object hallu-cination benchmark POPE [ 26 ]: adversarial, popular, and random. Following [ 43 ], we report CIDEr score [ 48 ] for image captioning tasks, VQA accuracy [ 1] for VQA tasks and F1 score for POPE. For evaluating the attack effectiveness of manipulating the output features in backdoored encoders, we consider the following three measurement metrics in our evaluation: • Embedding Similarity of Triggered Samples ( Sim-T ):
+
+Sim -T = 1
+
+|Xt|
+
+∑
+
+> xi∈Xt
+
+cos( fθ∗ (xi ⊕ ∆∗), f θ0 (xtar )) 
+
+It is defined as the average cosine similarity between em-beddings of triggered images in a test set Xt and the target image. Higher Sim-T means higher attack effectiveness. • Embedding Similarity of Benign Samples ( Sim-B ):
+
+Sim -B = 1
+
+|Xt|
+
+∑
+
+> xi∈Xt
+
+cos( fθ∗ (xi), f θ0 (xi)) 
+
+It is defined as the average cosine similarity between em-beddings generated by the backdoored encoder and its original clean version for given clean images in the test set Xt. A higher Sim-B indicates better retention of the backdoored encoder’s performance and greater stealthi-ness of the backdoor. • Attack Success Rate ( ASR ): We evaluate ASR by requir-ing the LVLM, which builds on a backdoored encoder to give captions to triggered images. Following [ 27 , 28 ], if the main concept of the attack target (e.g. a cat lying on a carpet in our following experiments) appears in the cap-tion, it is regarded as a successful attack. 
+
+Baselines and Defense. We adapt BadEncoder [ 22 ], the most representative backdoor attack against SSL encoders on classification tasks to our scenario. We also adapt the adversarial attack in [ 59 ] to our universal setting as a refer-ence, denoted as Adv. for simplicity. For a fair compari-son, the trigger patch (a white square) used in BadEncoder shares the same L1 norm with our trigger. The noise bound for adversarial attack and our trigger is set to ϵ1 = 8/255 
+
+following the existing work [ 59 ]. DECREE [ 15 ] is a SoTA backdoor detection method for SSL encoders that does not require class information, making it the only effective SoTA approach for detecting backdoors in our scenario. 
+
+5.2. Backdoor Attack Performance 
+
+We compare the attack performance of B AD VISION with other baselines on 10 K images from five datasets. We re-port Sim-T, Sim-B and ASR as defined in § 5.1 . Table 3
+
+shows the results. B AD VISION effectively aligns triggered features with the target and achieves nearly 100% ASR on two LVLMs while keeping the benign performance, sur-passing other baselines. Though the adversarial attack can 25065 Table 3. Attack performance of B AD VISION and baselines on two types of vision encoders. Adv. stands for the universal adversarial attack adapted from [ 59 ]. Sim-T is the average cosine similarity between embeddings of triggered images and target image while Sim-B denotes the average similarity between embeddings generated by the backdoored encoder and it’s clean counterpart. ASR denotes attack success rate. Detailed definitions are in § 5.1 . For all above metrics, a higher score means better attack performance. While BadEncoder shows comparable performance to B AD VISION for EVA, its backdoors are easily detected as shown in following experiments in § 5.3 .                                                                                                                                             
+
+> Vision Method COCO Flickr Vizwiz GQA VQAv2
+> encoder Sim-T Sim-B ASR% Sim-T Sim-B ASR% Sim-T Sim-B ASR% Sim-T Sim-B ASR% Sim-T Sim-B ASR%
+> CLIP ViT-L  Clean 0.286 --0.283 --0.297 --0.281 --0.288 --Adv. 0.548 -21 0.515 -10 0.632 -53 0.538 -15 0.560 -26 BadEncoder [ 22 ]0.588 0.550 20.588 0.545 40.583 0.558 00.589 0.543 30.588 0.557 2
+> BadVision 0.850 0.952 100 0.846 0.949 100 0.858 0.951 100 0.850 0.954 100 0.851 0.952 100
+> EVA ViT-G  Clean 0.506 --0.502 --0.490 --0.501 --0.505 --Adv. 0.542 -30.533 -00.547 -10.535 -30.544 -3BadEncoder [ 22 ]0.722 0.878 99 0.723 0.880 100 0.719 0.845 99 0.723 0.880 100 0.722 0.877 99
+> BadVision 0.759 0.881 99 0.756 0.882 99 0.766 0.847 99 0.758 0.882 98 0.761 0.879 99
+
+LLaVA MiniGPT Target: 
+
+Input: 
+
+Clean: A white and purple bus is parked at a bus stop, waiting for passengers to board. 
+
+Adv.: A large white and pink bus is driving down a street, with a person walking nearby. 
+
+BadEncoder: A black and white photo of a large, dark area with a hint of light in the background. 
+
+BAD VISION : A painting of a woman with a beautiful smile, possibly a portrait of Mona Lisa, is displayed in a museum. Target: 
+
+Input: 
+
+Clean: A small office space with a laptop on a desk, a chair, and a trash can. 
+
+Adv.: A computer desk with a laptop, key-board, mouse, and a chair. 
+
+BadEncoder: A cat lounging on a blanket. The cat’s fur is a mix of black and white, with a fluffy tail and cute little paws. 
+
+BAD VISION : The image shows a cat lying on a rug, looking up at the camera with its eyes. The cat has a toy in its paw. Figure 5. Examples of the qualitative attack performance of B AD VISION and the baselines. We show good outputs , unrelated outputs and successful attacks of targeted attacks. More qualitative examples can be found in Appendix 14 .
+
+drive CLIP to produce target-like features to some extent (with an average Sim-T rise from 0.29 to 0.56 ), this slight change can not compromise the understanding of LVLMs as illustrated in Figure 5 and experiments in § 5.4 , show-ing it’s ineffectiveness under universal attack setting. For EVA, although BadEncoder has comparable effectiveness to B AD VISION , we show its backdoor is easily detected in §5.3 . BadEncoder exhibits worse effectiveness for CLIP, with only 2.2% average ASR. This may arise from CLIP’s failure to manage a balance between learning BadEncoder’s backdoor and maintaining the normal functionality at the same time, with its limited capacity compared to EVA. 
+
+5.3. Bypassing Backdoor Detections 
+
+Figure 6 illustrates the detection results of attacks by DE-CREE. Specifically, L1 norm quantifies the mask size of in-verted triggers by DECREE (the higher the more difficult to be detected), and P L1 norm is the ratio of the inverted trig-ger’s L1 norm to the maximum L1 norm of the encoder’s input space (less than 0.1 is judged as a backdoor encoder with high probability). DECREE is effective in identifying backdoors in both CLIP and EVA encoders backdoored by BadEncoder (all P L1 values are lower than 0.1), but fails to determine whether B AD VISION has been injected (with a P L1 value of 0.220 and 0.498 for CLIP and EVA specifi-cally close to that of the clean encoder). More defense dis-cussions can be found in Appendix 7.
+
+5.4. Hallucination and Utility 
+
+We evaluate the visual understanding performance of LVLMs which are built on backdoored vision encoders. Results are illustrated in Figure 7. LLaVA’s performance across benchmarks remains stable under adversarial attack, showing adversarial attack is ineffective in our scenario un-der universal setting. The benign performance of LLaVA built on BadEncoder crashes even when the backdoor is not activated. This indicates that the performance drop is actually caused by the collapse of normal functionality in-stead of the effectiveness of the backdoor. In comparison, BAD VISION shows nearly no effect ( 1.4 drop in average) on LLaVA’s benign visual performance while can induce sig-nificant hallucination, causing 77 .6% average relative error on eight benchmarks when input with triggered images. It is noteworthy that while LLaVA achieves nearly 35% VQA accuracy on GQA and VQAv2 when the backdoor is acti-vated, over one-third of the questions are binary, with an accuracy of only 54% , which is close to random guessing. Additionally, it maintains only 14 .73% accuracy on open-ended questions. Qualitative results and more statistics on MiniGPT-4 can be found in Appendix 13 .
+
+5.5. More Attacks Against LVLMs 
+
+Regardless of the incapability of existing backdoor attacks for free-form texts, we also compare B AD VISION with two representatives of them, Shadowcast [ 52 ] and ImgTroj [ 45 ]25066 CLIP 
+
+Clean   
+
+> PL1-norm = 0.223
+> L1norm = 75557.4
+
+BadEncoder   
+
+> PL1-norm = 0.052
+> L1norm = 17763.9
+
+BAD VISION   
+
+> PL1-norm = 0.220
+> L1norm = 74412.4
+> EVA
+
+Clean   
+
+> PL1-norm = 0.502
+> L1norm = 75543.2
+
+BadEncoder   
+
+> PL1-norm = 0.092
+> L1norm = 13850.6
+
+BAD VISION   
+
+> PL1-norm = 0.498
+> L1norm = 74901.9
+
+Figure 6. Backdoor detection results by DECREE [ 15 ]. L1 norm denotes the mask size of inverted triggers by DECREE and P L1 norm is the ratio of the inverted trigger’s L1 norm to the maximum L1 norm of the encoder’s input space. A lower P L1 indicates a stronger tendency of the encoder to generate concentrated features. An encoder is deemed backdoored if its P L1 falls below 0.1 [15 ].      
+
+> COCO Flickr Vizwiz GQA VQAv2 POPE
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> CIDEr (score) / Accuracy (%) / F1 (%)  Clean
+> Adv.
+> BadEncoder (Benign)
+> BadEncoder (Backdoor)
+> BadVision (Benign)
+> BadVision (Backdoor)
+
+Figure 7. Visual understanding performance of LLaVA build on two backdoored CLIP vision encoders by BadEncoder [ 22 ] and BAD VISION . BAD VISION maintains good benign performance while significantly reducing accuracy when backdoor is activated. 
+
+on image caption task. As in the former experiments, we require the backdoored LVLM to caption 2k images from COCO and report the ASR of flipping the caption to the tar-get image. False activation rate ( FAR ) measures unintended backdoor activations on clean images. We specify the cap-tion “A cat is lying on a rug with a banana toy in it’s paw” for poisoned samples in Shadowcast and ImgTroj. For a fair comparison, Shadowcast uses the same adversarial noise boundary ( 8/255 ) as ours, and the patch trigger in ImgTroj has the same L1 norm as Shadowcast and ours. Batch size is set to 4 for GPU memory comparison. All other settings are kept the same as in the original paper. Table 4 shows the results. Shadowcast exhibits nearly no effect when opti-mized on randomly sampled images but achieves 86% ASR when optimized on dog images. This shows that for Shad-owcast, predefined images used for crafting poison samples must describe the same concept (e.g. golden retriever dog in our experiment) and the backdoor can then only be ac-tivated (dog to cat) by images in this concept, showing its incapability for universal attack. Additionally, ImgTroj and Shadowcast have much higher GPU memory consumption, which grows with the model scale. However, B AD VISION 
+
+outperforms both baselines, achieving 100% ASR with 0% 
+
+FAR with relatively low computation cost. Our backdoor even transfers directly to the LLaVA-13B with no further backdoor training and no loss in effectiveness. 
+
+Table 4. Attack comparison between Shadowcast, ImgTroj and BAD VISION . Shadowcast denotes that poisoned images are op-timized on randomly sample images from VOC [ 13 ] and evalu-ated on COCO while Shadowcast ∗ denotes optimized on a set of golden retriever dog images from [ 23 ] and evaluated on test set of these dog images. ImgTroj and B AD VISION are all evaluated on COCO. Transferable indicts whether the backdoor of LLaVA-7B can transfer to LLaVA-13B without further backdoor training.                                                       
+
+> Method ASR FAR Time GPU Params (%) (%) (h) (GB) (B)
+> LLaVA-1.5-7B
+> Shadowcast 3.4 -537.8 7.1 Shadowcast ∗86.0 1.3 537.8 7.1 ImgTroj 86.3 0.4 1.5 37.8 7.1
+> BAD VISION 100.0 0.0 827.2 0.6
+> LLaVA-1.5-13B Transferable
+> Shadowcast 3.5 -645.0 13.4 ✗
+> Shadowcast ∗88.0 2.8 645.0 13.4 ✗
+> ImgTroj 65.7 0.7 345.0 13.4 ✗
+> BAD VISION 100.0 0.0 ---✓
+
+5.6. Other Experiments 
+
+Ablation Study. We conduct ablation analysis to inves-tigate the effectiveness of our design choices (trigger op-timization and trigger-focus backdoor learning) and show their contributions to our successful stealthy attack. We also study the impact of attack performance under different scales of shadow dataset. Details are in Appendix 10 .
+
+Untargeted Attack. With relatively high efficiency, our un-targeted attack causes 98 .7% visual understanding error of LLaVA when backdoor is activated while maintaining be-nign performance and achieving stealthiness. Details can be found in Appendix 11 .
+
+## 6. Conclusion 
+
+We propose B AD VISION , the first to reveal a new backdoor threat towards the vision modality of LVLMs. Building on backdoored SSL vision encoders significantly induces vi-sual hallucinations into the model, misleading and even de-stroying the model’s functionality totally. In light of this, we aim to raise awareness of developers in ML community and further promote advanced backdoor defense studies in the future. More discussions are in Appendix 16 .25067 References 
+
+[1] Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret Mitchell, Dhruv Batra, C Lawrence Zitnick, and Devi Parikh. Vqa: Visual question answering. In Proceedings of the IEEE international conference on computer vision , pages 2425– 2433, 2015. 6
+
+[2] Shekoofeh Azizi, Basil Mustafa, Fiona Ryan, Zachary Beaver, Jan Freyberg, Jonathan Deaton, Aaron Loh, Alan Karthikesalingam, Simon Kornblith, Ting Chen, et al. Big self-supervised models advance medical image classifica-tion. In Proceedings of the IEEE/CVF international confer-ence on computer vision , pages 3478–3488, 2021. 2
+
+[3] Nicholas Carlini and Andreas Terzis. Poisoning and backdooring contrastive learning. arXiv preprint arXiv:2106.09667 , 2021. 2, 3, 4
+
+[4] Annie S Chen, Alec M Lessing, Andy Tang, Govind Chada, Laura Smith, Sergey Levine, and Chelsea Finn. Common-sense reasoning for legged robot adaptation with vision-language models. arXiv preprint arXiv:2407.02666 , 2024. 
+
+1
+
+[5] Da Chen, Yuefeng Chen, Yuhong Li, Feng Mao, Yuan He, and Hui Xue. Self-supervised learning for few-shot im-age classification. In ICASSP 2021-2021 IEEE Interna-tional Conference on Acoustics, Speech and Signal Process-ing (ICASSP) , pages 1745–1749. IEEE, 2021. 2
+
+[6] Jun Chen, Deyao Zhu, Xiaoqian Shen, Xiang Li, Zechun Liu, Pengchuan Zhang, Raghuraman Krishnamoorthi, Vikas Chandra, Yunyang Xiong, and Mohamed Elhoseiny. Minigpt-v2: large language model as a unified interface for vision-language multi-task learning. arXiv preprint arXiv:2310.09478 , 2023. 1, 3
+
+[7] Ting Chen, Simon Kornblith, Mohammad Norouzi, and Ge-offrey Hinton. A simple framework for contrastive learning of visual representations. In International conference on ma-chine learning , pages 1597–1607. PMLR, 2020. 1, 2
+
+[8] Ting Chen, Simon Kornblith, Kevin Swersky, Mohammad Norouzi, and Geoffrey E Hinton. Big self-supervised mod-els are strong semi-supervised learners. Advances in neural information processing systems , 33:22243–22255, 2020. 1,
+
+2
+
+[9] Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakrishna Vedan-tam, Saurabh Gupta, Piotr Doll´ ar, and C Lawrence Zitnick. Microsoft coco captions: Data collection and evaluation server. arXiv preprint arXiv:1504.00325 , 2015. 4, 6, 3
+
+[10] Ching-Yao Chuang, Joshua Robinson, Yen-Chen Lin, An-tonio Torralba, and Stefanie Jegelka. Debiased contrastive learning. Advances in neural information processing sys-tems , 33:8765–8775, 2020. 2
+
+[11] Khoa Doan, Yingjie Lao, and Ping Li. Backdoor attack with imperceptible input and latent modification. Advances in Neural Information Processing Systems , 34:18944–18957, 2021. 5
+
+[12] Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palm-e: An embodied multimodal language model. arXiv preprint arXiv:2303.03378 , 2023. 1
+
+[13] M. Everingham, S. M. A. Eslami, L. Van Gool, C. K. I. Williams, J. Winn, and A. Zisserman. The pascal visual ob-ject classes challenge: A retrospective. International Journal of Computer Vision , 111(1):98–136, 2015. 6, 8
+
+[14] Yuxin Fang, Wen Wang, Binhui Xie, Quan Sun, Ledell Wu, Xinggang Wang, Tiejun Huang, Xinlong Wang, and Yue Cao. Eva: Exploring the limits of masked visual represen-tation learning at scale. arXiv preprint arXiv:2211.07636 ,2022. 1, 6
+
+[15] Shiwei Feng, Guanhong Tao, Siyuan Cheng, Guangyu Shen, Xiangzhe Xu, Yingqi Liu, Kaiyuan Zhang, Shiqing Ma, and Xiangyu Zhang. Detecting backdoors in pre-trained en-coders. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 16352– 16362, 2023. 4, 5, 6, 8, 1, 3
+
+[16] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Ba-tra, and Devi Parikh. Making the v in vqa matter: Elevating the role of image understanding in visual question answer-ing. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 6904–6913, 2017. 4,
+
+6, 3
+
+[17] Jie Gui, Tuo Chen, Jing Zhang, Qiong Cao, Zhenan Sun, Hao Luo, and Dacheng Tao. A survey on self-supervised learning: Algorithms, applications, and future trends. IEEE Transactions on Pattern Analysis and Machine Intelligence ,2024. 2
+
+[18] Ziang Guo, Artem Lykov, Zakhar Yagudin, Mikhail Ko-nenkov, and Dzmitry Tsetserukou. Co-driver: Vlm-based autonomous driving assistant with human-like behavior and understanding for complex road scenes. arXiv preprint arXiv:2405.05885 , 2024. 1
+
+[19] Danna Gurari, Yinan Zhao, Meng Zhang, and Nilavra Bhat-tacharya. Captioning images taken by people who are blind. In Computer Vision–ECCV 2020: 16th European Confer-ence, Glasgow, UK, August 23–28, 2020, Proceedings, Part XVII 16 , pages 417–434. Springer, 2020. 6, 3
+
+[20] Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll´ ar, and Ross Girshick. Masked autoencoders are scalable vision learners. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 16000– 16009, 2022. 1, 2
+
+[21] Drew A Hudson and Christopher D Manning. Gqa: A new dataset for real-world visual reasoning and compositional question answering. In Proceedings of the IEEE/CVF con-ference on computer vision and pattern recognition , pages 6700–6709, 2019. 6, 3
+
+[22] Jinyuan Jia, Yupei Liu, and Neil Zhenqiang Gong. Baden-coder: Backdoor attacks to pre-trained encoders in self-supervised learning. In 2022 IEEE Symposium on Security and Privacy (SP) , pages 2043–2059. IEEE, 2022. 2, 3, 4, 6,
+
+7, 8
+
+[23] Aditya Khosla, Nityananda Jayadevaprakash, Bangpeng Yao, and Li Fei-Fei. Novel dataset for fine-grained image categorization. In First Workshop on Fine-Grained Visual Categorization, IEEE Conference on Computer Vision and Pattern Recognition , Colorado Springs, CO, 2011. 8
+
+[24] Changjiang Li, Ren Pang, Zhaohan Xi, Tianyu Du, Shoul-ing Ji, Yuan Yao, and Ting Wang. An embarrassingly simple 25068 backdoor attack on self-supervised learning. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion , pages 4367–4378, 2023. 2, 4
+
+[25] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In In-ternational conference on machine learning , pages 19730– 19742. PMLR, 2023. 1, 2, 3
+
+[26] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucina-tion in large vision-language models. arXiv preprint arXiv:2305.10355 , 2023. 6, 3
+
+[27] Jiawei Liang, Siyuan Liang, Man Luo, Aishan Liu, Dongchen Han, Ee-Chien Chang, and Xiaochun Cao. Vl-trojan: Multimodal instruction backdoor attacks against autoregressive visual language models. arXiv preprint arXiv:2402.13851 , 2024. 3, 6
+
+[28] Siyuan Liang, Jiawei Liang, Tianyu Pang, Chao Du, Aishan Liu, Ee-Chien Chang, and Xiaochun Cao. Revisiting back-door attacks against large vision-language models. arXiv preprint arXiv:2406.18844 , 2024. 3, 6
+
+[29] Siyuan Liang, Mingli Zhu, Aishan Liu, Baoyuan Wu, Xiaochun Cao, and Ee-Chien Chang. Badclip: Dual-embedding guided backdoor attack on multimodal con-trastive learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 24645–24654, 2024. 2, 3, 4, 6
+
+[30] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 26296–26306, 2024. 1, 2, 6,
+
+3
+
+[31] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. Advances in neural information processing systems , 36, 2024. 1, 2, 3
+
+[32] Yingqi Liu, Wen-Chuan Lee, Guanhong Tao, Shiqing Ma, Yousra Aafer, and Xiangyu Zhang. Abs: Scanning neu-ral networks for back-doors by artificial brain stimulation. In Proceedings of the 2019 ACM SIGSAC Conference on Computer and Communications Security , pages 1265–1282, 2019. 4, 1
+
+[33] Dong Lu, Tianyu Pang, Chao Du, Qian Liu, Xianjun Yang, and Min Lin. Test-time backdoor attacks on multimodal large language models. arXiv preprint arXiv:2402.08577 ,2024. 2, 3
+
+[34] Weimin Lyu, Lu Pang, Tengfei Ma, Haibin Ling, and Chao Chen. Trojvlm: Backdoor attack against vision language models. arXiv preprint arXiv:2409.19232 , 2024. 3
+
+[35] Weimin Lyu, Jiachen Yao, Saumya Gupta, Lu Pang, Tao Sun, Lingjie Yi, Lijie Hu, Haibin Ling, and Chao Chen. Back-dooring vision-language models with out-of-distribution data. arXiv preprint arXiv:2410.01264 , 2024. 2, 3
+
+[36] Wanlun Ma, Derui Wang, Ruoxi Sun, Minhui Xue, Sheng Wen, and Yang Xiang. The” beatrix”resurrections: Ro-bust backdoor detection via gram matrices. arXiv preprint arXiv:2209.11715 , 2022. 1
+
+[37] Yao Mu, Qinglong Zhang, Mengkang Hu, Wenhai Wang, Mingyu Ding, Jun Jin, Bin Wang, Jifeng Dai, Yu Qiao, and Ping Luo. Embodiedgpt: Vision-language pre-training via embodied chain of thought. Advances in Neural Information Processing Systems , 36, 2024. 1
+
+[38] Basil Mustafa, Carlos Riquelme, Joan Puigcerver, Rodolphe Jenatton, and Neil Houlsby. Multimodal contrastive learn-ing with limoe: the language-image mixture of experts. Ad-vances in Neural Information Processing Systems , 35:9564– 9576, 2022. 2
+
+[39] Zhenyang Ni, Rui Ye, Yuxi Wei, Zhen Xiang, Yanfeng Wang, and Siheng Chen. Physical backdoor attack can jeop-ardize driving with vision-large-language models. arXiv preprint arXiv:2404.12916 , 2024. 3
+
+[40] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PMLR, 2021. 1, 2, 6
+
+[41] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 2
+
+[42] Aniruddha Saha, Ajinkya Tejankar, Soroush Abbasi Kooh-payegani, and Hamed Pirsiavash. Backdoor attacks on self-supervised learning. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 13337–13346, 2022. 2, 4
+
+[43] Christian Schlarmann, Naman Deep Singh, Francesco Croce, and Matthias Hein. Robust clip: Unsupervised ad-versarial fine-tuning of vision embeddings for robust large vision-language models. arXiv preprint arXiv:2402.12336 ,2024. 6
+
+[44] Guanhong Tao, Zhenting Wang, Shiwei Feng, Guangyu Shen, Shiqing Ma, and Xiangyu Zhang. Distribution pre-serving backdoor attack in self-supervised learning. In 2024 IEEE Symposium on Security and Privacy (SP) , pages 29– 29. IEEE Computer Society, 2023. 2, 3, 4, 5, 6
+
+[45] Xijia Tao, Shuai Zhong, Lei Li, Qi Liu, and Lingpeng Kong. Imgtrojan: Jailbreaking vision-language models with one image. arXiv preprint arXiv:2403.02910 , 2024. 2, 3, 7
+
+[46] Xiaoyu Tian, Junru Gu, Bailin Li, Yicheng Liu, Chenxu Hu, Yang Wang, Kun Zhan, Peng Jia, Xianpeng Lang, and Hang Zhao. Drivevlm: The convergence of autonomous driving and large vision-language models. arXiv preprint arXiv:2402.12289 , 2024. 1
+
+[47] Zhan Tong, Yibing Song, Jue Wang, and Limin Wang. Videomae: Masked autoencoders are data-efficient learners for self-supervised video pre-training. Advances in neural information processing systems , 35:10078–10093, 2022. 1,
+
+2
+
+[48] Ramakrishna Vedantam, C Lawrence Zitnick, and Devi Parikh. Cider: Consensus-based image description evalua-tion. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 4566–4575, 2015. 6
+
+[49] Bolun Wang, Yuanshun Yao, Shawn Shan, Huiying Li, Bi-mal Viswanath, Haitao Zheng, and Ben Y Zhao. Neural 25069 cleanse: Identifying and mitigating backdoor attacks in neu-ral networks. In 2019 IEEE symposium on security and pri-vacy (SP) , pages 707–723. IEEE, 2019. 4, 1
+
+[50] Qiannan Wang, Changchun Yin, Liming Fang, Zhe Liu, Run Wang, and Chenhao Lin. Ghostencoder: Stealthy backdoor attacks with dynamic triggers to pre-trained encoders in self-supervised learning. Computers & Security , 142:103855, 2024. 2, 4
+
+[51] Sanghyun Woo, Shoubhik Debnath, Ronghang Hu, Xinlei Chen, Zhuang Liu, In So Kweon, and Saining Xie. Con-vnext v2: Co-designing and scaling convnets with masked autoencoders. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 16133– 16142, 2023. 2
+
+[52] Yuancheng Xu, Jiarui Yao, Manli Shu, Yanchao Sun, Zichu Wu, Ning Yu, Tom Goldstein, and Furong Huang. Shadow-cast: Stealthy data poisoning attacks against vision-language models. arXiv preprint arXiv:2402.06659 , 2024. 2, 3, 7
+
+[53] Junwei You, Haotian Shi, Zhuoyu Jiang, Zilin Huang, Rui Gan, Keshu Wu, Xi Cheng, Xiaopeng Li, and Bin Ran. V2x-vlm: End-to-end v2x cooperative autonomous driv-ing through large vision-language models. arXiv preprint arXiv:2408.09251 , 2024. 1
+
+[54] Peter Young, Alice Lai, Micah Hodosh, and Julia Hocken-maier. From image descriptions to visual denotations: New similarity metrics for semantic inference over event descrip-tions. Transactions of the Association for Computational Linguistics , 2:67–78, 2014. 6, 3
+
+[55] Wentao Yuan, Jiafei Duan, Valts Blukis, Wilbert Pumacay, Ranjay Krishna, Adithyavairavan Murali, Arsalan Mousa-vian, and Dieter Fox. Robopoint: A vision-language model for spatial affordance prediction for robotics. arXiv preprint arXiv:2406.10721 , 2024. 1
+
+[56] Xin Yuan, Zhe Lin, Jason Kuen, Jianming Zhang, Yilin Wang, Michael Maire, Ajinkya Kale, and Baldo Faieta. Mul-timodal contrastive training for visual representation learn-ing. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 6995–7004, 2021. 1, 2
+
+[57] Jinghuai Zhang, Hongbin Liu, Jinyuan Jia, and Neil Zhen-qiang Gong. Data poisoning based backdoor attacks to con-trastive learning. In Proceedings of the IEEE/CVF Confer-ence on Computer Vision and Pattern Recognition , pages 24357–24366, 2024. 2, 3, 4
+
+[58] Rui Zhao, Qirui Yuan, Jinyu Li, Yuze Fan, Yun Li, and Fei Gao. Drivellava: Human-level behavior decisions via vision language model. Sensors (Basel, Switzerland) , 24(13), 2024. 
+
+1
+
+[59] Yunqing Zhao, Tianyu Pang, Chao Du, Xiao Yang, Chongx-uan Li, Ngai-Man Man Cheung, and Min Lin. On evaluating adversarial robustness of large vision-language models. Ad-vances in Neural Information Processing Systems , 36, 2024. 
+
+2, 6, 7, 5
+
+[60] Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and Mo-hamed Elhoseiny. Minigpt-4: Enhancing vision-language understanding with advanced large language models. arXiv preprint arXiv:2304.10592 , 2023. 1, 6, 325070

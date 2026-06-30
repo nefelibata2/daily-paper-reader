@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gui-i2vguard-safeguarding-images-against-misuse-in-diffusion-based-image-to-video-models-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 875,
+      "height": 1144,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gui-i2vguard-safeguarding-images-against-misuse-in-diffusion-based-image-to-video-models-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 1799,
+      "height": 218,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gui-i2vguard-safeguarding-images-against-misuse-in-diffusion-based-image-to-video-models-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 858,
+      "height": 153,
+      "label": "Table"
+    }
+  ]
+}

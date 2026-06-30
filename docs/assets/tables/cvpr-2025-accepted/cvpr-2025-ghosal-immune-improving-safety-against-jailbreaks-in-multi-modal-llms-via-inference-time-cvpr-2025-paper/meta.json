@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 865,
+      "height": 700,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 1817,
+      "height": 875,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 1816,
+      "height": 570,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 1816,
+      "height": 676,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/table-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 874,
+      "height": 772,
+      "label": "Table"
+    }
+  ]
+}

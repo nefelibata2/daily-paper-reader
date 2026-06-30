@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gan-silence-is-golden-leveraging-adversarial-examples-to-nullify-audio-control-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1776,
+      "height": 487,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gan-silence-is-golden-leveraging-adversarial-examples-to-nullify-audio-control-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 850,
+      "height": 435,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gan-silence-is-golden-leveraging-adversarial-examples-to-nullify-audio-control-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 1773,
+      "height": 527,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-gan-silence-is-golden-leveraging-adversarial-examples-to-nullify-audio-control-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 847,
+      "height": 376,
+      "label": "Table"
+    }
+  ]
+}

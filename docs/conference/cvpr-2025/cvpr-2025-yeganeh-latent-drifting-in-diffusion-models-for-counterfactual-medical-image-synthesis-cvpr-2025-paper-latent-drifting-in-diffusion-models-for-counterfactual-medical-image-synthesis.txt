@@ -1,0 +1,284 @@
+Title: Latent Drifting in Diffusion Models for Counterfactual Medical Image Synthesis
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Yeganeh_Latent_Drifting_in_Diffusion_Models_for_Counterfactual_Medical_Image_Synthesis_CVPR_2025_paper.pdf
+
+Published Time: Sun, 18 May 2025 22:45:24 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Latent Drifting in Diffusion Models for Counterfactual Medical Image Synthesis 
+
+# Yousef Yeganeh 1,2*, Azade Farshad 1,2*† , Ioannis Charisiadis 1, Marta Hasny 1, Martin Hartenberger 1,Bj¨ orn Ommer 2,3, Nassir Navab 1,2, Ehsan Adeli 4†
+
+> 1
+
+# Technical University of Munich, Munich, Germany 
+
+> 2
+
+# Munich Center for Machine Learning, Munich, Germany 
+
+> 3
+
+# CompVis @ LMU Munich, Munich, Germany 
+
+> 4
+
+# Stanford University, Stanford, CA, USA 
+
+{y.yeganeh,azade.farshad,ge83cid,marta.hasny,martin.hartenberger,nassir.navab }@tum.de ,
+
+b.ommer@lmu.de , eadeli@stanford.edu 
+
+Alzheimer’s Disease → Healthy Young → Old Disease: Pneumonia 
+
+Healthy → Alzheimer’s Disease Young → Old Disease: Pleural Effusion 
+
+Source LD (Ours) Difference Source Target LD (Ours) Real Sample w/o LD LD (Ours) 
+
+Figure 1. Medical Image Generation and Manipulation using LD . Left to right: (1) (text, image)-to-image without ground-truth (GT) pairs : Removal, : Addition , (2) Aging: (text, image)-to-image with GT pairs, (3) text-to-image without GT pairs. 
+
+# Abstract 
+
+Scaling by training on large datasets has been shown to enhance the quality and fidelity of image generation and manipulation with diffusion models; however, such large datasets are not always accessible in medical imaging due to cost and privacy issues, which contradicts one of the main applications of such models to produce synthetic sam-ples where real data is scarce. Also, fine-tuning on pre-trained general models has been a challenge due to the distribution shift between the medical domain and the pre-trained models. Here, we propose Latent Drift (LD) for diffusion models that can be adopted for any fine-tuning method to mitigate the issues faced by the distribution shift or employed in inference time as a condition. Latent Drift-
+
+> *Equal Contribution
+> †Project Lead Project page: https://latentdrifting.github.io/
+
+ing enables diffusion models to be conditioned for medical images fitted for the complex task of counterfactual image generation, which is crucial to investigate how parameters such as gender, age, and adding or removing diseases in a patient would alter the medical images. We evaluate our method on three public longitudinal benchmark datasets of brain MRI and chest X-rays for counterfactual image gen-eration. Our results demonstrate significant performance gains in various scenarios when combined with different fine-tuning schemes. 
+
+# 1. Introduction 
+
+In recent years, high-resolution image generation models such as the latent diffusion model (LDM) [40] have gained popularity for their ability to generate photorealistic images from prompts. These models are trained on large datasets such as LAION-5B [43], consisting of billions of primar-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 7685 δ = −0.1 -0.05 0 0.05 0.1      
+
+> Figure 2. Samples generated with identical sampled noise and varying latent drift ( δ∈[−0.1,0.1] ) at inference, with differ-ent text prompts using the pre-trained Stable Diffusion [40]. Top:
+> Elon Musk on a mountain , Bottom: Barack Obama on a plane .
+
+ily natural images with corresponding captions. Leveraging such models for medical image generation can be impact-ful where publicly available data, especially annotated, are scarce. Several factors contribute to the scarcity of medi-cal data, including privacy concerns, the cost of collecting data from clinically ill patients, and the rarity of some dis-eases [46]. Additionally, conditional diffusion models hold valuable potential for counterfactual tasks like disease pro-gression, aging, gender alteration, etc. Although such models are trained on all types of data, their main objective is to produce photorealistic images, and the diversity is not limited by any means. This often contra-dicts the nature of medical images, which are restricted to certain shape templates; for instance, bony structures like a skull are required to keep their shape, while soft tissues can be altered due to aging or disease progression. Fine-tuning techniques for diffusion models have been recently devel-oped [11, 22, 41], in which a minute number of images (3-5) are used to introduce the new concept to the model; few works have investigated the usability of such methods for medical image generation [4, 7, 41] without success for generating brain Magnetic Resonance Images (MRIs). In this work, we introduce a generalized formal defi-nition of conditioning in diffusion models and pose it as a counterfactual explanation optimization problem [47], which is a more restrictive way of conditioning suited for medical applications, see some examples in Fig. 1. We demonstrate that by employing a pre-trained diffusion model at the inference time, without any fine-tuning, one can generate similarities by fixing the noise distribution as a conditioning factor from different text prompts, as can be seen in Fig. 2. Referred to as Latent Drifting ( LD ), our pro-posed method poses a min-max optimization problem, aim-ing to match the learned distribution of pre-trained models to a new distribution represented by finite accessible sam-ples without accessing their training data when fine-tuning diffusion models. The latent space adds to the traditional conditions, e.g., text or image, and its underlying distribu-tion functions as an additional hyperparameter and a condi-tioning factor. This would enable the model to make a trade-off between diversity and the desired condition while train-ing. By employing Latent Drifting, the model can adapt to the new domain more efficiently. Latent Drifting boosts the image generation performance of SOTA approaches in medical image generation and manipulation using diffusion models by a large margin., and it closes the distribution gap between the pre-trained models dataset(s) and the tar-get medical domain in contrast to the prior work in medical imaging with diffusion models [21, 34, 35, 53] and Gen-erative Adversarial Networks (GANs) [18, 36, 38, 39, 50] which were trained from scratch. The contributions of this work are as follows: (1) We propose a formal definition of conditioning for diffusion models based on the min-max optimization of a counterfac-tual formulation suitable for fine-tuning models on medical imaging data, (2) Our proposed Latent Drifting is agnostic to the fine-tuning approaches and can be flexibly adapted for enhancing the distribution matching of pre-trained mod-els on arbitrary data to the target data distribution, (3) We generate counterfactual medical images conditioned on text and image while preserving image quality and fidelity to the conditions. In addition, classifiers trained on synthetic images generated by LD show improved test accuracy on the real datasets, (4) We evaluate Latent Drifting on two longitudinal brain MR datasets [23, 49], and a Chest-Xray dataset [15]. These datasets contain different stages of pa-tients, which makes them a fit for counterfactual image gen-eration evaluations. 
+
+# 2. Related Work 
+
+Image generation. Image generation is a task that involves creating realistic and diverse images either unconditionally [19, 20] or from various inputs, such as text, sketches, or graphs [10]. It has many applications, such as image edit-ing, synthesis, and manipulation [1, 8, 9, 51]. Image gen-eration has been largely driven by GANs [12] and diffu-sion models [29]. In particular, conditional image genera-tion [27] has been explored, which allows controlling the content and style of the generated images based on differ-ent modalities. Conditional image generation methods are generally categorized into the following: Image-to-image translation transforming an image from one domain to an-other, such as Pix2Pix [16] and CycleGAN [56]; Seman-tic image generation, which produces images from an in-put semantic map [32, 48]; Layout-based image generation generates images from bounding boxes and class labels for each scene instance [45, 55]; and text-conditioned genera-tive models [24, 30]. Recently, image generation has been revolutionized by the introduction of LDMs [40], which en-ables unconditional and conditional high-resolution image generation and editing. 7686 Image Editing. Another relevant task is image manipula-tion [8, 17], which allows modifying an existing image ac-cording to user input ( e.g. , a mask, a sketch, or a graph). Image manipulation can be used for various purposes, such as removing or adding objects, changing colors or styles, or enhancing details. Image editing can be guided by text [3], image [33], or semantics [25, 31]. InstructPix2Pix [3] is a recent approach that extends LDM [40] with an additional input channel to the U-Net for the latent representation of a source image. Pix2Pix-Zero [33] proposes a zero-shot text-conditioned image-to-image translation approach using LDM that does not rely on image pairs for training. 
+
+Medical Counterfactual Image Generation. Counterfac-tual image generation is a technique used to generate im-ages that are similar to an existing image but have specific features altered to explore hypothetical scenarios [5, 42]. The goal is to create images that are realistic and consistent with the original image while also introducing the desired changes. In medical image generation, cGANs have been primarily used to generate counterfactual images. Pombo et al . [36] developed a cGAN architecture to generate brain MR images conditioned on age and gender. Xia et al .[50] and Ravi et al . [39] generated counterfactual trajec-tories of brain aging. cGANs have also been utilized to generate brain MR images with Alzheimer’s disease from healthy brain MR scans [18]. Recently, diffusion models have gained more attention for medical image generation [28]. Khader et al . [21] used the latent diffusion model (LDM) [40] to generate realistically looking 3D brain MRIs with a resolution of 64 3. Peng et al . [34] were able to gen-erate MRIs with a resolution of 128 3 without employing significantly more training data by using a multi-step gen-eration process. Pinaya et al . [35] trained a LDM with over 30K brain MRIs of the UK Biobank. The model can gener-ate high-resolution MRIs conditioned on brain volume, ven-tricular volume, and age. Although image-to-image coun-terfactual brain MR modeling has not been explored to the best of our knowledge, there is limited work on predicting brain aging ( e.g ., [53]). They developed an architecture that predicts brain aging by conditioning a diffusion model on a longitudinal sequence of brain MRIs. 
+
+LDM Fine-Tuning. Most LDM-based models are trained on natural images. To help with the customization of the models, various fine-tuning techniques have been developed to allow a lightweight introduction of new concepts to the model [6]. Textual Inversion [11] only fine-tunes the text encoder of the LDM architecture. The new concept to be learned is represented by a placeholder string S∗. Instead of modifying the embedding space of the text encoder, Custom Diffusion [11], and DreamBooth [41] focus on the tuning of the denoising U-Net. DreamBooth identifies rare tokens having a low prior in representing the new concept, and the ”Class-specific Prior Preservation Loss” prevents the model from forgetting syntactic and semantic knowledge during fine-tuning. Custom Diffusion only fine-tunes the weights in the cross-attention layers in the denoising U-Net that act on the text conditioning. Limited work has been done on using those methods to introduce medical concepts to the pre-trained diffusion models [26, 52]. Chambon et al . [4] examined tuning different LDM elements for chest X-ray generation while generating prostate MR and chest X-ray images using Textual Inversion was explored in [7]. 
+
+# 3. Method 
+
+We propose Latent Drifting for generating counterfactual medical images using general pre-trained diffusion mod-els. The diffusion model is either conditioned on a text prompt for text-to-image generation or an image and text for image-to-image translation. We are given a dataset D
+
+of images I and labels c, where I, c ∈ D , and the labels c
+
+define the counterfactual element which corresponds to dis-ease vs. healthy, or the patient’s information such as age, gender, etc. Using a pre-trained diffusion model DM , our goal is to fine-tune the DM for prompt-based medical image generation and manipulation tasks. The diffusion model is parameterized by θ.
+
+## 3.1. Diffusion Model 
+
+Given a data distribution x0 ∼ q(x0), the forward Markov process generates a sequence of random variables 
+
+x1, x 2, . . . , x T with transition kernel q(xt|xt−1). Then, based on the chain rule and the Markov property, we can factorize the joint distribution of x1, x 2, . . . , x T con-ditioned on x0, denoted as q(x1, . . . , x T |x0), into: 
+
+q(x1, . . . , x T |x0) = 
+
+> T
+
+Y
+
+> t=1
+
+q(xt|xt−1). (1) In the forward process, noise is introduced into data until the distribution of latent space matches the Gaussian noise distribution p(xT ) with the mean of μ and variance of σ,allowing to obtain xt in models like DDPM [14], where 
+
+xt = √¯αtx0 + √1 − ¯αtϵt with αt := 1 − βt and ¯αt =Qts=0 αst + 1 and ϵ ∼ N (0 , I ). In the reverse process, for generating new data samples, diffusion models start by sam-pling a noise vector from the prior distribution p(xT ), then gradually removing noise by running a learnable Markov chain in the reverse time direction. Specifically, the reverse Markov chain is parameterized by a prior distribution p(xT )
+
+and a learnable transition kernel pθ (xt−1|xt). The learnable transition kernel pθ (xt−1|xt) takes the form of 
+
+pθ (xt−1|xt) = N (xt−1; μθ (xt, t ), Σθ (xt, t )) , (2) where θ denotes the model parameters, and the mean 
+
+μθ (xt, t ) and variance Σθ (xt, t ) are parameterized by deep 7687 -0.2 -0.1 -0.05 0 0.05 0.1 0.2 
+
+> (a) SD [40] + Basic FT w/o Latent Drifting
+
+-0.2 -0.1 -0.05 0 0.05 0.1 0.2      
+
+> (b) SD [40] + Basic FT w. Latent Drifting
+> Figure 3. Image and Latent Space Distribution w. and w/o. LD in Fine-tuning + Sampling . Rows 1-2: sampled images with different latent drift parameters ( δ) during the inference. Row 3: channel-wise distribution change in images during the reverse sampling process. Row 4: distribution of the latent space z0during in reverse sampling.
+
+neural networks. With this reverse Markov chain in hand, we can generate a data sample x0 by first sampling a noise vector xT ∼ p(xT ), then iteratively sampling from the learnable transition kernel xt−1 ∼ pθ (xt−1|xt) until t = 1 .
+
+## 3.2. Conditioning 
+
+The diffusion model DM is trained on a denoising objective: 
+
+Ex,c, ϵ,t wt∥ˆxθ (αtx + σtϵ, c ) − x∥22, (3) where (x, c ) are data-conditioning pairs, t ∼ U([0 , 1]) ,
+
+ϵ ∼ N (0 , I ), and αt, σ t, w t are functions of t that influ-ence sample quality. Intuitively, ˆxθ is trained to denoise 
+
+zt = αtx + σtϵ into x using a squared error loss, weighted to emphasize certain values of t. Sampling such that the an-cestral sampler [14] and DDIM [44] start from pure noise 
+
+z1 ∼ N (0 , I ) and iteratively generate points zt1 , . . . , z tT ,where 1 = t1 > · · · > t T = 0 , modeled by pθ (xt−1|xt, c ).
+
+## 3.3. Latent Drifting 
+
+We define LD as a hyperparameter in diffusion models to adapt the learned distribution of a pre-trained model Dθ to a new data distribution DGT . LD is represented by a signed scalar value δ and is introduced to the diffusion process. For the fine-tuning through Latent Drifting, LD is added to the target zT of the forward process, as well as the reverse processes: 
+
+pθ (xt−1|xt) = N (xt−1; μθ (xt, t ) + δ, Σθ (xt, t )) . (4) For example, in Fig. 2 LD is applied to reverse pro-cess only at inference time showcasing how it can control the style of synthetic images, and Fig. 3 to both forward and reverse process for fine-tuning. The discrepancy be-tween the generated data distribution Dθ and the target data distribution DGT can be quantified by a distance function 
+
+d(DGT , Dθ ). In the absence of the training set used to fine-tune the pre-trained model, this distance can be estimated via Monte Carlo sampling of generated samples from Dθ
+
+and existing samples in DGT . Here, we use L1norm as the distance function between the synthetic samples and the target dataset, as further explained in the algorithm in the supplement. The diversity of generated samples in a diffu-sion model is ensured by the stochastic element introduced by N (μ,σ). However, in the reverse Markov chain process of a conditional model pθ (zt−1|zt, c ), N (μ,σ) remains un-changed despite the introduction of condition c. This phe-nomenon is demonstrated in Fig. 3 by visualizing the gen-erated samples, the channel-wise data distribution, and the latent space distribution with and without Latent Drifting. As it can be seen, the data and latent distribution have a high variance when fine-tuned without LD , while the model with LD reaches a stable point that is resilient and robust to distribution shift. We hypothesize that the final latent vari-able zT must be considered as part of the condition, and with our proposed δ, we can modify μ to ensure that the learned representations of Dθ accurately reflect the target data distribution DGT .
+
+## 3.4. Counterfactual Image Generation 
+
+A sample x is labeled as y = ˆf (x), such that (x, y ) ∈ D GT ,and a counterfactual sample x′ is a synthetically generated by a generative model Gθ (x) that is highly similar to x but has different enough features such that it can be labeled dif-ferently y′ = ˆf (x′). This can be achieved by minimizing two contradictory loss values, resembling a min-max prob-lem with the following objective function [47]: 
+
+L(x, x ′, y ′, λ ) = min 
+
+> ℓo
+
+h
+
+λ · (ℓo( ˆf (x′), y ′)) 
+
+i| {z }
+
+> Desired Outcome Fidelity
+
++ min 
+
+> ℓin
+
+[ℓin (x, x ′)] 
+
+| {z }
+
+> Counterfactual Fidelity
+
+(5) 7688 where ℓin (x, x ′) ensures the similarity of the origi-nal instance x and the counterfactual instance x′, and 
+
+ℓo( ˆf (x′), y ′) is a term to minimize the model’s prediction for the counterfactual instance ˆf (x′) and the desired out-come y′. Inherently, ℓin ∝ 1 
+
+> ℓo
+
+based on the definition of counterfactual conditions. The weighting factor λ con-trols the trade-off between achieving the desired outcome and maintaining similarity to the original instance; hence, the model is optimized by minimizing ℓin , which leads to 
+
+x ∼ x′. Conversely, higher values of λ, ( 1 in our counter-factual experiments) facilitate additional conditioning by in-troducing the latent drifting parameter δ affecting new sam-pled latent value x′ for the new data points. 
+
+Latent Drifting in Diffusion Models. A diffusion model with parameters θ, pre-trained on a large dataset of natu-ral images Dθ , generates samples by sampling from a latent space ( zT ∼ N (0 , I )). Standard fine-tuning on a limited dataset of medical images DGT assumes that model param-eters θ can directly transform to θ′. However, the significant distribution shift between natural and medical images pre-vents the direct adaptation of generic foundation diffusion models. LD reframes this as a counterfactual generation problem, positing that θ and θ′ belong to a more general domain. Therefore, in a large pre-trained model Dθ resem-bling a general domain, a latent space z′, similar to z, exists, such that the model generates samples from DGT when con-ditioned on z′. In Eq. (5), if ( λ = 0 ), the Desired Outcome Fidelity term is eliminated, resulting in ( z = z′) (standard fine-tuning). However, if ( λ > 0), the minimum value of δ
+
+is found via grid search to minimize the distance function. Fine-tuning then maximizes the probability that the model produces results belonging to the target domain. Here, we employed the L1norm as the distance function and tune hy-perparameter δ.
+
+# 4. Experiments 
+
+To show the effectiveness of our method in medical image generation and manipulation, we adopted several methods: Stable Diffusion [40] with various fine-tuning schemes, namely Custom Diffusion [22], Dreambooth [41], and Tex-tual Inversion [7] for text-to-image generation, and Pix2Pix Zero [33], and InstructPix2Pix [3] for text-conditioned image-to-image generation. 
+
+## 4.1. Experimental Setup 
+
+For all the experiments, the SD-v1.4 model pre-trained on the LAION-5B dataset [43] was employed. The Stable Dif-fusion framework is based on three main elements: A text encoder (here based on CLIP [37]), a latent diffusion model consisting of an Autoencoder, and a text-conditioned U-Net. Training all of these elements can be computationally expensive. Thus, fine-tuning methods have been developed that focus on a particular element of the Stable Diffusion framework. We evaluate four fine-tuning methods with and without LD , namely textual inversion, DreamBooth, Cus-tom Diffusion, and Stable Diffusion basic fine-tuning (fine-tuning the denoising U-Net while freezing the rest of the components). While the first three methods only require a couple of samples for introducing a new concept, the latter requires a large amount of data. The implementation details and dataset preprocessing are provided in the supplement. 
+
+Datasets. To fine-tune and evaluate our method, we uti-lize three medical imaging datasets. For the experiments on brain MR imaging, we utilize the ADNI-1 [49] and OASIS-3 [23] datasets which include longitudinal MR scans of Mild Cognitive Impairment (MCI), Alzheimer’s Disease (AD) or Cognitively Normal (CN) patients. For the chest x-ray experiments, we used the CheXpert [15] dataset, which is a large dataset containing over 224K chest radiographs of four categories: no finding (healthy), Cardiomegaly, Pleural Effusion, and Pneumonia. The datasets were preprocessed, and the final datasets consisted of 3269 scans (414 AD, 634 MCI, 2214 CN) for the brain dataset and 800 uniformly ran-dom samples from the chest x-ray dataset. The details of data preprocessing are reported in the supplementary mate-rial. All models for brain MR generation are evaluated on 200 samples, and the models on chest X-rays are evaluated on 400 test samples. 
+
+Evaluation Metrics. For the evaluation of the image re-alism, we calculate the Fr´ echet Inception Distance (FID) [13] and Kernel Inception Distance (KID) [2] between the synthetically generated samples and our test set. Addi-tionally, we train binary classification models (CN/AD) on a Resnet18 architecture using 600 synthetically generated brain MR (300 AD, 300 CN) slices and test them on real test sets. The chest x-ray classification model is trained based on the model obtained from LibAUC [54]. We report the area under the receiver operating characteristic curve (AUC) from the classification on the real test set. 
+
+Prompt Generation. Since the model performance can be highly dependent on the prompting style, we experiment with different prompting styles: Simple , where the same prompt template is used for all training images, and Di-verse , where we randomly select one of the 21 slightly dif-ferent prompts for each training image. Both styles are used without patient information ( PI ) (e.g., ”a brain MRI”), and with PI (e.g., ”A brain MRI of a <age > year old <sex >
+
+with <diagnosis >”). In addition to the general prompt style, we evaluate the model with three different numerical con-ditioning representations, which correspond to the age here. The three types are: (1) Binned, (2) Word-based, and (3) Numerical. For the Binned type, we divide the aging differ-ence based on the value into three groups of ”slightly” ( <5years), ”moderately” (5-10 years), and ”significantly” ( >10 7689 CN  AD        
+
+> (a) Textual Inversion [11] (b) DreamBooth [41] (c) Custom Diffusion [22] (d) Basic FT [40]
+
+Figure 4. MRI Slice Generation for Cognitively Normal (CN) and Alzheimer’s Disease (AD) after fine-tuning Stable Diffusion with LD 
+
+using different methods. Table 1. Comparison of different fine-tuning methods for text-to-image generation, with and without LD , on brain MRI [23, 49] and chest X-ray [15] data. Values from real data are provided as references. The number of samples is consistent across experiments, with Real+Synthetic using a 50% split between real data and samples generated by Stable Diffusion [40] Basic FT with LD .
+
+Method LD Brain MR CheXpert FID ↓ KID ↓ AUC ↑ FID ↓ KID ↓ AUC ↑
+
+Custom Diffusion [22] ✗ 129.21 0.132 0.609 323 0.275 0.573 
+
+✓ 63.58 0.065 0.544 315 0.270 0.593 DreamBooth [41] ✗ 130.92 0.125 0.500 188 0.175 0.567 
+
+✓ 92.37 0.099 0.512 177 0.145 0.582 Textual Inversion [11] ✗ 120.63 0.098 0.600 171.77 0.135 0.600 
+
+✓ 67.56 0.065 0.670 133.18 0.085 0.640 Stable Diffusion [40] ✗ 313.61 0.289 0.414 331 0.286 0.426 + Basic FT ✗ 92.13 0.071 0.704 112 0.097 0.672 
+
+✓ 49.68 0.035 0.724 84 0.077 0.746 
+
+Real Data - - - 0.870 - - 0.880 Real+Synthetic Data ✓ - - 0.883 - - 0.892 
+
+years). The Word-based type includes the prompt based on the alphabetical form (e.g., seventy-seven). Finally, the Nu-merical type takes the simplest form of using the number. 
+
+## 4.2. Results 
+
+4.2.1. Medical Image Generation 
+
+We present the results of conditional medical image gener-ation with and without our proposed method LD , in Tab. 1, and Fig. 5. In Fig. 4, we show examples of brain MR images generated by the different methods combined with 
+
+LD for two different classes of cognitively normal (CN) and Alzheimer’s disease (AD). The results were obtained by fine-tuning the corresponding method on the medical data with LD . As shown in Fig. 4, the samples generated through Custom Diffusion tuning are realistically looking while understanding the difference between CN and AD brain properly, which other methods failed at. Textual in-version seems to understand the concept but fails to under-stand the brain structure properly. Quantitative results on the performance of all our methods are presented in Tab. 1. Qualitative results on the CheXpert [15] dataset, along with a user study and ablation of different parameters, optimiza-tion algorithm, and more, are included in the supplement. 
+
+Effect of Latent Drifting. Qualitatively, Fig. 5 shows a significant improvement of the visual realism across all 7690 (a) Without Latent Drifting (b) With Latent Drifting 
+
+Figure 5. Image Generation w. and w/o. LD during fine-tuning. Examples generated from left to right using Textual Inversion [11], DreamBooth [41], Custom Diffusion [22], and Basic FT [40]. Table 2. Comparison of different backbones and aging prompt styles for age-conditioned manipulation using InstructPix2Pix + 
+
+LD . CD : Custom Diffusion, SD : Stable Diffusion. Prompt Method FID ↓ SSIM ↑ LPIPS ↓ PSNR ↑                                    
+
+> Binned SD [40] 17.05 0.74 0.13 32.78 SD + CD [22] 24.75 0.43 0.19 31.86 SD + Basic FT [40] 15.39 0.74 0.13 32.77 Word SD [40] 15.84 0.74 0.13 32.79 SD + CD [22] 27.41 0.27 0.19 30.49 SD + Basic FT [22]
+> 15.25 0.75 0.13 32.78 Numerical SD [40] 16.27 0.75 0.13 32.79 SD + CD [22] 24.05 0.32 0.23 30.70 SD + Basic FT [40] 15.37 0.76 0.12 32.83
+
+Source Target Ctf. ( LD )
+
+Figure 6. Brain aging example using the prompt ”Age this CN 70 years old female brain MRI into a 77 brain MRI with MCI” via InstructPix2Pix + LD .
+
+methods when using a drift of 0.1. The background is con-sistently black as in real brain MR images; the shape of the brain becomes more realistic, and the white and gray matter structure improves. For an analytical evaluation, we calculated the FID between our test data and 200 synthet-ically generated images from each method (100 CN, 100 AD). The results in Tab. 1 demonstrate that LD improves the ability of the model to generate realistic MRI slices for both healthy brains and brains with Alzheimer’s disease. For this reason, all following experiments were done with LD .
+
+4.2.2. Medical Image Manipulation 
+
+The counterfactual conditioning for medical image manip-ulation is based on pairs of text and images for the two Original (CN) Counterfactual (AD) Diff 
+
+Healthy −−−−−→ Alzheimer’s Disease Original (AD) Counterfactual (CN) Diff 
+
+Alzheimer’s Disease −−−−−→ Healthy 
+
+Figure 7. Generated counterfactual MRI slices from Alzheimer’s disease to healthy and vice versa using Pix2Pix Zero + LD . :Removal, : Addition. 
+
+tasks of aging and disease conditioning. We employ the In-structPix2Pix model [3] for the aging experiments and the Pix2Pix Zero [33] model for disease conditioning. 
+
+Age-conditioned Manipulation The InstructPix2Pix model is based on Stable Diffusion [40]. We use three different Stable Diffusion models as the starting point. 1) 7691 Orig. Ctf. Diff Orig. Ctf. Diff 
+
+Cardiomegaly and Consolidation −→ No finding No finding −−−−−→ Pleural Effusion 
+
+Male + No finding −→ Female + No finding No finding −−−−−→ Cardiomegaly       
+
+> Figure 8. Generated counterfactual samples on CheXpert using Pix2Pix Zero + LD .: Removal, : Addition. Table 3. Comparison of different prompt styles for text-to-image generation using Stable Diffusion + Basic FT + LD .PI : Patient In-formation.
+
+Prompt Style PI FID ↓ KID ↓
+
+Simple ✗ 60.41 0.0475 Simple ✓ 56.49 0.0368 Diverse ✗ 57.99 0.0444 Diverse ✓ 51.35 0.0351   
+
+> Table 4. Comparison of different prompt styles for text-conditioned image-to-image generation using Pix2Pix Zero + LD .PI : Patient Information.
+
+Prompt Style PI FID ↓ KID ↓
+
+Simple ✗ 46.79 0.0282 Diverse ✗ 41.70 0.0216 Diverse ✓ 36.10 0.0151 
+
+Stable Diffusion model with basic fine-tuning, 2) Stable Diffusion model fine-tuned using Custom Diffusion [22], and 3) the original Stable Diffusion model. The input to the model includes an image together with an editing prompt, while the output is the edited image (e.g., Fig. 6). Tab. 2 shows the performance of the different starting point models with three prompting styles. As can be seen, the numerical prompts achieve the best overall performance. The Custom Diffusion model achieved a much lower performance than the other models, while the model based on the original Stable Diffusion performs slightly worse. 
+
+Disease-conditioned Manipulation We use the Pix2Pix Zero model with a basic fine-tuned Stable Diffusion model to generate healthy brain MRIs from ones diagnosed with Alzheimer’s Disease and vice versa. We generate the coun-terfactual images by negating the ground truth label of the 200 test samples and conditioning the model on the negated label value and the source image. We compute image qual-ity metrics, as well as the AUC, using a disease classifica-tion model trained on 600 real brain MRI slices (300 AD, 300 CN). Additionally, we determine the Structure Similar-ity Inced (SSIM) between the target and the source image to determine how well the identity of the source image is re-tained. The qualitative results in Fig. 7 illustrate examples from our two editing modes: from AD to CN and from CN to AD, respectively. When transitioning from AD to CN, the model primarily reduces the size of the ventricles. Con-versely, in the CN to AD transformation, the ventricle size increases, accompanied by the worsening of brain atrophy. 
+
+4.2.3. Ablation Study 
+
+We provide different ablation studies on the effect of differ-ent parameters and components of our model. In the supple-mentary material, we ablate the effect of δ and τ parameters. 
+
+Prompt Style We evaluated four varieties of prompting style, namely Simple and Diverse , both with and without the patient information (PI) in Tab. 3 and Tab. 4. In all scenar-ios, the models fine-tuned with Diverse prompts and patient information (PI) performed the best. 
+
+# 5. Conclusions 
+
+In this work, we analyzed the generalizability of transfer-ring the knowledge from a pre-trained diffusion model on the natural image domain to another domain with a distri-bution shift, such as medical imaging. We proposed Latent Drifting, an approach for adapting the diffusion model dur-ing the fine-tuning process to the target domain by optimiz-ing the latent space. Latent Drifting enables the model to generate realistic medical images, while taking advantage of the pretraining domain. We evaluated our method on the counterfactual medical image generation task using text prompts on multiple medical datasets and showed its advan-tage when combined with SOTA text-to-image and image-to-image generation models. 7692 Acknowledgments 
+
+This work and collaboration were partially supported by the Munich Center for Machine Learning, BaCaTeC, and the Stanford HAI Hoffman-Yee Award. 
+
+# References 
+
+[1] Mehdi Astaraki, Francesca De Benetti, Yousef Yeganeh, Iu-liana Toma-Dasu, ¨ Orjan Smedby, Chunliang Wang, Nassir Navab, and Thomas Wendler. Autopaint: A self-inpainting method for unsupervised anomaly detection. arXiv preprint arXiv:2305.12358 , 2023. 2 [2] Mikołaj Bi´ nkowski, Danica J. Sutherland, Michael Arbel, and Arthur Gretton. Demystifying mmd gans. In Interna-tional Conference for Learning Representations , pages 1–36, 2018. 5 [3] Tim Brooks, Aleksander Holynski, and Alexei A Efros. In-structpix2pix: Learning to follow image editing instructions. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 18392–18402, 2023. 3, 5, 7 [4] Pierre Chambon, Christian Bluethgen, Curtis P Langlotz, and Akshay Chaudhari. Adapting pretrained vision-language foundational models to medical imaging domains. arXiv preprint arXiv:2210.04133 , 2022. 2, 3 [5] Chun-Hao Chang, George Alexandru Adam, and Anna Goldenberg. Towards robust classification model by coun-terfactual and invariant data generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 15212–15221, 2021. 3 [6] Jooyoung Choi, Yunjey Choi, Yunji Kim, Junho Kim, and Sungroh Yoon. Custom-edit: Text-guided image edit-ing with customized diffusion models. arXiv preprint arXiv:2305.15779 , 2023. 3 [7] Bram de Wilde, Anindo Saha, Richard PG ten Broek, and Henkjan Huisman. Medical diffusion on a budget: tex-tual inversion for medical image generation. arXiv preprint arXiv:2303.13430 , 2023. 2, 3, 5 [8] Helisa Dhamo, Azade Farshad, Iro Laina, Nassir Navab, Gregory D Hager, Federico Tombari, and Christian Rup-precht. Semantic image manipulation using scene graphs. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 5213–5222, 2020. 2, 3[9] Azade Farshad, Yousef Yeganeh, Helisa Dhamo, Federico Tombari, and Nassir Navab. Dispositionet: Disentangled pose and identity in semantic image manipulation. In 33rd British Machine Vision Conference 2022, BMVC 2022, Lon-don, UK, November 21-24, 2022 , 2022. 2 [10] Azade Farshad, Yousef Yeganeh, Yu Chi, Chengzhi Shen, Bj¨ orn Ommer, and Nassir Navab. Scenegenie: Scene graph guided diffusion models for image synthesis. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion , pages 88–98, 2023. 2 [11] Rinon Gal, Yuval Alaluf, Yuval Atzmon, Or Patashnik, Amit Haim Bermano, Gal Chechik, and Daniel Cohen-or. An image is worth one word: Personalizing text-to-image generation using textual inversion. In The Eleventh Interna-tional Conference on Learning Representations , 2022. 2, 3, 6, 7 [12] Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio. Generative adversarial nets. Advances in neural information processing systems , 27, 2014. 2 [13] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp Hochreiter. Gans trained by a two time-scale update rule converge to a local nash equilib-rium. Advances in neural information processing systems ,30, 2017. 5 [14] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 3, 4 [15] Jeremy Irvin, Pranav Rajpurkar, Michael Ko, Yifan Yu, Sil-viana Ciurea-Ilcus, Chris Chute, Henrik Marklund, Behzad Haghgoo, Robyn Ball, Katie Shpanskaya, et al. Chexpert: A large chest radiograph dataset with uncertainty labels and expert comparison. In Proceedings of the AAAI conference on artificial intelligence , pages 590–597, 2019. 2, 5, 6 [16] Phillip Isola, Jun-Yan Zhu, Tinghui Zhou, and Alexei A Efros. Image-to-image translation with conditional adver-sarial networks. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 1125–1134, 2017. 2 [17] Pavel Jahoda, Azade Farshad, Yousef Yeganeh, Ehsan Adeli, and Nassir Navab. Prism: Progressive restoration for scene graph-based image manipulation. arXiv preprint arXiv:2311.02247 , 2023. 3 [18] Euijin Jung, Miguel Luna, and Sang Hyun Park. Conditional gan with an attention-based generator and a 3d discriminator for 3d medical image generation. Medical Image Computing and Computer Assisted Intervention – MICCAI 2021 , 12906: 318–328, 2021. 2, 3 [19] Tero Karras, Samuli Laine, Miika Aittala, Janne Hellsten, Jaakko Lehtinen, and Timo Aila. Analyzing and improv-ing the image quality of stylegan. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8110–8119, 2020. 2 [20] Tero Karras, Miika Aittala, Samuli Laine, Erik H¨ ark¨ onen, Janne Hellsten, Jaakko Lehtinen, and Timo Aila. Alias-free generative adversarial networks. arXiv preprint arXiv:2106.12423 , 2021. 2 [21] Firas Khader, Gustav M¨ uller-Franzes, Soroosh Tayebi Arasteh, Tianyu Han, Christoph Haarburger, Maximilian Schulze-Hagen, Philipp Schad, Sandy Engelhardt, Bettina Baeßler, Sebastian Foersch, Johannes Stegmaier, Christiane Kuhl, Sven Nebelung, Jakob Nikolas Kather, and Daniel Truhn. Denoising diffusion probabilistic models for 3d med-ical image generation. Scientific reports , 13(1), 2023. 2, 3 [22] Nupur Kumari, Bingliang Zhang, Richard Zhang, Eli Shechtman, and Jun-Yan Zhu. Multi-concept customization of text-to-image diffusion. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 1931–1941, 2023. 2, 5, 6, 7, 8 [23] Pamela J LaMontagne, Tammie LS Benzinger, John C Mor-ris, Sarah Keefe, Russ Hornbeck, Chengjie Xiong, Eliza-7693 beth Grant, Jason Hassenstab, Krista Moulder, Andrei G Vlassenko, et al. Oasis-3: longitudinal neuroimaging, clin-ical, and cognitive dataset for normal aging and alzheimer disease. MedRxiv , pages 2019–12, 2019. 2, 5, 6 [24] Yitong Li, Zhe Gan, Yelong Shen, Jingjing Liu, Yu Cheng, Yuexin Wu, Lawrence Carin, David Carlson, and Jianfeng Gao. Storygan: A sequential conditional gan for story vi-sualization. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 6329– 6338, 2019. 2 [25] Huan Ling, Karsten Kreis, Daiqing Li, Seung Wook Kim, Antonio Torralba, and Sanja Fidler. Editgan: High-precision semantic image editing. arXiv preprint arXiv:2111.03186 ,2021. 3 [26] Sven L¨ upke, Yousef Yeganeh, Ehsan Adeli, Nassir Navab, and Azade Farshad. Physics-informed latent diffusion for multimodal brain mri synthesis. arXiv preprint arXiv:2409.13532 , 2024. 3 [27] Mehdi Mirza and Simon Osindero. Conditional generative adversarial nets. arXiv preprint arXiv:1411.1784 , 2014. 2 [28] Gustav M¨ uller-Franzes, Jan Moritz Niehues, Firas Khader, Soroosh Tayebi Arasteh, Christoph Haarburger, Chris-tiane Kuhl, Tianci Wang, Tianyu Han, Sven Nebelung, Jakob Nikolas Kather, and Daniel Truhn. Diffusion proba-bilistic models beat gans on medical images. Scientific re-ports , 13(1):686, 2023. 3 [29] Alexander Quinn Nichol and Prafulla Dhariwal. Improved denoising diffusion probabilistic models. In International Conference on Machine Learning , pages 8162–8171. PMLR, 2021. 2 [30] Alexander Quinn Nichol, Prafulla Dhariwal, Aditya Ramesh, Pranav Shyam, Pamela Mishkin, Bob Mcgrew, Ilya Sutskever, and Mark Chen. Glide: Towards photorealis-tic image generation and editing with text-guided diffusion models. In International Conference on Machine Learning ,pages 16784–16804. PMLR, 2022. 2 [31] Evangelos Ntavelis, Andr´ es Romero, Iason Kastanis, Luc Van Gool, and Radu Timofte. SESAME: Semantic Edit-ing of Scenes by Adding, Manipulating or Erasing Objects. In Computer Vision – ECCV 2020 , pages 394–411, Cham, 2020. Springer International Publishing. 3 [32] Taesung Park, Ming-Yu Liu, Ting-Chun Wang, and Jun-Yan Zhu. Semantic image synthesis with spatially-adaptive nor-malization. In CVPR , 2019. 2 [33] Gaurav Parmar, Krishna Kumar Singh, Richard Zhang, Yijun Li, Jingwan Lu, and Jun-Yan Zhu. Zero-shot image-to-image translation. In ACM SIGGRAPH 2023 Conference Proceed-ings , pages 1–11, 2023. 3, 5, 7 [34] Wei Peng, Ehsan Adeli, Qingyu Zhao, and Kilian M Pohl. Generating realistic 3d brain mris using a conditional diffu-sion probabilistic model. arXiv preprint arXiv:2212.08034 ,2022. 2, 3 [35] Walter HL Pinaya, Petru-Daniel Tudosiu, Jessica Dafflon, Pedro F Da Costa, Virginia Fernandez, Parashkev Nachev, Sebastien Ourselin, and M Jorge Cardoso. Brain imaging generation with latent diffusion models. In MICCAI Work-shop on Deep Generative Models , pages 117–126. Springer, 2022. 2, 3 [36] Guilherme Pombo, Robert Gray, M Jorge Cardoso, Sebastien Ourselin, Geraint Rees, John Ashburner, and Parashkev Nachev. Equitable modelling of brain imaging by coun-terfactual augmentation with morphologically constrained 3d deep generative models. Medical Image Analysis , 84: 102723, 2023. 2, 3 [37] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PMLR, 2021. 5 [38] Daniele Ravi, Daniel C Alexander, Neil P Oxtoby, and Alzheimer’s Disease Neuroimaging Initiative. Degenerative adversarial neuroimage nets: generating images that mimic disease progression. In International Conference on Medi-cal Image Computing and Computer-Assisted Intervention ,pages 164–172. Springer, 2019. 2 [39] Daniele Ravi, Stefano B Blumberg, Silvia Ingala, Frederik Barkhof, Daniel C Alexander, Neil P Oxtoby, Alzheimer’s Disease Neuroimaging Initiative, et al. Degenerative adver-sarial neuroimage nets for brain scan simulations: Applica-tion in ageing and dementia. Medical Image Analysis , 75: 102257, 2022. 2, 3 [40] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 1, 2, 3, 4, 5, 6, 7 [41] Nataniel Ruiz, Yuanzhen Li, Varun Jampani, Yael Pritch, Michael Rubinstein, and Kfir Aberman. Dreambooth: Fine tuning text-to-image diffusion models for subject-driven generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 22500– 22510, 2023. 2, 3, 5, 6, 7 [42] Axel Sauer and Andreas Geiger. Counterfactual generative networks. In International Conference on Learning Repre-sentations , 2020. 3 [43] Christoph Schuhmann, Romain Beaumont, Richard Vencu, Cade Gordon, Ross Wightman, Mehdi Cherti, Theo Coombes, Aarush Katta, Clayton Mullis, Mitchell Worts-man, et al. Laion-5b: An open large-scale dataset for training next generation image-text models. Advances in Neural In-formation Processing Systems , 35:25278–25294, 2022. 1, 5[44] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502 , 2020. 4 [45] Wei Sun and Tianfu Wu. Image synthesis from reconfig-urable layout and style. In ICCV , 2019. 2 [46] Nima Tajbakhsh, Laura Jeyaseelan, Qian Li, Jeffrey N Chi-ang, Zhihao Wu, and Xiaowei Ding. Embracing imperfect datasets: A review of deep learning solutions for medical image segmentation. Medical Image Analysis , 63:101693, 2020. 2 [47] Sandra Wachter, Brent Mittelstadt, and Chris Russell. Coun-terfactual explanations without opening the black box: Au-7694 tomated decisions and the gdpr. Harv. JL & Tech. , 31:841, 2017. 2, 4 [48] Ting-Chun Wang, Ming-Yu Liu, Jun-Yan Zhu, Andrew Tao, Jan Kautz, and Bryan Catanzaro. High-resolution image syn-thesis and semantic manipulation with conditional gans. In 
+
+Proceedings of the IEEE conference on computer vision and pattern recognition , pages 8798–8807, 2018. 2 [49] Michael W. Weiner, Dallas P. Veitch, Paul S. Aisen, Lau-rel A. Beckett, Nigel J. Cairns, Robert C. Green, Danielle Harvey, Clifford R. Jack, William Jagust, Enchi Liu, John C. Morris, Ronald C. Petersen, Andrew J. Saykin, Mark E. Schmidt, Leslie Shaw, Judith A. Siuciak, Holly Soares, Arthur W. Toga, and John Q. Trojanowski. The alzheimer’s disease neuroimaging initiative: a review of papers published since its inception. Alzheimer’s & dementia : the journal of the Alzheimer’s Association , 8(1 Suppl):S1–68, 2012. 2, 5, 6 [50] Tian Xia, Agisilaos Chartsias, Chengjia Wang, and Sotirios A. Tsaftaris. Learning to synthesise the ageing brain without longitudinal data. Medical Image Analysis , 73(1), 2021. 2, 3 [51] Yousef Yeganeh, Azade Farshad, and Nassir Navab. Anatomy-aware masking for inpainting in medical imaging. In International Workshop on Shape in Medical Imaging ,pages 35–46. Springer, 2023. 2 [52] Yousef Yeganeh, Rachmadio Lazuardi, Amir Shamseddin, Emine Dari, Yash Thirani, Nassir Navab, and Azade Farshad. Visage: Video synthesis using action graphs for surgery. In 
+
+International Conference on Medical Image Computing and Computer-Assisted Intervention , pages 146–156. Springer, 2024. 3 [53] Jee Seok Yoon, Chenghao Zhang, Heung-Il Suk, Jia Guo, and Xiaoxiao Li. Sadm: Sequence-aware diffusion model for longitudinal medical image generation. In International Conference on Information Processing in Medical Imaging ,pages 388–400. Springer, 2023. 2, 3 [54] Zhuoning Yuan, Yan Yan, Milan Sonka, and Tianbao Yang. Large-scale robust deep auc maximization: A new surrogate loss and empirical studies on medical image classification. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 3040–3049, 2021. 5 [55] Bo Zhao, Lili Meng, Weidong Yin, and Leonid Sigal. Image generation from layout. In CVPR , 2019. 2 [56] Jun-Yan Zhu, Taesung Park, Phillip Isola, and Alexei A Efros. Unpaired image-to-image translation using cycle-consistent adversarial networks. In ICCV , 2017. 2 7695

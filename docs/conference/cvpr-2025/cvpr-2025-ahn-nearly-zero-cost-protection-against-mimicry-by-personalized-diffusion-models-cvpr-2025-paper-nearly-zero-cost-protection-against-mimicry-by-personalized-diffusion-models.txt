@@ -1,0 +1,303 @@
+Title: Nearly Zero-Cost Protection Against Mimicry by Personalized Diffusion Models
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Ahn_Nearly_Zero-Cost_Protection_Against_Mimicry_by_Personalized_Diffusion_Models_CVPR_2025_paper.pdf
+
+Published Time: Mon, 02 Jun 2025 14:01:03 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Nearly Zero-Cost Protection Against Mimicry by Personalized Diffusion Models 
+
+# Namhyuk Ahn 1,2 KiYoon Yoo 3 Wonhyuk Ahn 2 Daesik Kim 2 Seung-Hun Nam 21 Inha University 2 NAVER WEBTOON AI 3 KRAFTON 512 768 1024 1660 2048       
+
+> 0.01
+> 0.1
+> 1
+> 10
+> 50
+> 100
+> 500
+> 1000
+> 5000
+> Time
+> Anti-DB
+> Mist
+> FastProtect
+> AdvDM
+> PhotoGuard
+> SDST
+> Impasto
+> (a) Inference latency (log-scaled) vs. image size 0.15 0.17 0.19 0.21 0.23 0.25
+> 185
+> 195
+> 205
+> 215
+> 225
+> 235
+> 245
+> 255
+> FID
+> DISTS
+> FastProtect
+> PhotoGuard
+> Mist
+> Impasto
+> SDST
+> AdvDM
+> Anti-DB (b) Protection efficacy vs. invisibility
+
+Figure 1. (a) FastProtect shows unprecedented speed in protection against diffusion models. On an A100 GPU, FastProtect achieves real-time latency even for processing 2048 2-px image, while others require substantially longer time. (b) In terms of the trade-off between protection efficacy (FID, ↑ is better) and invisibility (DISTS, ↓ is better), FastProtect exhibits improvement over other protection methods. 
+
+# Abstract 
+
+Recent advancements in diffusion models revolutionize image generation but pose risks of misuse, such as replicat-ing artworks or generating deepfakes. Existing image pro-tection methods, though effective, struggle to balance pro-tection efficacy, invisibility, and latency, thus limiting prac-tical use. We introduce perturbation pre-training to reduce latency and propose a mixture-of-perturbations approach that dynamically adapts to input images to minimize perfor-mance degradation. Our novel training strategy computes protection loss across multiple VAE feature spaces, while adaptive targeted protection at inference enhances robust-ness and invisibility. Experiments show comparable protec-tion performance with improved invisibility and drastically reduced inference time. The code and demo are available at https://webtoon.github.io/impasto 
+
+# 1. Introduction 
+
+Large-scale diffusion models [8, 22, 24, 29] have achieved remarkable success in the realm of image synthesis task, revolutionizing the way we create and manipulate digital imagery [10, 11, 19, 21, 34]. By adopting recently emerged personalization techniques, it is now possible to develop diffusion models that can generate images in one’s unique styles [2, 5, 14, 25, 28]. However, the very capabilities that make these models so valuable also pose significant risks. Diffusion models can allow malicious users to replicate an individual’s artwork without consent, easily stealing their creative output [27]. Furthermore, diffusion models are ex-ceedingly adept at mimicking faces and objects [14, 25]. This proficiency is not limited to benign applications but can be extended to the making of deepfakes or fake news. The implications for societal harm are profound, as these technologies could be used to undermine public trust, dis-tort political discourse, and violate personal privacy. Current efforts to protect images against diffusion mod-els have evolved through adversarial perturbation [6]. By introducing perturbations to a given image, they render the protected image resistant to diffusion-based personaliza-tion methods, causing the diffusion model to generate dis-torted outputs. Existing methods primarily rely on two ap-proaches: minimizing the distance between the latent fea-tures of the protected and a pre-defined target image within a VAE encoder ( e.g . PhotoGuard [26] and Glaze [27]), or fooling the noise prediction network ( e.g . AdvDM [16] and Anti-DB [30]). Despite numerous advancements, all cur-rent frameworks fundamentally start from an approach that optimizes perturbations during inference [18] when protec-tion is requested, casting doubt on the practicality of these methods to be used in many real applications. For a protection framework to become a practical so-lution, the following conditions should be satisfied: (1) Protection Efficacy : Obviously, image protection method should effectively counteract against diffusion-based per-sonalization. Many recent studies have aimed to maximize this aspect by analyzing the internal dynamics of diffusion This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 28801 models [33, 37]. (2) Invisibility : Although some studies strive to be as invisible as possible, adversarial perturba-tions inevitably leave visible traces on images. However, for commercial services, minimizing these traces is crucial. Moreover, as analyzed by Ahn et al. [1], the task of pre-venting mimicry tends to leave more noticeable traces, par-ticularly in images with flat textures ( e.g . cartoon or illustra-tion). Despite its importance, only a handful of studies high-light this issue [1]. (3) Latency : All existing methods up-date perturbations during the inference phase through itera-tive optimization. However, this process is inherently time-consuming; e.g . protecting a 512 2-px image can take up to 5-120 minutes on a CPU and 7-200 seconds even on a high-end A100 GPU. The extensive time required by current pro-tection methods poses a significant barrier that prevents or-dinary users from utilizing image protection, thereby still exposing them to the risk of misuse of generative models. Consequently, in order to democratize this technology, it is crucial to develop protection framework that can operate effectively on less powerful devices. Unfortunately, despite extensive progresses in the image protection task, there is scant focus on reducing latency. In this work, we propose a novel protection framework, FastProtect, which meets all the requirements, with a par-ticular focus on latency. FastProtect diverges from preva-lent approaches by adopting a pre-trained perturbation. Al-though universal adversarial perturbation (UAP) [20] is pro-posed in adversarial attack, we observed that it significantly reduces protection efficacy for our task. To counteract this, we introduce a mixture-of-perturbations (MoP) . Unlike UAP, which relies on a single perturbation, MoP prepares multiple perturbations and selects one of them based on the input image’s latent code. We also propose a multi-layer protection (MLP) loss that utilizes the intermediate fea-tures when calculating the protection loss. It intensifies the distortion when the protected images go through fine-tuning by personalization methods, thus enhancing the protection efficacy without any additional cost at inference. For the inference, we introduce an adaptive targeted protection to enhance protection efficacy with minimal computational overhead. Our observations suggest that in targeted protection, which minimizes the distance between the input image’s latent code and that of a (pre-defined) tar-get, selecting an appropriate target image significantly in-fluences protection performance. Taking this into account, we adaptively determine the best target image based on the input image’s latent code and then apply the perturbation trained for that specific target. To enhance invisibility, we propose an adaptive protection strength approach using the LPIPS [36] distance. Unlike Ahn et al. [1] that lever-ages multiple just-noticeable difference (JND) maps, our approach does not require ad-hoc modules nor does it sig-nificantly increase computational load; it only involves an additional forward pass of LPIPS (i.e. AlexNet [13]). We conduct extensive experiments to verify the effec-tiveness and efficiency of our protection method. To sim-ulate various use-cases, we test across diverse domains— natural images, faces, paintings, and cartoons— under dif-ferent personalization and countermeasure scenarios. Fast-Protect achieves similar protection efficacy to other meth-ods but at nearly zero cost , with a 200 to 3500 × speedup 
+
+(Figure 1a). It also shows an improvement in invisibility compared to most methods (Figure 1b), proving its suitabil-ity for practical applications. Our main contributions are: • We propose FastProtect, which achieves real-time pro-tection against diffusion models. Our work is the first to address the critical issue of latency in this task. • FastProtect integrates perturbations pre-training with adaptive inference schemes, meeting all requirements for a practical protection solution. • We validate FastProtect in various scenarios, showing that despite its speed and invisibility, it retains protec-tion efficacy, robustness, and generalization. 
+
+# 2. Background 
+
+Diffusion Models. These have gained prominence due to their ability to generate high-quality images. Latent Dif-fusion Model (LDM) [24] is particularly highligted for its exceptional quality and efficiency. Within LDM, a VAE encoder E, transforms an input image x into a latent code 
+
+z = E(x). This code is then reconstructed back into the im-age domain by a decoder D; x′ = D(z′). The diffusion process makes a latent code z′ by incorporating external factors, y, such as textual prompts. The training of LDM is driven by a denoising loss function at each timestep t as: 
+
+LSD = Ez∼E(x),y,ϵ ∼N (0 ,1) ,t [|| ϵ − ϵθ (zt, t, c (y)) || 22], (1) where a denoising network ϵθ restores the noised latent code zt based on the timestep t and a conditioning vec-tor c(y). Recent advancements explore the personalization (or few-shot fine-tuning) of LDM with a few reference im-ages through two primary approaches: textual inversion [5], which utilizes the embedding space of CLIP [23] while keeping the denoising network fixed, and model optimiza-tion [25], which directly updates the denoising network. 
+
+Protection Against Diffusion-based Mimicry. Current protection frameworks apply adversarial perturbations δ to image x, producing a protected image ˆx = x + δ using pro-jected gradient descent (PGD) [18]. With a protection loss 
+
+LP , current methods obtain the protected image of i-th opti-mization step by a signed gradient ascent with step function sgn and step length α as given by 
+
+x(i) = Π Nη (x)
+
+h
+
+x(i−1) + αsgn (∇x(i) LP (x(i−1) )
+
+i
+
+, (2) 28802 where ΠN η(x) projects onto the L∞ neighborhood of x
+
+with a radius of η. This iterative process is repeated for 
+
+N steps until ˆx = x(N ) is achieved (Figure 2a). For the objective function, semantic or texture losses are mostly used [15]. The semantic loss, LS (x) = LSD (x),is designed to disrupt the denoising process of LDM, mis-leading it to generate samples that deviate from the original images. AdvDM [16] adopts this loss and Anti-DB [30] is improved to be more robust against DreamBooth [25] by in-corporating its update process within the optimization. The texture loss, LT (x) = −||E (x) − E (y)|| 22, aims to pushing the latent code of x towards the target image’s latent code. Glaze [27] and PhotoGuard [26] belong to this category. Upon these objective functions, We can now define a uni-versal loss as LP = λS LS + λT LT , where {λS , λ T } ≥ 0
+
+are balancing factors. Mist [15] utilizes this universal loss function to effectively capture the characteristics of both objectives. Diff-Protect [33], building on Mist, introduces a score distillation trick to achieve more efficient protec-tion. Impasto [1] incorporates perceptual-oriented compo-nents designed for imperceptible protection. Since all the current protection frameworks leverage it-erative optimization during inference, they can yield image-specific and high-performing perturbations [1, 15–17, 26, 27, 30–33, 37]. Despite this advantage, a significant draw-back is the substantial time required to operate protection. For instance, to protect a 512 2-px image, even the fastest model ( e.g . PhotoGuard [26]) requires around 7 seconds on an A100 GPU and 350 seconds on a CPU. Consequently, we explore alternatives to this iterative process to enhance efficiency without compromising the protection. 
+
+Universal Adversarial Perturbation (UAP). This concept is introduced in adversarial attacks, through a data-driven approach to find an image-agnostic perturbation from the training dataset [20]. In our task, we can adapt UAP as in Figure 2b. Given the training dataset XD , we employ a protection loss LP to derive an universal perturbation δ,constrained within η-ball to maintain perceptual invisibility. 
+
+δ = arg max 
+
+> || δ|| ∞≤η
+
+Ex∼X D [LP (x + δ)] . (3) Upon finalizing the universal perturbation δ by the train-ing, it can be applied to an image x to produce a protected image ˆx = x + δ. This is notably practical as it requires no computation at inference. Nevertheless, we found that directly applying UAP to our task significantly compro-mises protection performance. In Table 1, we compare the protection efficacy of iterative optimization (via PGD) and UAP. We use DISTS [4] to assess protected images’ quality, while FID [7] evaluates generated image through mimicry by LoRA [9] (a higher FID is better protection). As also shown in the qualitative mimicry results by LoRA, UAP leads to a notable degradation in protection efficacy. Hence, 
+
+> Table 1. PGD vs. UAP (Top) Invisibility (DISTS) and protection efficacy (FID) comparison. (Bottom) Mimicry results via LoRA.
+
+Method Invisibility (DISTS; ↓) Protection (FID; ↑)PGD 0.221 227.6 UAP 0.222 207.6 
+
+Clean PGD UAP it is crucial to refine this pre-training approach, but with a minimal inference cost in a manner akin to UAP. 
+
+# 3. Method 
+
+3.1. Perturbation Pre-Training 
+
+Mixture-of-Perturbation (MoP). We hypothesize that the underperformance of UAP is primarily due to two reasons: 1) a single perturbation has a limited capacity to deceive diffusion models, and 2) the image-agnostic nature of UAP fails to cover the diverse features ( e.g . texture or structure) of images. To overcome these, we introduce a mixture-of-perturbations (MoP), consisting of multiple perturbations, 
+
+∆ = {δ1, . . . , δ K }, where K represents the number of per-turbations. For any given input image, MoP dynamically assigns and applies the appropriate perturbation to create a protected image (Figure 2c). Specifically, given an image 
+
+x, MoP first encodes it using a VAE encoder E to obtain the latent code z. This code is used to select the specific pertur-bation to be applied, as dictated by an assignment function 
+
+A. Formally, the protected image ˆx is generated as: 
+
+ˆx = x + δg + ∆ k, where k = A(E(x)) , (4) where δg is a global perturbation. We observed that adding 
+
+δg slightly improves the performance. In MoP, the assign-ment function A plays a crucial role by guiding the se-lection of perturbations based on an input image, ensur-ing that similar images are protected with the same pertur-bation. This capability enables MoP to not only increase the capacity of UAP but also to offer a degree of image-specific protection, which is notably absent in UAP. With-out the assignment function, a naive perturbation averaging, 
+
+i.e . ˆx = x + δg + 1 /K ∗ ΣKk=1 ∆k, increases the capacity but fail to overcome the intrinsic limitations of image-agnostic, thus limiting performance benefits. In contrast, our MoP implements a semi-image-specific protection, positioning it between the image-agnostic and the image-specific preci-sion of the iterative approach while removing the expensive inference cost, as demonstrated in the ablation study. We adopt a simple assignment function A that can lever-age the highly representative latent codes of the VAE en-28803 Figure 2. Model overview. (a) Current iterative optimization approaches lack a training phase and perform optimization during inference, resulting in extremely slow protection. (b) UAP [20] introduces pre-training of perturbations, but their image-agnostic nature leads to degraded protection efficacy. (c) Combining the advantages of both paradigms, FastProtect adopts a pre-training approach similar to UAP but with a novel mixture-of-perturbation scheme and multi-layer protection loss to enhance protection efficacy. At inference, adaptive targeted protection further boosts protection efficacy with minimal additional cost, and adaptive protection strength improves invisibility. 
+
+coder. For our training dataset XD , we extract the latent codes Z = {z1, . . . , zD } using the VAE encoder E. These codes are then clustered into K predefined groups with K-means++ [3]. Despite its simplicity, this process shows its robustness empirically, thus we adopt it for our framework. 
+
+Multi-Layer Protection Loss. FastProtect employs a tar-geted protection approach based on the texture loss. Con-ventionally, texture loss is computed upon the VAE latent code z, i.e . LT (x) = −|| z − zy || 22, where zy is the latent code of the target image. However, we observed that of-ten the z-space loss does not sufficiently push z towards 
+
+zy , resulting in suboptimal protection performance. To ad-dress this, we incorporate an auxiliary loss using multi-layer features extracted by the VAE encoder. Specifically, given an input image, we extract the intermediate features 
+
+F = {f 1, . . . , f L}, where L is the number of feature lay-ers extracted. Similarly, we obtain Fy for the target im-age. Then, our proposed multi-layer protection loss func-tion with the balanced factor λ is computed as: 
+
+LT (x) = −|| z − zy || 22 − λL
+
+> L
+
+X
+
+> l=1
+
+||F l − F ly || 22. (5) The auxiliary MLP loss improves overall protection ef-ficacy as this leverages the intermediate feature spaces be-yond the z-space when pushing z toward zy . In addition, since these modifications are implemented during the pre-training stage, it improves protection efficacy without extra computational expense at inference. 
+
+Training. The assignment function A is first trained on XD
+
+then MoP is updated on XD using Eq. 5 by Adam opti-mizer [12]. All the perturbations ( δg , ∆) are initialized at a resolution of 512 × 512 . When applied to input images of different resolutions, we resize the perturbation through bilinear interpolation. Since two perturbations are used in MoP, δg , ∆ are constrained within a (η/ 2) -ball. 
+
+3.2. Adaptive Inference 
+
+Adaptive Targeted Protection. In targeted protection, tar-get image influences protection performance. Liang and Wu [15] noted that patterned image is effective, while Zheng et al. [37] reported that the protection efficacy varies with pattern repetitions. Though they provide valuable insights, they do not consider the relationship between the target and input images. Instead, we investigate such relationship and propose an adaptive targeted protection approach. In our analysis, we use two target images characterized by either low or high pattern repetition (shown in Appendix) and apply protection to input images with either simple or complex textures. Figure 3 shows mimicry outputs by LoRA of these four protection scenarios. Interestingly, our observations suggest a relationship between the pattern rep-28804 Figure 3. Relationship between target image’s pattern repetition and input image’s texture. Simple textured image is successfully protected by a low repetition target, but fails when using a high repetition target; vice versa for complex texture cases. 
+
+etition of the target image and the texture complexity of an input image. Zheng et al. [37] noted that protection efficacy improves as pattern repetition increases but declines when it becomes too high. We suspect that their results might be biased by fixing the input image, thereby keeping the tex-ture factor constant. In contrast, our findings indicate that tailoring the pattern image to match the texture complexity of an input image can improve protection efficacy. Hence, we design FastProtect to adaptively select the tar-get image based on an input image. To this end, we pre-pare target images with varying pattern repetitions and train MoPs for each. We utilize three pattern images—low, mid, and high—resulting in three MoPs: {δlg , ∆l}, {δmg , ∆m},and {δhg , ∆h}. We then extract the latent codes for each target image: zly = E(yl), zmy = E(ym), zhy = E(yh),where yl, ym, yh are the target images with low, mid, and high pattern repetitions, respectively. At inference, input image’s latent code z is compared with {zly , zmy , zhy } and the target image whose latent code is closest to z is selected. To measure the similarity between the target images’ pattern repetition and the input image, L1 norm of entropy is used as a distance. Overall, integration of MoP (in Eq. 4) and the adaptive targeted protection are as follows: 
+
+ˆx = x + δtg + ∆ tk, t = arg min 
+
+> i∈{ l,m,h }
+
+||H (z) − H (ziy )|| 1, (6) where H(z) = − P 
+
+> z∈z
+
+p(z) log p(z). The major advan-tage of our adaptive targeted protection is its robust perfor-mance across various domains, which is critically important for practical use cases where the specific domain (or tex-ture) of incoming images might be unknown. If the range of potential domains is known beforehand, the performance difference might not be significant. However, the flexibil-ity to adapt to different input characteristics without prior domain knowledge enhances FastProtect’s utility in diverse and unpredictable environments of real applications. 
+
+Adaptive Protection Strength. According to the We-ber–Fechner law, humans are more adept at detecting sub-
+
+> Figure 4. Given the original and protected images, we obtain the LPIPS distance map, which remarkably aligns with human per-ception. The brighter regions on the perceptual map indicate areas where subtle distortions are more noticeable.
+
+tle changes in regions with simple textures than in complex ones. Upon this, Ahn et al. [1] adapted human visual system to the image protection task. They utilized multiple percep-tion maps and adjusted perturbation strength during opti-mization to effectively enhance invisibility. However, the perception maps used by Ahn et al. [1] are computed before the injection of perturbations, leading us to hypothesize that these may not perfectly align with the actual perceived per-turbations intended for protection. Moreover, their reliance on a combination of traditional perceptual map algorithms resulted in slow processing and performance limitations. To address these challenges, we first apply MoP to create a sur-rogate protection image and then generate a perceptual map, which helps resolve the identified issues. Specifically, we generate a surrogate protection image ˆx
+
+through Eq. 6. Subsequently, we create a spatial perceptual map using LPIPS [35], i.e . M = LPIPS (x, ˆx). As shown in Figure 4, the perceptual map M is remarkably aligned with human cognitive perspectives. Hence, we utilize this map to produce the final protected image as in below: 
+
+ˆx = x + S(1 − M) ∗ (δtg + ∆ tk). (7) Here, S(·) is a scaling function (more details are in Ap-pendix) and M serves as a distance map, necessitating an inversion step. Since this process requires only the forward pass of the LPIPS backbone, the additional computational cost at inference is minimal, thus economically enhancing invisibility without significant overhead. In Appendix, we summarize the perturbation pre-training and inference pro-cess in the form of an algorithm. 
+
+# 4. Experiment 
+
+Implementation Details. We set the number of perturba-tions K in MoP as four. Other hyperparameters and details on training and inference are described in Appendix. 
+
+Datasets. We utilize four domains when constructing both the training and benchmark datasets: object, face, painting, 28805 Table 2. Quantitative comparison. Latency is measured on 512 ×512 image. Comparisons of other metrics are shown in Appendix. 
+
+Method Latency Object Face Painting Cartoon CPU / GPU Invisibility: DISTS ( ↓) / Efficacy: FID ( ↑)AdvDM [16] 1210s / 35s 0.197 / 220.0 0.173 / 303.8 0.153 / 357.6 0.271 / 212.5 PhotoGuard [26] 370s / 7s 0.203 / 223.0 0.189 / 308.7 0.107 / 350.9 0.209 / 219.1 Anti-DB [30] 7278s / 225s 0.239 / 214.4 0.162 / 301.4 0.114 / 347.7 0.294 / 225.4 
+
+Mist [15] 1440s / 40s 0.185 / 217.2 0.154 / 307.5 0.129 / 357.0 0.223 / 223.7 Impasto [1] 830s / 19s 0.201 / 213.8 0.198 / 298.4 0.123 / 352.4 0.207 / 215.5 SDST [33] 1410s / 24s 0.242 / 219.2 0.244 / 302.1 0.152 / 354.1 0.237 / 222.7 FastProtect 2.9s / 0.04s 0.155 / 223.0 0.149 / 308.9 0.110 / 356.1 0.186 / 220.3 
+
+> Figure 5. Qualitative comparison of different protection frameworks. (Top) Protected image with a zoomed-in patch in the inset. (Bottom) Two output images from the personalized LoRA.
+
+and cartoon. These multiple scenarios allow us to analyze the models’ protection performance more closely to real ap-plications, as images from various domains can be encoun-tered. The dataset details are provided in Appendix. 
+
+Baselines. We compare with existing diffusion-based im-age protection frameworks: AdvDM [16], PhotoGuard [26], Anti-DB [30], Mist [15], Impasto [1], and Diff-Protect (SDST) [33]. Except ours, all other methods rely on iter-ative optimization, using texture or semantic losses. 
+
+Evaluation. The protection efficacy is evaluated against LoRA [9] on Stable Diffusion v1.5. Latency is measured using an M1 Max CPU and an A100 GPU. We employ DISTS [4] to evaluate invisibility, and FID [7] to quan-tify protection efficacy. In Appendix, we provide additional metrics for a more comprehensive comparison. Note that previous studies typically fix the protection strength across models for comparison, but we found that protection ef-ficacy and invisibility vary significantly depending on the protection loss used. For instance, PhotoGuard [26] and AdvDM [16] exhibit different trends since they use dis-parate objectives. Moreover, evaluating protection efficacy only without invisibility leads to a narrow assessment that might overlook real-world needs. To address these, we ad-just the protection strength to match the protection level across methods to ensure a fairer comparison and better re-flection of practical requirements. However, one might also be curious about how the performance appears when the protection strength is equalized across all methods. Hence, we provide evaluation with a fixed strength in Appendix. 
+
+4.1. Model Comparison 
+
+As shown in Figure 1a and Table 2, FastProtect is ultra-fast; 125 × faster on CPU and 175 × faster on GPU compared to the second fastest model, PhotoGuard [26]. Remarkably, FastProtect maintains consistent latency even as the input image size increases, achieving near real-time performance even for 2048 2-px images. In contrast, all other frameworks show exponential increases in latency (Figure 1a), which poses a significant issue in the real world where many recent artworks are high-resolution. In addition, FastProtect occu-pies only 1.7GB of VRAM during inference, unlike other methods that require more than 8GB. The unprecedented speed of our model makes it highly user-friendly. FastProtect also demonstrates a superior trade-off be-tween protection efficacy and invisibility (Figure 1b). In comparisons where the protection strength is adjusted to yield similar protection efficacy (Table 2), FastProtect con-sistently achieves the best invisibility across most protection 28806 Table 3. Ablation study. 
+
+Configuration FID ( ↑)PhotoGuard 227.6 UAP [20] 207.6 MoP (w/o A) 214.5 MoP 225.9 + MLP Loss 234.6 + Adapt. Target 238.8 
+
+> Table 4. Analysis on protection robustness scenarios.
+
+Domain Method Invisibility Countermeasure Arbitrary Size Noise JPEG Subject PhotoGuard 0.203 193.3 193.2 193.5 FastProtect 0.155 214.4 191.3 219.1 
+
+Cartoon PhotoGuard 0.209 192.9 193.1 190.7 FastProtect 0.186 191.8 199.9 204.0 
+
+> Table 5. Analysis of black-box protection scenarios (unknown diffusion models and personalization methods).
+
+Domain Method Invisibility Unknown Model Unknown Personalization 
+
+→ SD-v2.1 [24] → SD-XL [22] TI [5] DreamStyler [2] Subject PhotoGuard 0.203 176.6 190.9 290.2 224.9 FastProtect 0.155 177.5 218.4 305.6 231.3 
+
+Cartoon PhotoGuard 0.209 179.3 195.1 306.4 193.7 FastProtect 0.186 188.3 207.3 305.7 209.9 
+
+domains, with the second-best performance in the painting domain. In our analysis, FastProtect shows the strong ad-vantage in invisibility within areas that have flat textures. These features result in significant improvements in the ob-ject and cartoon domains. For example, Figure 5 shows that in the first row, the sky region is rendered nearly invisible by FastProtect, and the same applies to the cartoon in the second row. As demonstrated in Appendix, even when we fix the protection strength of all methods to the same value, our method achieves a favorable balance in this trade-off. 
+
+4.2. Model Analysis 
+
+Ablation Study. In Table 3, we depict the component anal-ysis of FastProtect. It is notable that UAP [20] significantly deteriorates protection efficacy compared to the iterative op-timization baseline, PhotoGuard [26]. On the other hand, when we introduce the proposed MoP, it recovers the lost performance. However, if the assignment function A is not used, the improvement is limited, highlighting the impor-tance of achieving a semi-image-specific nature. As we dis-cussed, the limitations of UAP arise not only from insuffi-cient capacity but also from its image-agnostic nature. Sim-ply increasing the number of perturbations ( i.e . MoP w/o A)resolves the first limitation and improves performance over UAP. However, this still does not overcome the second one, which causes it to underperform compared to PhotoGuard. When we introduce the assignment function into MoP, it can dynamically account for image features. This allows MoP to match the performance of iterative optimization methods while remaining significantly faster. When we attach the multi-layer protection (MLP) loss, it significantly increases the protection efficacy. Similarly, adaptive targeted protection also enhances performance. Overall, by incorporating novel modules in both the pre-training and inference stages, FastProtect can achieve better protection efficacy with a much faster inference. 
+
+Robustness. Here, we analyze the vulnerability of pro-tected images to countermeasures (Table 4). We use Pho-toGuard [26] as our baseline due to its similarity to our ap-proach. To assess robustness, we evaluate against counter-measures such as Gaussian noise and JPEG compression. Additionally, we account for a more realistic scenario where the input image can have arbitrary dimensions. Most previ-ous evaluations in image protection tasks assume a fixed image resolution, typically 512 2, which represents an ide-alized scenario. In practice, image sizes and aspect ratios vary. Our model demonstrates comparable performance against these countermeasures, and notably, in the arbitrary size scenario, FastProtect performs even better. This sug-gests that simply using interpolation to adapt MoP to differ-ent sizes is both straightforward and effective. 
+
+Black-Box Scenario. Table 5 presents the model analy-sis in black-box scenarios. We examine two cases: the un-known model scenario, where we transfer protection meth-ods to other Stable Diffusion (SD) backbones, specifically SD v2.1 [24] and SD-XL [22]. We also assess image pro-tection against unknown personalization by applying Tex-tual Inversion (TI) [5] and DreamStyler [2] to replicate the image. In these scenarios, FastProtect demonstrates supe-rior invisibility compared to the baseline while achieving comparable or better performance in black-box settings. 
+
+Mixture-of-Perturbation. In Figure 6a, we vary the train-ing dataset XD and measure the protection efficacy. Inter-estingly, even when the training domain is limited, there is no significant gap in the protection performance. We con-jecture that MoP effectively handles unseen domains thanks to its adaptive perturbation selection mechanism. However, using all domains is slightly better, so we train with this strategy. Additionally, Figure 6b compares FastProtect by changing K and excluding the assignment function A in MoP. Without the assignment function, performance im-provement is limited, and in the full MoP case, it achieves 28807 Object Face Painting Cartoon            
+
+> 200
+> 220
+> 240
+> 260
+> 280
+> 300
+> 320
+> 340
+> FID
+> =Object
+> =Face
+> =Painting
+> =Cartoon
+> =All (a) Domain Generalization of MoP 12468
+> 210
+> 215
+> 220
+> 225
+> FID
+> MoP
+> MoP w/o (b) Effect of Assignment Function (c) Examples of MoP Group
+
+Figure 6. Analysis of the proposed modules in the pre-training phase. Object Face Painting Cartoon            
+
+> 200
+> 220
+> 240
+> 260
+> 280
+> 300
+> 320
+> 340
+> FID
+> Low pattern rep.
+> Mid pattern rep.
+> High pattern rep.
+> Adaptive target
+> (a) Adapt. Targeted Protection 0.20 0.22 0.24 0.26
+> 220
+> 230
+> 240
+> 250
+> 260
+> FID
+> DISTS
+> w/ Adaptive Protection Strength
+> w/o Adaptive Protection Strength (b) Adapt. Protection Strength 12510 25 50 100
+> 185
+> 195
+> 205
+> 215
+> 225
+> 235
+> 245
+> FID
+> Baseline
+> FastProtect
+> FastProtect + PGD (c) FastProtect + PGD Refine
+
+Figure 7. Analysis of the proposed modules in the inference phase. 
+
+substantially better efficacy with convergence at K = 4 . In Figure 6c, we visualize the representative images assigned to each perturbation when K = 4 . The images are grouped by their certain distinguishing features (e.g., texture, scene). 
+
+Adaptive Targeted Protection. Figure 7a analyzes the re-lationship between protection efficacy and the target image. When a target image with low pattern repetition is used, the protection is effective in the Face and Cartoon domains but less so for Objects. In contrast, a high-repetition tar-get image leads to strong performance in the Object do-main. The proposed adaptive targeted protection demon-strates near-optimal performance across all scenarios. Since it is difficult to predict which domain will be encountered in real-world use cases, relying on a single domain with a fixed target image is not practical. Therefore, incorporating adaptive protection into FastProtect is essential for creating a more robust protection solution in real-world applications. 
+
+Adaptive Protection Strength. We analyze the impact of using the proposed adaptive protection strength in Figure 7b by adjusting the perturbation budget. Without this module, the trade-off between protection efficacy and invisibility is worse than that of the full model. Note that when the bud-get is small, the perturbation is inherently minimal, so the difference could be marginal. However, with stronger pro-tection, the difference becomes significant. 
+
+FastProtect + Iterative Optimization. FastProtect is ex-tremely fast, so users with sufficient computing resources might want to invest additional computation to achieve even more effective protection. Considering this scenario, in Fig-ure 7c, we use the results of FastProtect as the initial per-turbation and further refine them using PGD ( e.g . Photo-Guard [26]). Note that we display the baseline, PhotoGuard, with a slightly larger budget since applying PGD to Fast-Protect tends to decrease invisibility. Hence, the baseline budget is adjusted to match the invisibility level of FastPro-tect + PGD. Surprisingly, our method serves as a superior initial checkpoint for the iterative optimization techniques. For example, the baseline, requires 100 steps to match our 
+
+initial results, whereas FastProtect + PGD converges in just 25 steps with a significantly higher protection efficacy. 
+
+# 5. Conclusion 
+
+In this work, we propose FastProtect, which leverages pre-trained mixture-of-perturbations for low latency. We also propose adaptive inference to compensate the loss of the protection efficacy and to improve the invisibility of the perturbation. Our experiments demonstrate that FastProtect offers a more practical solution with comparable protection performance to existing methods, with improved invisibility and substantially reduced inference time. 
+
+Limitations. FastProtect still produces some visible distor-tion and this is an unavoidable drawback when using adver-sarial perturbations. Future research should focus on find-ing new paradigms that can maximize the quality. 28808 Acknowledgment. This work was partly supported by NAVER WEBTOON and by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government(MSIT) under the Artificial Intelligence Convergence Innovation Human Resources Development, Inha University (No.RS-2022-00155915) and under the Leading Generative AI Human Resources Development (IITP-2025-RS-2024-00360227). 
+
+# References 
+
+[1] Namhyuk Ahn, Wonhyuk Ahn, KiYoon Yoo, Daesik Kim, and Seung-Hun Nam. Imperceptible protection against style imitation from diffusion models. arXiv preprint arXiv:2403.19254 , 2024. 2, 3, 5, 6 [2] Namhyuk Ahn, Junsoo Lee, Chunggi Lee, Kunhee Kim, Daesik Kim, Seung-Hun Nam, and Kibeom Hong. Dream-styler: Paint by style inversion with text-to-image diffusion models. In Proceedings of the AAAI Conference on Artificial Intelligence , pages 674–681, 2024. 1, 7 [3] David Arthur, Sergei Vassilvitskii, et al. k-means++: The advantages of careful seeding. In Soda , pages 1027–1035, 2007. 4 [4] Keyan Ding, Kede Ma, Shiqi Wang, and Eero P Simoncelli. Image quality assessment: Unifying structure and texture similarity. IEEE transactions on pattern analysis and ma-chine intelligence , 44(5):2567–2581, 2020. 3, 6 [5] Rinon Gal, Yuval Alaluf, Yuval Atzmon, Or Patash-nik, Amit H Bermano, Gal Chechik, and Daniel Cohen-Or. An image is worth one word: Personalizing text-to-image generation using textual inversion. arXiv preprint arXiv:2208.01618 , 2022. 1, 2, 7 [6] Ian J Goodfellow, Jonathon Shlens, and Christian Szegedy. Explaining and harnessing adversarial examples. arXiv preprint arXiv:1412.6572 , 2014. 1 [7] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp Hochreiter. Gans trained by a two time-scale update rule converge to a local nash equilib-rium. Advances in neural information processing systems ,30, 2017. 3, 6 [8] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 1 [9] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. Lora: Low-rank adaptation of large language models. arXiv preprint arXiv:2106.09685 , 2021. 3, 6 [10] Lianghua Huang, Di Chen, Yu Liu, Yujun Shen, Deli Zhao, and Jingren Zhou. Composer: Creative and controllable im-age synthesis with composable conditions. arXiv preprint arXiv:2302.09778 , 2023. 1 [11] Sungnyun Kim, Junsoo Lee, Kibeom Hong, Daesik Kim, and Namhyuk Ahn. Diffblender: Scalable and composable multimodal text-to-image diffusion models. arXiv preprint arXiv:2305.15194 , 2023. 1 [12] Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 ,2014. 4 [13] Alex Krizhevsky, Ilya Sutskever, and Geoffrey E Hinton. Imagenet classification with deep convolutional neural net-works. Advances in neural information processing systems ,25, 2012. 2 [14] Nupur Kumari, Bingliang Zhang, Richard Zhang, Eli Shechtman, and Jun-Yan Zhu. Multi-concept customization of text-to-image diffusion. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 1931–1941, 2023. 1 [15] Chumeng Liang and Xiaoyu Wu. Mist: Towards improved adversarial examples for diffusion models. arXiv preprint arXiv:2305.12683 , 2023. 3, 4, 6 [16] Chumeng Liang, Xiaoyu Wu, Yang Hua, Jiaru Zhang, Yim-ing Xue, Tao Song, Zhengui Xue, Ruhui Ma, and Haibing Guan. Adversarial example does good: preventing paint-ing imitation from diffusion models via adversarial exam-ples. In Proceedings of the 40th International Conference on Machine Learning , pages 20763–20786, 2023. 1, 3, 6 [17] Yixin Liu, Chenrui Fan, Yutong Dai, Xun Chen, Pan Zhou, and Lichao Sun. Metacloak: Preventing unauthorized subject-driven text-to-image diffusion-based synthesis via meta-learning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 24219– 24228, 2024. 3 [18] Aleksander Madry, Aleksandar Makelov, Ludwig Schmidt, Dimitris Tsipras, and Adrian Vladu. Towards deep learn-ing models resistant to adversarial attacks. arXiv preprint arXiv:1706.06083 , 2017. 1, 2 [19] Chenlin Meng, Yutong He, Yang Song, Jiaming Song, Jia-jun Wu, Jun-Yan Zhu, and Stefano Ermon. Sdedit: Guided image synthesis and editing with stochastic differential equa-tions. arXiv preprint arXiv:2108.01073 , 2021. 1 [20] Seyed-Mohsen Moosavi-Dezfooli, Alhussein Fawzi, Omar Fawzi, and Pascal Frossard. Universal adversarial perturba-tions. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 1765–1773, 2017. 2, 3, 4, 7 [21] Chong Mou, Xintao Wang, Liangbin Xie, Jian Zhang, Zhon-gang Qi, Ying Shan, and Xiaohu Qie. T2i-adapter: Learning adapters to dig out more controllable ability for text-to-image diffusion models. arXiv preprint arXiv:2302.08453 , 2023. 1 [22] Dustin Podell, Zion English, Kyle Lacey, Andreas Blattmann, Tim Dockhorn, Jonas M¨ uller, Joe Penna, and Robin Rombach. Sdxl: Improving latent diffusion mod-els for high-resolution image synthesis. arXiv preprint arXiv:2307.01952 , 2023. 1, 7 [23] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervi-sion. In International conference on machine learning , pages 8748–8763. PMLR, 2021. 2 [24] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj¨ orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 1, 2, 7 28809 [25] Nataniel Ruiz, Yuanzhen Li, Varun Jampani, Yael Pritch, Michael Rubinstein, and Kfir Aberman. Dreambooth: Fine tuning text-to-image diffusion models for subject-driven generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 22500– 22510, 2023. 1, 2, 3 [26] Hadi Salman, Alaa Khaddaj, Guillaume Leclerc, Andrew Ilyas, and Aleksander Madry. Raising the cost of malicious ai-powered image editing. arXiv preprint arXiv:2302.06588 ,2023. 1, 3, 6, 7, 8 [27] Shawn Shan, Jenna Cryan, Emily Wenger, Haitao Zheng, Rana Hanocka, and Ben Y Zhao. Glaze: Protecting artists from style mimicry by text-to-image models. arXiv preprint arXiv:2302.04222 , 2023. 1, 3 [28] Kihyuk Sohn, Nataniel Ruiz, Kimin Lee, Daniel Castro Chin, Irina Blok, Huiwen Chang, Jarred Barber, Lu Jiang, Glenn Entis, Yuanzhen Li, et al. Styledrop: Text-to-image generation in any style. arXiv preprint arXiv:2306.00983 ,2023. 1 [29] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Ab-hishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equa-tions. arXiv preprint arXiv:2011.13456 , 2020. 1 [30] Thanh Van Le, Hao Phung, Thuan Hoang Nguyen, Quan Dao, Ngoc N Tran, and Anh Tran. Anti-dreambooth: Pro-tecting users from personalized text-to-image synthesis. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 2116–2127, 2023. 1, 3, 6 [31] Cong Wan, Yuhang He, Xiang Song, and Yihong Gong. Prompt-agnostic adversarial perturbation for customized dif-fusion models. Advances in Neural Information Processing Systems , 37:136576–136619, 2024. [32] Jingyao Xu, Yuetong Lu, Yandong Li, Siyang Lu, Dongdong Wang, and Xiang Wei. Perturbing attention gives you more bang for the buck: Subtle imaging perturbations that effi-ciently fool customized diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 24534–24543, 2024. [33] Haotian Xue, Chumeng Liang, Xiaoyu Wu, and Yongxin Chen. Toward effective protection against diffusion-based mimicry through score distillation. In The Twelfth Interna-tional Conference on Learning Representations , 2023. 2, 3, 6[34] Lvmin Zhang, Anyi Rao, and Maneesh Agrawala. Adding conditional control to text-to-image diffusion models. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 3836–3847, 2023. 1 [35] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shecht-man, and Oliver Wang. The unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE conference on computer vision and pattern recogni-tion , pages 586–595, 2018. 5 [36] Zhengyue Zhao, Jinhao Duan, Xing Hu, Kaidi Xu, Chenan Wang, Rui Zhang, Zidong Du, Qi Guo, and Yunji Chen. Un-learnable examples for diffusion models: Protect data from unauthorized exploitation. arXiv preprint arXiv:2306.01902 ,2023. 2 [37] Boyang Zheng, Chumeng Liang, Xiaoyu Wu, and Yan Liu. Understanding and improving adversarial attacks on latent diffusion model. arXiv preprint arXiv:2310.04687 , 2023. 2, 3, 4, 5 28810

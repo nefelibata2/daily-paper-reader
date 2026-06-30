@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-zhang-omniguard-hybrid-manipulation-localization-via-augmented-versatile-deep-image-watermarking-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 823,
+      "height": 189,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-zhang-omniguard-hybrid-manipulation-localization-via-augmented-versatile-deep-image-watermarking-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 1627,
+      "height": 519,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-zhang-omniguard-hybrid-manipulation-localization-via-augmented-versatile-deep-image-watermarking-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 1809,
+      "height": 499,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-zhang-omniguard-hybrid-manipulation-localization-via-augmented-versatile-deep-image-watermarking-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 783,
+      "height": 189,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-zhang-omniguard-hybrid-manipulation-localization-via-augmented-versatile-deep-image-watermarking-cvpr-2025-paper/table-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 786,
+      "height": 182,
+      "label": "Table"
+    }
+  ]
+}

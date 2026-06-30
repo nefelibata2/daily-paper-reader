@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1740,
+      "height": 550,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 875,
+      "height": 229,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 746,
+      "height": 274,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 851,
+      "height": 243,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 853,
+      "height": 248,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-006.webp",
+      "caption": "",
+      "page": 0,
+      "index": 6,
+      "width": 874,
+      "height": 211,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-007.webp",
+      "caption": "",
+      "page": 0,
+      "index": 7,
+      "width": 871,
+      "height": 160,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-yuan-badtoken-token-level-backdoor-attacks-to-multi-modal-large-language-models-cvpr-2025-paper/table-008.webp",
+      "caption": "",
+      "page": 0,
+      "index": 8,
+      "width": 812,
+      "height": 562,
+      "label": "Table"
+    }
+  ]
+}

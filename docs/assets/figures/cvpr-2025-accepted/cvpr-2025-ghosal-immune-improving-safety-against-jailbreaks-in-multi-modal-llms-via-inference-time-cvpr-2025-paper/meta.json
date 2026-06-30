@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-ghosal-immune-improving-safety-against-jailbreaks-in-multi-modal-llms-via-inference-time-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1797,
+      "height": 555,
+      "label": "Figure"
+    }
+  ]
+}

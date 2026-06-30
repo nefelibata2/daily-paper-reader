@@ -1,0 +1,87 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 831,
+      "height": 566,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 860,
+      "height": 517,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 875,
+      "height": 524,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 608,
+      "height": 395,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 867,
+      "height": 551,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-006.webp",
+      "caption": "",
+      "page": 0,
+      "index": 6,
+      "width": 859,
+      "height": 568,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-007.webp",
+      "caption": "",
+      "page": 0,
+      "index": 7,
+      "width": 614,
+      "height": 880,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-008.webp",
+      "caption": "",
+      "page": 0,
+      "index": 8,
+      "width": 1181,
+      "height": 1021,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-jain-classifier-free-guidance-inside-the-attraction-basin-may-cause-memorization-cvpr-2025-paper/fig-009.webp",
+      "caption": "",
+      "page": 0,
+      "index": 9,
+      "width": 1184,
+      "height": 1035,
+      "label": "Figure"
+    }
+  ]
+}

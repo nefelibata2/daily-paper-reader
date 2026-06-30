@@ -1,0 +1,405 @@
+Title: Mind the Gap: Detecting Black-box Adversarial Attacks in the Making through Query Update Analysis
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Park_Mind_the_Gap_Detecting_Black-box_Adversarial_Attacks_in_the_Making_CVPR_2025_paper.pdf
+
+Published Time: Sun, 18 May 2025 23:24:52 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# Mind the Gap: Detecting Black-box Adversarial Attacks in the Making through Query Update Analysis 
+
+# Jeonghwan Park, Niall McLaughlin, Ihsen Alouani Queen’s University Belfast, United Kingdom 
+
+jeonghwan.park@uk.thalesgroup.com, {n.mclaughlin, i.alouani }@qub.ac.uk 
+
+# Abstract 
+
+Adversarial attacks remain a significant threat that can jeopardize the integrity of Machine Learning (ML) mod-els. In particular, query-based black-box attacks can gen-erate malicious noise without having access to the victim model’s architecture, making them practical in real-world contexts. The community has proposed several defenses against adversarial attacks, only to be broken by more ad-vanced and adaptive attack strategies. In this paper, we propose a framework that detects if an adversarial noise in-stance is being generated. Unlike existing stateful defenses that detect adversarial noise generation by monitoring the input space, our approach learns adversarial patterns in the input update similarity space. In fact, we propose to ob-serve a new metric called Delta Similarity ( DS ), which we show it captures more efficiently the adversarial behavior. We evaluate our approach against 8 state-of-the-art attacks, including adaptive attacks, where the adversary is aware of the defense and tries to evade detection. We find that our approach is significantly more robust than existing defenses both in terms of specificity and sensitivity. 1
+
+# 1. Introduction 
+
+Adversarial attacks have been investigated as a critical threat to the trustworthiness of ML systems. Two main threat models have been considered in the literature: white-box and black-box. The white-box setting assumes the ad-versary has access to the model parameters, architecture and gradient. This setting has been investigated thoroughly to provide a worst-case vulnerability analysis [ 14 , 15 , 24 ]. The second scenario, i.e., black-box, is more practical in real-world contexts and corresponds to an adversary with limited access to the victim model, restricted to inputs and outputs. This threat model is particularly relevant in Ma-chine Learning-as-a-Service (MLaaS) settings, where mod-els can be queried remotely by clients through APIs. A 
+
+> 1Code is available at https://github.com/jpark04-qub/GWAD
+> Attack Queries
+> Benign Queries
+> Random update vector for 0th order optimisation (gradient estimation)
+> New neighbourhood to explore the gradient (after gradient estimation)
+> New benign query
+> Legend
+
+Figure 1. A high-level illustration of our intuition. The sequence of malicious queries to generate an adversarial example has a dif-ferent pattern than benign queries; Attack steps require random vector updates for gradient estimation. 
+
+malicious actor generates adversarial perturbations by itera-tively querying the model and analyzing the corresponding outputs. Despite the restricted access scenario, many query-based black-box attacks have been proposed [ 6, 8, 9, 19 ], showing a high efficiency in fooling ML models. Most existing defenses against adversarial attacks frame the problem in a ”post-mortem” manner, i.e., assuming ad-versarial examples have already been generated [ 5, 16 , 24 ,
+
+27 ]. However, a recent line of work specifically focused on query-based black-box settings suggests to detect adver-sarial attacks in the making [ 7, 10 , 23 ]. These approaches leverage the adversary’s need to query the victim model, proposing to monitor input queries for anomalies in the in-put space that could indicate attempts to generate adver-sarial examples. For instance, Stateful Detection [ 7] iden-tifies adversarial attack attempts by tracking the similar-ity (statefulness) between input queries, flagging anoma-lous queries that deviate significantly from typical behav-ior patterns. Similar methods, such as Blacklight [ 23 ] and PIHA [ 10 ], also rely on statefulness analysis. Blacklight fo-cuses on detecting clusters of highly similar queries, which are often indicative of the iterative optimization techniques used by attackers. In contrast, PIHA uses statistical meth-ods to analyze the input history, identifying anomalies in the distribution of queries. All these approaches focus on the analysis of input samples, which can be evaded by adaptive attackers. In fact, many of these defenses have been shown This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 10235 to be vulnerable to an attack named Oracle-guided Adap-tive Rejection Sampling (OARS) [ 12 ], which can bypass the defenses by carefully crafting queries that evade detec-tion mechanisms. This vulnerability highlights the need for more robust defense strategies. In this work, we tackle the detection of adversarial ex-ample generation in black-box settings from a new perspec-tive, shifting the focus from input patterns to update pat-terns . The primary intuition behind our approach is that query-based attack methods typically rely on variants of zeroth-order optimization to estimate gradients. The zeroth-order optimization estimates a gradient using multiple pairs of input queries and output observations. During this pro-cess, query-based attack methods iteratively update input examples in specific patterns and observe corresponding re-sponses from the target model. Such structured updates are unlikely to be present in benign queries. Fig. 1 gives a generic illustration of our intuition. Instead of relying on input space patterns, which sophisticated attackers can potentially evade, we introduce a novel indicator, termed 
+
+Delta Similarity (DS ), to differentially capture the relation-ship between updates in a sequence of queries over time. This metric captures more effectively the attack behavior, regardless of input examples or model architectures. By ex-tracting features in the DS space, we train an ML model to identify attack patterns with high efficiency and low false positive rate. In summary, our contributions are as follows: • We propose a novel metric, DS , to analyze update pat-terns over time within a sequence of queries instead of focusing on the input examples. We show that DS is a re-liable indicator of query-based adversarial attack behav-ior (Section 2). • Based on DS , we propose a new framework called the Gradient’s Watch Adversarial Detection (GWAD) to de-fend against query-based black-box attacks. GWAD in-cludes an ML model trained on the DS distribution and achieves high accuracy in adversarial attack detection with low false positive rate (Section 3). • We evaluate GWAD’s generalization capabilities, showing that its performance is both dataset and model-agnostic, i.e., training GWAD on a particular model/dataset enables it to defend against attacks on different models and datasets (Section 4.2 ). • We evaluate our approach under two different adaptive attacks and show that GWAD is significantly more robust than state-of-the-art stateful defenses. Finally, we show that GWAD can be used in combination with a stateful defense to further enhance robustness (Section 6). 
+
+# 2. Delta Similarity 
+
+Query-based black-box adversarial attacks commonly carry out 0th -order optimizations to estimate gradients, which consumes the majority of their attack queries. For exam-ple, HSJA [ 6] spends 96 .06% of its attack queries on 0th -order optimization, and remaining 3.93% of the queries for linear optimization, e.g. binary search. The 0th -order optimization estimates a gradient using multiple pairs of input queries and output observations. During this pro-cess, query-based attack methods iteratively update input examples in specific patterns and observe corresponding re-sponses from the target model. Such updates are unlikely to exist in benign queries. 
+
+Theoretical insight: Towards distinguishing the benign and malicious behavior, we are interested in analyzing the difference/similarity between queries in the input update space. Therefore, we define DS as follows: 
+
+Definition 1 (Delta Similarity) 
+
+Let {xi−2, x i−1, x i} be three queries to a model F .Let δ be the variation between two queries, which we refer to as the update; δ is calculated by: 
+
+δi = xi − xi−1 (1) 
+
+We define DS as the cosine similarity between up-dates δi−1 and δi; DS is expressed by: 
+
+DS = cos ∠δi−1δi (2) In query-based black-box attack settings, each iteration involves estimating a gradient, which is used to optimize the current intermediate adversarial example ˜xt, pushing it toward maximizing the loss function of the victim model. Therefore, ˜xt is not updated to ˜xt+1 until the gradient esti-mation step is completed. We denote the set of queries to the target model during a gradient estimation step as follows: 
+
+{˜xt + ujt , ˜xt + uj+1  
+
+> t
+
+, ˜xt + uj+2  
+
+> t
+
+, ..., ˜xt + unt } (3) where each ujt ∈ Rd represents a d-dimensional random vector, sampled from a normal distribution N (0 , σ 2), and n
+
+indicates the last query to the target model in the iteration. The variations δ between examples are found by applying Eq. ( 1) to the examples as: 
+
+δjt = (˜ xt + uj+1  
+
+> t
+
+) − (˜ xt + ujt ) = uj+1  
+
+> t
+
+− ujt (4) 
+
+Observation: As shown in Eq. ( 4), the variation δjt and 
+
+δj+1  
+
+> t
+
+are expressed as a linear operation between random vectors ujt , u j+1  
+
+> t
+
+, and uj+2  
+
+> t
+
+. Due to the concentration of measure phenomenon [ 21 ], these random vectors are ex-pected to be orthogonal in the hyper-dimensional space and to have equal length with a very high probability [ 1]. 
+
+Hypothesis: Since this observation is satisfied by the 0th -order optimization process, DS , as defined in Definition 1,represents specific patterns for query-based adversarial se-quences, that are different from benign DS . In the Supple-mentary Material (Section 1), we provide further geometric 10236 {OPEN}     
+
+> Benign NES HSJA Sign-Opt BA Sign-Flip SimBA
+> CIFAR-10 Tiny ImageNet ImageNet
+
+Figure 2. DS distribution of Benign and SOTA Query-based black-box adversarial attacks. We can see a clear difference between benign and adversarial attack distributions. Hence the distributions are amenable to classification. 
+
+illustrations of this hypothesis. In the following, we present an empirical study to verify its plausibility. 
+
+Empirical analysis: We want to differentially observe the distribution of DS for benign and malicious queries. We conduct an empirical analysis with various sequences of queries from benign examples as well as SOTA black-box attacks. The analysis is carried for three settings; each setting corresponds to an image classification dataset along with a target model. Specifically, we use ResNet-18, EfficientNet, and VGG-16 trained on CIFAR-10, Tiny-ImageNet and ImageNet, respectively. The DS distribution of the benign queries is calculated by injecting 5K benign examples from the test dataset. In contrast, the DS distribution of attack queries is acquired by performing query-based attacks over random samples from the dataset under the same 5K query budget. The 
+
+DS distributions shown in Figure 2 suggest that the query-based black-box adversarial attack methods leave unique traces in the DS space during their attack processes. Note that while the DS of benign examples are distributed with a high variance, the DS distribution of the attacks have one or more primary components. For example, NES [ 19 ] ex-hibit a strong DS component at −0.7071 , and HSJA [ 6]shows most of DS at −0.5 and ±1.0. More detailed ratio-nale behind these numbers is provided in the Supplementary Material (Section 2). The patterns of adversarial attacks’ 
+
+DS distributions are highly distinguishable from the ones in a sequence of queries of benign examples. This supports our hypothesis on the attack behavior distinguishability in the DS space. 
+
+# 3. Proposed defense framework: GWAD 
+
+The main insight from the previous section is that the behav-ior of query-based black-box attacks can be characterised 0th Order Optimization + Attack Process      
+
+> +
+> Query
+> Black-box Attack GWAD
+> Queries Queue (x i-1 ,xi, x i+1 )
+> Hard/Soft Label
+> HoDS Features Extractor
+> Classifier
+> Attack Detection
+> Layer Layer
+> Model
+
+Figure 3. Block diagram of the procedure of GWAD query-based adversarial attack detection framework. DS Distribution (Time series)    
+
+> 256 x DS window (a) (b)
+> Extracted HoDS Features
+> (a) (b)
+
+Figure 4. DS distribution of 5K attack queries from Sign-OPT [ 9](Left); HoDS corresponding to 2 windows–(a),(b)– (Right). 
+
+by the patterns in DS distributions. We propose a frame-work to identify ongoing adversarial generation attempts and detect adversarial examples in the making. Based on the properties of DS , we propose a detection framework named Gradient Watch Adversarial Detection (GWAD). The pro-posed framework is illustrated in Figure 3; it consists of continuously monitoring the DS of input queries and ana-lyzing the DS distribution using an ML model to detect if the protected system is under attack. 10237 Dataset Model Accuracy Usage 
+
+CIFAR-10 ResNet-18 93.07% Train/Test 
+
+MobileNet-V2 93.90% Evaluation 
+
+ImageNet VGG-16 78.98% Train/Test 
+
+EfficientNet-b3 83.58% Evaluation 
+
+> Table 1. DNN Models’ accuracy. Some DNNs are used to train GWAD while others are used for attack detection evaluation
+
+3.1. Features for Attack Detection/Classification 
+
+DS distributions of attacks are not only highly distinguish-able from benign queries, but each attack method also ex-hibits its own unique characteristics. Therefore, we capture a set of calculated DS , and use the histogram representation to generate features for the attack classification problem as illustrated in Figure 4. In the remainder of this paper, we refer to these features by “Histogram of DS ” (HoDS). For every triplet of queries we calculate a DS . We generate a histogram of the last 256 DS , which is em-pirically chosen for the best prediction as detailed in the Supplementary Material (Section 6). DS is bounded by 
+
+−1.0 ≤ DS ≤ 1.0. The HoDS has 200 equally spaced bins over this range, with an extra bin for DS = 1 .0. The histogram’s intensity varies over the sequence of queries, making local contrast normalization necessary; we apply min-max normalization for this purpose. Finally, a 1 × 201 
+
+HoDS feature vector is generated. 
+
+3.2. Attack Classifier 
+
+In the proposed framework, the extracted HoDS feature vec-tor is input into a classifier to primarily detect attack queries and, ultimately, to identify the specific attack method. For this purpose, we train a fully-connected neural network comprising six fully-connected layers with ReLU activation functions. Classification probabilities are generated by a Log-Softmax output layer. The network architecture is designed to be as lightweight as possible following a brief hyperparameter optimiza-tion.We train our network for 100 epochs with Stochastic Gradient Descent (SGD) optimizer and a batch size of 128 .
+
+# 4. Experiments 
+
+To evaluate the performance of the proposed framework, we conduct experiments in three phases: (i) the general-ization capacity across different image classification tasks and their respective DNN models; (ii) the attack detection performance, including the false positive rate across vari-ous practical use cases; (iii) the robustness against potential adaptive attack scenarios.                 
+
+> Categories Attack Method ASR Update Type
+> Soft-Lable
+> NES [19 ]98.40% Normal
+> SimBA [17 ]97.60% One Hot Pixel
+> BA [3]50.90% Normal
+> Hard-Label
+> HSJA [6]99.50% Normal, Uniform
+> Sign-Opt [9]99.30% Normal
+> Sign-Flip [8]95.70% Normal, Uniform
+> Table 2. Query-based Black-box Adversarial Attack Methods. Their baseline ASR (untargeted) on MobileNet-V2 trained on CIFAR-10 dataset, and the type of update.
+
+4.1. Experimental Setup 
+
+We apply GWAD to scenarios in which DNN models for image classification tasks are targeted by query-based black-box attack methods. 
+
+Datasets and models: To evaluate the effectiveness of GWAD, we use two standard image classification datasets: CIFAR-10 [ 20 ] and ImageNet [ 11 ]. Additionally, we con-sider three practical use cases with datasets chosen for their diverse data sample similarities to simulate varying chal-lenge levels: specifically, the Hollywood Heads Dataset [28 ], FLIR ADAS [ 13 ], and BIRDSAI [ 2]. The DNN mod-els and their baseline accuracies are presented in Table 1.
+
+Attack configurations : We evaluate the attack detec-tion performance on six SOTA query-based black-box at-tack methods, as listed in Table 2. Adversarial examples are generated using samples from the test set, with each at-tack method configured to operate within a 5K query bud-get. The ratio of perturbation added by the attack meth-ods to achieve a successful attack is calculated as ρ =
+
+∥˜x − x∥2/∥x∥2, where ˜x is an adversarial example com-puted by the attack [ 26 ]. The attack is limited with a noise ratio budget ρ = 0 .1. The hyper-parameters of the attacks methods used in this experiments are detailed in the Supple-mentary Material (Section 5). 
+
+4.2. Generalization Property Evaluation 
+
+In this section, we aim to evaluate GWAD’s generalization performance across datasets—that is, if GWAD is trained on the DS distribution of one dataset, can it generalize to de-tect attacks on other datasets? To test this, we extract HoDS features and train GWAD on two datasets: CIFAR-10 and ImageNet. For clarity, we refer to these trained classifiers as GWAD-CIFAR10 and GWAD-ImageNet. Note that the se-lection of these state-of-the-art attacks is intended solely to demonstrate GWAD’s ability to recognize attack patterns, as outlined in our preliminary analysis (Section 2). GWAD-CIFAR10 and GWAD-ImageNet are evaluated using theset-tings described in Table 1, i.e., each of them is assessed for attack detection to protect victim models inferring on both CIFAR-10 and ImageNet datasets. The experimen-tal results are displayed in Figure 5. The results indicate 10238 {OPEN} (a) (d) (c) (b) Figure 5. Confusion matrix of GWAD attack classification performance over validation HoDS feature sets: (a) and (b) show GWAD-CIFAR10 performance over CIFAR-10, and ImageNet, respectively; (c) and (d) show GWAD-ImageNet performance over CIFAR-10, and ImageNet, respectively. 
+
+Attack ImageNet CIFAR-10 
+
+Recogn. Detect. Recogn. Detect. 
+
+HSJA 90.71% 100.00% 98.12% 99.99% NES 100.00% 100.00% 100.00% 100.00% SimBA 100.00% 100.00% 5.60% 100.00% Sign-Opt 62.53% 99.92% 98.34% 100.00% Sign-Flip 93.68% 99.42% 99.26% 100.00% BA 88.17% 99.70% 99.52% 99.56%   
+
+> Table 3. GWAD sensitivity to the sequences of 100K attack queries against EfficientNet trained on ImageNet and MobileNet-v2 trained on CIFAR-10. ”Recogn.” corresponds to the attack recognition (multiclass, benign + 6 attacks), and the ”Detect” cor-responds to the binary classification (benign/attack).
+
+a high generalization capacity across datasets. For instance, GWAD-CIFAR10 classifies the CIFAR-10 validation fea-ture set with an accuracy of 98 .22% and also achieves a high classification accuracy of 97 .32% on the ImageNet val-idation set. Similarly, GWAD-ImageNet, achieves 98 .94% 
+
+classification accuracy on ImageNet and achieves 86 .36% 
+
+classification accuracy on CIFAR-10. It is worth noting that this accuracy corresponds to the multi-class classifica-tion including not only detecting but also recognizing the attack type . The detection rate remains 100% on these benchmarks , including in the generalization setting. The confusion matrix reveals a pattern in GWAD’s at-tack recognition performance, with misclassification occur-ring between queries from certain attacks, such as Sign-Opt and SimBA. This can be attributed to these attacks shar-ing common primary components in their DS distributions, as illustrated earlier in Figure 2. For example, SimBA and Sign-Flip attacks exhibit a common primary DS component at 0 and −1.In the remainder of the paper, we carry on the experi-
+
+Familiarity Attack Blacklight PIHA GWAD 
+
+Known 
+
+BA 23.96% 38.08% 99.98% 
+
+HSJA 97.86% 98.75% 100.00% 
+
+NES 99.96% 94.66% 100.00% 
+
+Unknown QEBA 96.51% 96.78% 100.00% 
+
+Surfree 98.77% 70.96% 100.00% 
+
+> Table 4. GWAD sensitivity is compared to benchmark stateful de-tections; Blacklight[ 23 ] and PIHA[ 10 ] over the sequences of 100K attack queries against MobileNet-v2 trained on CIFAR-10.
+
+ments with GWAD-CIFAR10, and we refer to it as GWAD. 
+
+4.3. Sensitivity Evaluation 
+
+We evaluate GWAD’s attack detection performance by con-ducting six query-based black-box attacks against Efficient-Net and MobileNet-V2 for ImageNet and CIFAR-10, re-spectively. In every instance, each method performs an un-targeted attack until the query budget is reached. GWAD monitors the sequence of the attack queries and extract HoDS at 500 random checkpoints per attack. The results are shown in Table 3, which depicts both attack detection, which is the main objective, and the attack recognition to illustrate GWAD’s capacity to distinguish the different at-tacks’ patterns in the DS space. GWAD correctly detects over 99 .42% attack queries across all attack methods. Similar to the observation in Section 4.2 , the attack recognition is is affected in some cases due to confusion between attacks with simi-lar DS distribution. We also compare the performance of GWAD with state-of-the-art stateful detection approaches, namely, Blacklight [ 23 ] and PIHA [ 10 ]. Table 4 shows the comparative attack detection performance over the 100 K10239 Sequence Blacklight PIHA GWAD 
+
+CIFAR-10 00.00% 00.00% 00.00% Tiny-ImageNet 00.00% 00.01% 00.00% ImageNet 00.16% 00.14% 00.03% FLIR ADAS(RGB) 02.17% 01.43% 00.00% BIRDSAI(Gray) 16.92% – 01.29% 
+
+> Table 5. False positive comparison on the sequence of queries with benign examples which represent practical use cases.
+
+attack queries on CIFAR-10/MobileNet-V2. The proposed GWAD achieves near perfect detection rates while other benchmarks largely fail in particular of BA attack. We note that QEBA[ 22 ] and Surfree[ 25 ] are unknown to GWAD. 
+
+4.4. Specificity Evaluation 
+
+In this experiment we evaluate GWAD over the sequence of queries with various benign examples and measure the false positive rate (FPR) comparatively with related work. Five publicly available datasets which represent specific real world scenarios are used as presented in Table 5.
+
+Use case: Multi-Class images We first conduct tests with image classification tasks, including Tiny-ImageNet, CIFAR-10, and ImageNet, which generally exhibit low sim-ilarity between images. Each task is shuffled, and we ran-domly generate 10K images for monitoring. GWAD does not react to the sequence of images from CIFAR-10 and Tiny-ImageNet, while only 0.03% of ImageNet images in the sequence trigger a false alarm from GWAD. 
+
+Use case : Urban Scene images FLIR ADAS dataset [ 13 ]is specifically designed for autonomous vehicles and con-sists of urban scene images in both RBG and IR formats. Since images are captured continuously as a vehicle moves through urban areas, FLIR ADAS dataset includes series of images which have relatively high similarity. GWAD mon-itors the test sequence and achieves 0% FPR. 
+
+Use case : Bird’s eye images BIRDSAI dataset [ 2] is an infra-red image dataset specifically designed for surveil-lance systems with the Aerial Intelligence, and due to the large perspective, the images show high similarity. The dataset provides ∼ 40 K night-time images of animals and humans captured from airborne vehicles, and only 1.29% of images trigger false alarms by GWAD. We note that PIHA [10 ] is not applicable to BIRDSAI (gray scale) as hue is 0. 
+
+Use case: Successive similar images: We evaluate our ap-proach using the Hollywood Heads dataset [ 28 ], which pro-vides a sequence of queries containing single-class exam-ples. In addition to a standard split with shuffled examples, the dataset includes a special subset of human head images annotated from sequential movie frames, as illustrated in Figure 6. This subset exhibits high similarity between adja-cent images. As shown in Table 6, GWAD demonstrates {OPEN} 
+
+> (a) (b)
+> (c)
+> Figure 6. Examples of Hollywood Head images: (a) low similarity images; (b) medium similarity images; (c) high similarity images
+
+Image Similarity FPR 
+
+Blacklight PIHA GWAD 
+
+Low 02.97% 04.55% 00.00% Medium 00.71% 02.25% 00.00% High 25.47% 26.19% 17.99% 
+
+> Table 6. False Positive comparison: GWAD, Blacklight[ 23 ] and PIHA[ 10 ] monitor the sequence of similar images from Holly-wood head dataset
+
+a lower False Positive Rate (FPR) than Blacklight when handling sequences of highly similar, single-class images. Specifically, GWAD achieves an FPR of 17 .99% , compared to Blacklight 25 .47% and PIHA 26 .19% .
+
+# 5. Adaptive Attacks 
+
+In this section, we evaluate our approach under strong ad-versaries to investigate the limits of GWAD. An important requirement for defense methods is their ability to withstand adaptive attacks that have full knowledge of the defense strategy, including the DS -based approach and GWAD im-plementation. With this in mind, we consider two types of adaptive attacks: i) Benign example injection, and ii) OARS [12 ], which is a SOTA attack that has been crafted to bypass stateful defenses. We provide results for a third adaptive at-tack in the Supplementary Material (Section 6) consisting of a moving target attack by dynamically varying parameters of the random distribution in the 0th -order optimization. 
+
+5.1. Irregular Batch: Benign Example Injection 
+
+An attacker with prior knowledge of our approach may in-ject benign examples between malicious (attack) queries to influence the DS distribution and evade detection. To evaluate the robustness of our approach under this sce-nario, we define the rate of benign example injections rb
+
+as: rb = #benign  
+
+> #attack −queries
+
+. We assume that rb is controlled by the adversary and we vary this rate incrementally to ex-plore the limits of our defense. We implement adaptive attacks while varying rb until the attack totally evades de-tection. Figure 7-(b) displays the evolution of GWAD at-10240 {OPEN}  
+
+> (a) (b) Figure 7. (a) shows the number of queries required to achieve suc-cessful attacks as benign example injection rate grows for HSJA, NES and Sign-Opt; (b) shows GWAD attack detection accuracy.
+
+tack detection accuracy in this setting. Interestingly, GWAD shows a persistent perfect attack detection performance un-til rb ≤ 150% , and gradually degraded after. The detection remains up to 80% for rb ≃ 200% . This means that the attacker needs over 2.5× the overall number of queries to evade detection with 20% success. 
+
+Economics of the attack : Fig. 7-(a) shows the average number of queries to achieve successful attacks. The re-quired number of queries to generate successful attacks in-creases linearly with rb. For example, Sign-Opt requires 
+
+2221 queries at rb = 0% , and it is increased to 7095 queries at rb = 250% . Note that an attack being successfully gen-erated in Fig. 7-(a) does not mean that it evades detection. 
+
+5.2. OARS Adaptive Attack 
+
+Feng et al. [ 12 ] proposed a new attack, Oracle-guided Adaptive Rejection Sampling (OARS), to evade stateful de-fenses [ 7, 10 , 23 ]. OARS identifies the direction of per-turbation (through random noise), which sidesteps adaptive stateful detection methods, before injecting the modified ex-ample into the target model. To evaluate the robustness of GWAD against OARS, we conduct experiments using the original OARS source code [ 18 ]. The OARS-NES attack is applied on ResNet-20 with the CIFAR-10 test split, us-ing the Blacklight configuration as specified in the original work. We vary the strength of the random search direction, 
+
+σ2, to control and explore its impact on the defenses. As shown in Table 7, OARS-NES attack successfully evades Blacklight [ 23 ] and PIHA [ 10 ] with the search strength of σ2 = 0 .05 achieving 97 .5% and 84 .5% ASR, re-spectively. In contrast, OARS-NES fails to bypass GWAD across all test settings. Notably, GWAD perfectly defends against OARS-NES attacks, and its detection rate remains unaffected by changes in σ2. This is because OARS ex-plores directions in the input space, aiding its evasion of stateful defenses. However, GWAD focuses on analyzing the query update patterns rather than the input space itself. We also compare the ASR of various OARS adaptive attacks over GWAD comparatively with Blacklight and 
+
+σ2 Blacklight PIHA GWAD 
+
+0.001 0.0% / 99.2% 0.0% / 90.8% 0.0% / 100.0% 0.005 1.5% / 95.8% 21.0% / 63.2% 0.0% / 100.0% 0.010 94.5% / 3.9% 40.4% / 53.3% 0.0% / 100.0% 0.050 97.5% / 0.0% 84.5% / 31.7% 0.0% / 100.0%  
+
+> Table 7. OARS-NES [ 12 ] adaptive attack performances over Blacklight[ 23 ], PIHA[ 10 ], and GWAD. Results are presented in (ASR( ↓)/Detection Rate( ↑)) format.
+
+Attack Blacklight PIHA GWAD 
+
+OARS-NES 98% 82% 00% 
+
+OARS-HSJA 75% 71% 00% 
+
+OARS-QEBA 98% 95% 00% 
+
+OARS-Square 96% 100% 05%  
+
+> Table 8. Attack Success Rate (ASR) of various OARS adaptive attacks over Blacklight [ 23 ], PIHA [ 10 ], and GWAD. The lower ASR is the better defence.
+
+PIHA, and present the results in Table 8. While GWAD shows high robustness against the adaptive attacks, stateful defenses are largely evaded by the attacks. 
+
+# 6. GWAD +: Enhancement with benign pre-screening 
+
+In the previous section, we found that GWAD was rela-tively vulnerable to benign example injection, even though it results in significantly higher cost for an attack to con-verge. This section investigates ways to enhance GWAD further. Since GWAD and stateful defenses operate in dif-ferent spaces, we propose to enhance GWAD with a state-ful pre-screening. Specifically, we use a lightweight state-ful pre-processing step that we name ” Screener ” to exclude non-suspicious queries using an input space analysis. The Screener transforms a query into 1 × 128 vector e0 through the following steps: i) rescale to 32 × 32 image space, ii) 
+
+convert to binary image with Canny edge detection [ 4], iii) 
+
+compress each row to 4-Byte by representing binary pixels to bits. Finally the transformed query is pushed into n-depth FIFO ( n previous queries). The similarity between input query e0 and queries ei in the FIFO is calculated as: 
+
+mi =
+
+{ 1, if ˆS(e0⊕ei) 
+
+> ˆS(e0)+ ˆS(ei)
+
+< θ 
+
+0, otherwise. (5) where i = {1, 2, .., n }, ⊕ is bit-wise xor, ˆS is the number of bit 1, and θ is an empirically defined threshold. The per-formance of the screener is shown in Fig. 8. Irregular batch attacks based on HSJA conduct 100 attacks on CIFAR-10 Mobile-Net with various batch sizes. Regardless of the 10241 {OPEN} Figure 8. Screener pre-process performance over irregular batch attacks based on HSJA with various batch sizes. 
+
+Attack ImageNet CIFAR-10 
+
+GWAD GWAD + GWAD GWAD +
+
+HSJA 00.00% 99.83% 00.12% 99.24% NES 00.00% 99.95% 00.00% 99.93% Sign-Opt 00.00% 99.50% 00.01% 99.50% Sign-Flip 00.01% 99.72% 00.01% 99.66%     
+
+> Table 9. Enhanced performance of GWAD +(Screener + GWAD) over irregular batch attack with rb= 1000% (100 benign for 10 malicious queries) against EfficientNet trained on ImageNet and MobileNe-v2 trained on CIFAR-10.
+
+batch sizes, the benign queries are perfectly screened out at 100% accuracy, and over 99 .5% of attack queries are fed into GWAD for the precise attack detection. Although FIFO depth is set to n = 100 in this experiment, we tested with different depth values without any significant impact on the performance. Further details can be found in the supple-mentary Section 5. We refer to the Screener-enhanced GWAD as GWAD +
+
+and conduct an experiment to evaluate the enhanced perfor-mance over the irregular batch attacks. The test setting used in Sec. 4.3 is adapted in this experiment, and the attacks are performed with rb = 1000% , i.e., injecting benign queries that are 10 × the number of actual attack queries to strongly obfuscate the attack. Tab. 9 compares the detection rates of GWAD and GWAD +. While GWAD is completely evaded by such adaptive attacks, GWAD + shows highly robust per-formance achieving over 99 .2% detection rate. 
+
+# 7. Related Work 
+
+The problem of defending against adversarial attacks is a highly active research area. However, while query-based black-box attacks are the most practically relevant attack scenarios, there are relatively few approaches that specifi-cally target these threat models. Chen et al. [ 7] introduced Stateful Detection (SD), which seeks to identify adversar-ial example generation in black-box adversarial attacks. SD monitors sequences of queries, reducing each input exam-ple to a lower-dimensional representation via a pre-trained neural network feature extractor. It then calculates pair-wise l2 similarities between a new query and its k-nearest neighbors among previous queries to identify potential at-tack queries. However, SD is resource-intensive and has lower detection accuracy compared to Blacklight [ 23 ]. Li et al. [23 ] (Blacklight) introduces a quantization process that maps a new query to a compact vector space, gener-ating dedicated S × 32 byte hash values. Blacklight then compares these hash values to those stored in a dictionary along with their corresponding query IDs. It uses matched hash values to assess similarity between queries, adding un-matched hashes to the dictionary for future reference. When a query ID in the dictionary accumulates matched hash val-ues beyond a set threshold, Blacklight flags the query as ma-licious. Another similar stateful detection approach called Perceptual Image HAshing (PIHA) has been proposed for adversarial query detection [ 10 ]. Specifically, PIHA uses statistical methods to analyze the input history, identifying anomalies in the distribution of queries. However, we found that these defenses suffer from a high FPR under high similarity benchmarks. Moreover, stateful defenses have shown vulnerable to OARS [ 12 ]. This attack uses initial query patterns to infer key properties about an SD defense; and, craft subsequent query patterns to evade the defense while making progress towards finding adver-sarial inputs. Using the DS , we show that, unlike existing defenses, GWAD is robust against OARS, along with a neg-ligible FPR. 
+
+# 8. Concluding remarks 
+
+In this paper, we propose a novel approach for detecting black-box adversarial attacks that overcomes the vlnerabil-ities of stateful defenses. Specifically, we introduce Gradi-ent Watch Adversarial Detection (GWAD), a defense frame-work designed to detect query-based black-box attack at-tempts. We introduce a new concept, DS , as a means of analyzing query behavior. The main insight of the proposed approach is that DS allows for a distinctive differentiation in the input update space. Our experiments demonstrate that GWAD achieves high detection performance against six state-of-the-art black-box attack methods, along with an adaptive attack (OARS) that evades stateful detection ap-proaches. Besides, our results show a model and dataset-agnostic property of our approach. In fact, the attack detec-tor does not to be trained on the same data distribution of the protected model. One limitation of GWAD is that it can be evaded with excessive benign data injection within the at-tack queries. With the screening enhancement, we demon-strate that GWAD + is robust against benign injection in ir-regular batches. We believe that this work contributes a new perspective to the adversarial attack problem in black-box settings, advancing robust defenses under practical threat models towards trustworthy machine learning. 10242 References 
+
+[1] A. S. Bandeira. Lecture notes for mathematics of data sci-ence (401-4944-201 at eth zurich). ETH Zurich , 2020. 2
+
+[2] E. Bondi, R. Jain, P. Aggrawal, S. Anand, R. Hannaford, A. Kapoor, J. Piavis, S. Shah, L. Joppa, B. Dilkina, and Milind M. Tambe. Birdsai: A dataset for detection and tracking in aerial thermal infrared videos. IEEE/CVF Winter Conference on Applications of Computer Vision , 2020. 4, 6
+
+[3] W. Brendel, J. Rauber, and M. Bethge. Decision based ad-versarial attacks: Reliable attacks against black-box machine learning models. International Conference on Learning Rep-resentations , 2018. 4
+
+[4] J. Canny. A computational approadh to edge detection. IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 8, Issue 6. , 1986. 7
+
+[5] N. Carlini, A. Athalye, N. Papernot, W. Brendel, J. Rauber, D. Tsipras, I. Goodfellow, A. Madry, and A. Ku-rakin. On evaluating adversarial robustness. arXiv preprint arXiv:1902.06705 , 2019. 1
+
+[6] J. Chen, M. I. Jordan, and M. J. Wainwright. Hopskipjumpat-tack: A query-efficient decision-based attack. IEEE Sympo-sium on Security and Privacy , 2020. 1, 2, 3, 4
+
+[7] S. Chen, N. Carlini, and D. Wagner. Stateful detection of black-box adversarial attacks. Proceedings of the ACM Workshop on Security and Privacy on Artificial Intelligence, pp. 30-39 , 2020. 1, 7, 8
+
+[8] W. Chen, Z. Zhang, X. Hu, and B. Wu. Boosting decision-based black-box adversarial attacks with random sign flip. 
+
+European Conference on Computer Vision , 2020. 1, 4
+
+[9] M. Cheng, S. Singh, P. Chen, P.Y. Chen, S. Liu, and C.J. Hsleh. Sign-opt: A query-efficient hard-label adversarial at-tack. International Conference on Learning Representations ,2020. 1, 3, 4
+
+[10] S. H. Choi, J. Shin, and Y. H. Choi. Piha: Detection method using perceptual image hashing against query-based adver-sarial attacks. Future Generation Computer Systems, Vol. 145, pp. 563-577 , 2023. 1, 5, 6, 7, 8
+
+[11] J. Deng, W. Dong, R. Socher, L. J. Li, K. Li, and L. Fei-Fei. Imagenet: A large-scale hierarchical image database. 
+
+IEEE Conference on Computer Vision and Pattern Recogni-tion , 2009. 4
+
+[12] R. Feng, A. Hooda, N. Mangaokar, K. Fawaz, S. Jha, and A. Prakash. Stateful defenses for machine learning models are not yet secure against black-box attacks. ACM Conference on Computer and Communications Security , 2023. 2, 6, 7, 8
+
+[13] FLIR. Free teledyne flir thermal dataset for algorithm train-ing. https://www.flir.co.uk/oem/adas/adas-dataset-form/ ,2024. 4, 6
+
+[14] I. Goodfellow, J. Shlens, and C. Szegedy. Explaining and harnessing adversarial examples. International Conference on Learning Representations , 2015. 1
+
+[15] I. Goodfellow, Y. Bengio, and A. Courville. Deep Learning .The MIT Press, 2017. 1
+
+[16] A. Guesmi, I. Alouani, K. N. Khasawneh, M. Baklouti, T. Frikha, M. Abid, and N. Abu-Ghazaleh. Defensive approx-imation: securing cnns using approximate computing. ACM International Conference on Architectural Support for Pro-gramming Languages and Operating Systems , 2021. 1
+
+[17] C. Guo, J. R. Gardner, Y. You, A. G. Wilson, and K. Q. Wein-berger. Simple black-box adversarial attacks. International Conference on Learning Representations , 2019. 4
+
+[18] https://github.com/nmangaokar. Accessed 20 september 2024. 7
+
+[19] A. Ilyas, L. Engstrom, A. Athalye, and J. Lin. Black-box adversarial attacks with limited queries and information. In-ternational Conference on Machine Learning , 2018. 1, 3,
+
+4
+
+[20] A. Krizhevsky and G. Hinton. Learning multiple layers of features from tiny images. Techinical Report, Citeseer , 2009. 
+
+4
+
+[21] M. Ladoux. The concentration of measure phenomenon. 
+
+American Mathematical Society , 2001. 2
+
+[22] H. Li, X. Xu, X. Zhang, S. Yang, and B. Li. Qeba: Query-efficient boundary-based blackbox attack. IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , 2020. 
+
+6
+
+[23] H. Li, S. Shan, E. Wenger, J. Zhang, H. Zheng, and B. Y. Zhao. Blacklight: Scalable defense for neural networks against query-based black-box attacks. USENIX Secruity Symposium , 2022. 1, 5, 6, 7, 8
+
+[24] A. Madry, A. Makelov, L. Schmidt, D. Tsipras, and A. Vladu. Towards deep learning models resistant to adversarial attacks. International Conference on Learning Representa-tions , 2018. 1
+
+[25] T. Maho, T. Ruron, and E. L. Merrer. Surfree: a fast surrogate-free black-box attack. IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2021. 6
+
+[26] J. H. Park, N. McLaughlin, and P. Miller. Hard-label based small query black-box adversarial attack. IEEE/CVF Winter Conference on Applications of Computer Vision , 2024. 4
+
+[27] B. Tarchoun, A. B. Khalifa, M. A. Mahjoub, N. Abu-Ghazaleh, and I. Alouani. Jedi: Entropy-based localization and removal of adversarial patches. IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2023. 1
+
+[28] T. H. Vu, A. Osokin, and I. Laptev. Context-aware cnns for person head detection. IEEE/CVF International Conference on Computer Vision , 2015. 4, 610243

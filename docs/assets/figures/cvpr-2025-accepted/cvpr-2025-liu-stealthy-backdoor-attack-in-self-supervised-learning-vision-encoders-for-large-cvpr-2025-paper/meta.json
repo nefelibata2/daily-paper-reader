@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 858,
+      "height": 478,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 868,
+      "height": 458,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-003.webp",
+      "caption": "",
+      "page": 0,
+      "index": 3,
+      "width": 864,
+      "height": 457,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-004.webp",
+      "caption": "",
+      "page": 0,
+      "index": 4,
+      "width": 1759,
+      "height": 475,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-005.webp",
+      "caption": "",
+      "page": 0,
+      "index": 5,
+      "width": 1812,
+      "height": 841,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-006.webp",
+      "caption": "",
+      "page": 0,
+      "index": 6,
+      "width": 1567,
+      "height": 363,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-stealthy-backdoor-attack-in-self-supervised-learning-vision-encoders-for-large-cvpr-2025-paper/fig-007.webp",
+      "caption": "",
+      "page": 0,
+      "index": 7,
+      "width": 742,
+      "height": 486,
+      "label": "Figure"
+    }
+  ]
+}

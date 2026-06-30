@@ -1,0 +1,239 @@
+Title: I2VGuard: Safeguarding Images against Misuse in Diffusion-based Image-to-Video Models
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Gui_I2VGuard_Safeguarding_Images_against_Misuse_in_Diffusion-based_Image-to-Video_Models_CVPR_2025_paper.pdf
+
+Published Time: Mon, 19 May 2025 12:16:53 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# I2VGuard: Safeguarding Images against Misuse in Diffusion-based Image-to-Video Models 
+
+# Dongnan Gui 1,* Xun Guo 2 Wengang Zhou 1 Yan Lu 21University of Science and Technology of China 2Microsoft Research Asia 
+
+{gdn2001@mail., zhwg@ }ustc.edu.cn {xunguo, yanlu }@microsoft.com Original Image  Generated video from original image.    
+
+> Guarded Image Generated video from guarded image. Original Image Generated video from original image.
+> Guarded Image Generated video from guarded image.
+
+Figure 1. Results of our I2VGuard . We present original images, guarded images, and their corresponding SVD-generated videos. All results are generated with the same seed. Our method effectively safeguards images from animation in image-to-video generation. 
+
+# Abstract 
+
+Recent advances in image-to-video generation have en-abled animation of still images and offered pixel-level con-trollability. While these models hold great potential to trans-form single images into vivid and dynamic videos, they also carry risks of misuse that could impact privacy, security, and copyright protection. This paper proposes a novel approach that applies imperceptible perturbations on images to de-grade the quality of the generated videos, thereby protecting images from misuse in white-box image-to-video diffusion models. Specifically, we function our approach as an adver-sarial attack, incorporating spatial, temporal, and diffusion attack modules. The spatial attack shifts image features from 
+
+> *Work done during internship at Microsoft Research Asia.
+
+their original distribution to a lower-quality target distribu-tion, reducing visual fidelity. The temporal attack disrupts coherent motion by interfering with temporal attention maps that guide motion generation. To enhance the robustness of our approach across different models, we further pro-pose a diffusion attack module leveraging contrastive loss. Our approach can be easily integrated with mainstream diffusion-based I2V models. Extensive experiments on SVD, CogVideoX, and ControlNeXt demonstrate that our method significantly impairs generation quality in terms of visual clarity and motion consistency, while introducing only mini-mal artifacts to the images. To the best of our knowledge, we are the first to explore adversarial attacks on image-to-video generation for security purposes. This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 12595 1. Introduction 
+
+Diffusion models [ 15 , 19 , 35 ] have gained significant atten-tion recently, particularly in video generation. Advances in models like Sora [ 5 ] and its DiT [ 33 ] framework have accel-erated the development of video diffusion models, leading to numerous academic [ 4, 22 , 27 , 53 , 55 ] and commercial [ 43 –45] applications. The primary types of video generation are text-to-video(T2V) and image-to-video(I2V), with the for-mer supporting greater diversity and the latter offering pixel-level control. Leveraging powerful generative models and techniques from text-to-image generation [ 35 ], image-to-video models can now produce visually impressive videos. Other conditional I2V models include CogVideoX [ 53 ], which generates videos using both text and image inputs, en-abling more versatile content creation, and ControlNeXt [ 34 ], which focuses on generating videos conditioned on pose in-formation, offering precise control over motion and structure. However, the rapid advancement of generative models has also heightened risks related to privacy, security, and copy-right [ 2]. For instance, an adversary with access to a person’s image could use image-to-video models to generate mis-leading or harmful videos, depicting actions the individual never performed, thus compromising individual’s privacy and security. Additionally, the unauthorized use of copy-righted images to create animations poses significant risks to intellectual property rights. To address these risks, this work introduces an adversarial attack method designed to prevent the misuse of images in diffusion-based I2V models. Prior research has primarily focused on protecting images from malicious edits [ 37 , 54 ], which are often viewed as ad-versarial attacks on image-editing models. Few efforts have focused on safeguarding images from misuse in I2V tasks. The main challenges in attacking I2V models come from two aspects: first, disrupting temporal consistency with per-turbations applied only to individual images; and second, achieving robustness across diverse diffusion models, includ-ing UNet and DiT architectures, even under strong condi-tioning such as poses and text prompts. To address these challenges, our method targets different modules within I2V models and affects various attributes of the generated video. Specifically, we divide our approach into spatial, temporal, and diffusion attacks. The spatial attack focuses on altering the spatial features of the I2V models by targeting the VAE encoder in latent diffusion models. Here, we manipulate image latents, shifting them toward suboptimal values. The temporal attack aims to perturb the temporal features, which are crucial for video motion and consistency. By extracting the temporal attention map, we intentionally disrupt it by pushing it away from its original attention map. This creates a chaotic attention map, leading to temporal inconsistencies in the generated video. The diffusion attack focuses on the diffusion process and targets the output of the denoising module, which includes the UNet in SVD and the trans-former in CogVideoX. Unlike a standard denoising process, our approach aims to push the predicted outputs away from the original frames, guiding them closer to target frames. To achieve this, we design a contrastive loss that degrades the quality of the predicted frames by treating the target frames as positive samples and the original predicted frames as negative samples. We conduct a comprehensive qualitative and quantitative analysis of the attack results. Qualitative analysis demon-strates that our method effectively disrupts the original im-age, leading to low temporal consistency and reduced aes-thetic quality in both simple and conditioned I2V models. Quantitative analysis confirms a significant degradation in both spatial quality and temporal consistency of the gener-ated videos. To our knowledge, this is the first adversarial attack method aimed at securing images against misuse in I2V generation. 
+
+# 2. Related Work 
+
+Image-to-Video Generation With the great advancements in image generation [ 15 , 19 , 31 , 35 , 40 , 41 ], video genera-tion [ 3, 5, 20 , 22 , 39 , 43 – 45 , 52 , 53 ] has gathered significant attention and is developing rapidly [ 18 , 48 , 49 , 51 ]. Recently, following the success of diffusion models [ 15 , 19 , 35 , 40 ]in image generation, diffusion models integrated with UNet [ 3, 14 , 21 , 36 ] or transformers (DiT) [ 5 , 33 , 47 , 55 ]have been adopted for video generation. In the field of image-to-video generation, AnimateDiff [ 18 ] animates personal-ized text-to-image diffusion models by inserting a temporal motion module, Stable Video Diffusion(SVD) [ 4] demon-strates strong performance, benefiting from intensive train-ing on large amounts of high-quality data, CogVideoX [ 53 ]supports text-image jointly conditional video generation, Animate-Anyone [ 24 ] and ControlNeXt [ 34 ] leverage pose information for controllable image-to-video generation. In this work, we focus on I2V models, which are susceptible to misuse and therefore require robust protection. 
+
+Adversarial Attacks on Diffusion Models Current at-tacks on diffusion models, which can be broadly catego-rized [ 46 ] into backdoor [ 9 , 12 ] and adversarial attacks, pri-marily target image-based diffusion models [ 13 , 16 , 17 , 50 ]. In adversarial attacks, the input image or text prompt is perturbed to generate adversarial examples. For instance, AdvDM [ 30 ] and Mist [ 29 ] utilize adversarial examples to protect human-created artworks, PhotoGuard [ 37 ] alters the image by modifying either the encoder or the diffusion out-puts against malicious editing, while Glaze [ 38 ] perturbs the image to prevent style mimicry, [ 54 ] shifts the image away from its original distribution, [ 56 ] embeds personal watermarks in the generation of adversarial examples, and DiffusionGuard [ 11 ] generates adversarial noise targeting the early stage of the diffusion process. For video-based attacks, 12596 Spatial Block 
+
+> Temporal  Block
+> Spatial Block
+> Temporal  Block
+> Spatial  Block
+> Spatial Block
+> Temporal  Block
+> Temporal  Block
+> Spatial  Block
+
+Spatial Attack  Diffusion Attack 
+
+Temporal Attack      
+
+> Control Signals
+> Trainable Frozen Encoder Generator Add Noise Forward Backward Concatenate
+
+Figure 2. Overview of our proposed method . The training process begins with a trainable copy Iadv of the original image Isrc . First, we perform inference to obtain the original video V0 and get the latent frames X0. Noisy latent frames Xt and the latent image xadv , x src 
+
+are then processed by the denoising model to predict the original frames. The encoded latent image xadv is utilized for the spatial encoder attack, while the predicted original frames ˆX0 serve in the diffusion attack to compute contrastive loss. Within the denoising module, we hook into the temporal attention module to extract the temporal attention map. By altering the attacked attention map Aadv to diverge from the original Asrc , we implement the temporal attack. 
+
+PRIME [ 28 ] modifies videos frame-by-frame to prevent ma-licious video editing, while [32 ] disrupts style mimicry attacks from video imagery. There are also works protect the image against other generation, such as text-to-3D gen-eration [ 42 ]. In this work, we focus on perturbing the input image in image-to-video diffusion models to perform adver-sarial attacks. Recent study [ 23 ] show that adversarial per-turbations fail to reliably protect artists from style mimicry in the field of image generation. Our approach stands out in two ways: it uses a white-box attack strategy, allowing adver-sarial noise training with both generation and pre-processing models, and it focuses on disrupting temporal consistency rather than mere image fidelity, making the perturbations harder to remove. 
+
+# 3. Method 
+
+In this section, we first provide preliminaries on latent dif-fusion models and problem settings in Sec. 3.1. We then present our attack method, detailing the spatial attack in Sec. 3.2, the temporal attack in Sec. 3.3, and the diffusion attack in Sec. 3.4. An overview of our method is presented in in Fig. 2, which shows our protection procedure involves spatial, temporal, and diffusion attacks. 
+
+3.1. Preliminary 
+
+Latent Diffusion Models In diffusion models, realistic image or video sampling from a target distribution q(·) is achieved via a sequence of denoising steps in a diffusion pro-cess . This approach involves iteratively adding and removing noise to transform an initial sample x0 ∼ q(·). Noise is in-crementally introduced across steps, creating intermediate states defined by xt+1 = √αtx0 + √1 − αtϵt, where ϵt is Gaussian noise. The parameters αt control the noise transi-tion, leading to a final noisy state with a standard Gaussian distribution. By reversing this process and iteratively denois-ing each state, the model learns to predict the noise added at each step, ultimately enabling thr recovery of samples from 
+
+q(·) starting from xT . Latent diffusion models (LDMs), a subclass of diffusion models, operate in a compressed latent space rather than directly in the image space. In LDMs, each input image or video x0 is first mapped to a latent represen-tation E(x0) via an encoder E. The diffusion process then applies in this latent space, producing a series of noisy rep-resentations. Training in this latent space enables LDMs to achieve efficient training and faster inference while retaining high-quality outputs. 12597 Problem Settings Adversarial attacks involve adding sub-tle, nearly undetectable perturbations δadv to the input data to influence a model’s output. In computer vision, adver-sarial attacks have been widely explored in classifications and image synthesis. However, in image-to-video genera-tion tasks, adversarial attack remains a relatively unexplored area. In this work, we aim to develop adversarial attacks to safeguard images from misused by image-to-video latent diffusion models. To distinguish between the latent and pixel spaces, we represent images and videos in pixel space as I
+
+and V , and in latent space as x and X, respectively. Specifically, an adversary can generate a modified image 
+
+Iadv = Isrc + δ from source image Isrc , crafted to disrupt the generative model G, resulting in poor-quality or distorted outputs. This adversarial image is optimized by maximizing the loss between the videos generated from the original and modified images, represented as follows: 
+
+δadv = arg max 
+
+> ∥δ∥p≤ϵ
+
+L(G(Isrc + δ, Xt, c ), G(Isrc , Xt, c )) 
+
+where δadv represents the computed perturbation, con-strained by ∥δ∥p ≤ ϵ to ensure minimal visibility, and c
+
+represents other conditions such as text or pose in the image-to-video generation process. The constraint on δadv is main-tained by a regularization term || Iadv − Isrc || 2.
+
+3.2. Spatial Attack 
+
+The generated video has two main attributes: spatial features and temporal features. In this section, we focus on attack-ing the spatial features within individual frames. Previous work [ 37 , 54 ] has applied adversarial attacks to image editing tasks, focusing solely on spatial features. Our work extends these methods to image-to-video generation task. In Latent Diffusion Models (LDMs), an encoder, denoted as E, compresses the original image or frames into a latent space representation. An encoder attack aims to compromise this encoder, reducing the effectiveness of generative models. 
+
+Lenc = ∥E (Iadv ) − E (Itg )∥2 (1) Specifically, as shown in Eq. (1), the attack transforms the latent representation E(Iadv ) into a poor one E(Itg ),resulting in poor-quality final videos. 
+
+3.3. Temporal Attack 
+
+Unlike attacks on image editing tasks, where no temporal features are involved, attacks on video generation rely heav-ily on temporal information. In this task, disrupting temporal consistency through adversarial attacks is both essential and challenging. To reduce temporal consistency and induce chaotic behavior in the outputs, we target the temporal atten-tion maps within the temporal transformer blocks in video diffusion generator, G. Specifically, during training, we insert  
+
+> Figure 3. Temporal self-attention map visualizations . Difference between generated frames from the original image (left) and the guarded image (right) in Fig. 1.
+
+a hook, denoted as G|
+
+> Aadv
+
+, within the attention block to extract the self-attention map Aadv . We then apply a targeted at-tack to this attention map, pushing it away from the original map, Asrc , thereby reducing temporal consistency in the generated outputs. To achieve this, we introduce a temporal attention loss, denoted as Latt , as shown in Eq. (2), which induces motion-related perturbations and promotes temporal chaos. 
+
+Latt = τ2 − || Aadv − Asrc || 2 (2) As shown in Fig. 3, the visualization of the temporal self-attention map on both the original and modified frames highlights this impact: the manipulated attention map mis-aligns with the original, directly leading to inconsistencies in motion across frames. This visual evidence underscores the effectiveness of our method in disrupting temporal coher-ence in video generation by distorting the temporal attention mechanism within the model. 
+
+3.4. Diffusion Attack 
+
+Although spatial and temporal attacks can disrupt struc-tural and motion information in generated videos, their effectiveness may vary significantly across different mod-els [ 4, 34 , 53 ], especially when other conditions, e.g. , text prompts, are involved. To enhance the robustness and gen-eralization of the perturbation across diffusion models, we introduce a latent space perturbation that uses contrastive loss to shift the predicted noise closer to the target frames while pushing it away from the original frames. Specifically, given the latent representation of the original frames, X0,and the target latent frames, Xtg , we construct a contrastive objective [8, 10], as shown in Eq. (3).            
+
+> Lcon =|| ˆX0,adv −Xtg || 2+ max
+> 
+> 0, τ 1− || ˆX0,adv −X0|| 2
+> 
+> (3)
+
+where τ1 is the margin distance. The positive pair consists of the predicted frames ˆX0,adv and the target frames Xtg ,which we aim to bring closer together, while the negative pair is composed of the predicted frames ˆX0,adv and the original frames X0, which we aim to push apart. With the hyperparameters α, β, γ , we define the final training objective as: 
+
+L = || Iadv − Isrc || 2 + α · L enc + β · L con + γ · L att  (4) 12598 Algorithm 1 Adversarial Attack on Image-to-Video Generation 
+
+Input: Source Image Isrc and Trainable Copy Iadv , Target Image Itg , Target Video Vtg , Image-to-Video Pipeline P,Generator G, Encoder E, Diffusion Scheduler S
+
+(Optional:Condition c)Hyperparameters τ1, τ 2, α, β, γ, λ 
+
+Encode image xsrc , x tg = E(Isrc ), E(Itg )
+
+Generate original video V0 = P(Isrc )
+
+Encode frames X0, Xtg = E(V0), E(Vtg )
+
+for each iteration do 
+
+Encode attacked image xadv = E(Iadv )
+
+Compute encoder loss: Lenc = || xadv − xtg || 2
+
+Generate noisy frames Xt = S(X0)
+
+Predict X0
+
+
+
+ˆX0,adv = G|
+
+> Aadv
+
+(Xt, x adv , c )ˆX0,src = G|
+
+> Asrc
+
+(Xt, x src , c )
+
+Compute spatial contrastive loss            
+
+> Lcon =|| ˆX0,adv −Xtg || 2+ max
+> 
+> 0, τ 1− || ˆX0,adv −X0|| 2
+> 
+
+Compute temporal attention loss 
+
+Latt = τ2 − || Aadv − Asrc || 2
+
+Compute the final loss 
+
+L = || Iadv − Isrc || 2 + α · L enc + β · L con + γ · L att 
+
+Update parameters Iadv ← Iadv − λ · ∇ Iadv L
+
+end for 
+
+The complete algorithm is presented in Algorithm 1. It is noteworthy that our method supports both global and local attacks, allowing perturbations to be applied across the entire image or to specific objects within the image. This feature can be implemented by applying a mask to the noise during the attack process. 
+
+# 4. Experiments 
+
+4.1. Experimental Settings 
+
+Models In the field of video generation, there are few open-source video diffusion models available for experi-mentation. Stable Video Diffusion [ 4] (SVD) is a widely used and effective image-to-video diffusion model, which we adopt as the baseline model for our attack and experimen-tal analysis. For other conditional image-to-video models, we employ CogVideoX-5B-I2V [ 53 ] for text-image joint conditional video generation. The open-sourced CogVideoX adopts DiT rather than UNet architecture used in SVD, pro-viding enhanced capabilities. We also employ ControlNeXt-SVD-v2 [ 34 ] for pose-guided image-to-video generation, which is built upon SVD and provides enhanced control over character animation. 
+
+Data To our knowledge, there are currently no established benchmarks or datasets for image-based adversarial attacks in video generation. In previous work, PhotoGuard [ 37 ] re-ported attack results on over 60 images, while PRIME [ 28 ]used an internal dataset containing 35 video clips. In our experiments, we collect a dataset of 300 images and their corresponding generated frames. The selected images and frames depict people and animals with dynamic actions, which could potentially be misused. We exclude images of scenery without main subjects or images that do not yield noticeable temporal movement, as these typically do not pro-duce meaningful motion, rely mainly on camera movements, and may even remain static. 
+
+Metrics We validate our experiments from two perspec-tives: image perturbation and generation effects. Our goal is to introduce minimal perturbations to the images that signifi-cantly degrade the generated results. We use peak signal-to-noise ratio (PSNR), structural similarity (SSIM) metrics, and Fr ´echet Inception Distance (FID) to evaluate the similarity between the attacked and original images. For evaluating video generation results, we use the metrics Subject Con-sistency , Motion Smoothness , Aesthetic Quality , and Image Quality from VBench [ 25 ]. Subject Consistency measures the average cosine similarity of Dino [ 6] features between each frame and the first frame, assessing temporal coherence. Motion Smoothness calculates the mean absolute error be-tween interpolated and dropped frames. Aesthetic Quality is assessed using the LAION aesthetic predictor [ 1], and Image Quality evaluates the presence of low-level distortions in generated video frames with MUSIQ [26]. 
+
+Setup We control the added noise strength by adjusting the number of training steps and the perturbation threshold at each step. For the loss function, we scale the hyperparam-eters α, β, γ to ensure that each loss component remains on a similar scale. During training, we use a black image as the target image Itg and black frames as the target video Vtg .For the attention hooks, we focus on the temporal attention block of the last downsampling blocks in the UNet and the middle blocks in the transformer, separately. In terms of computational cost, the SVD model requires 68GB of GPU memory and approximately 2.5 minutes to apply protection, while CogVideoX demands 75GB of GPU memory and 10 minutes. Notably, this protecting time is comparable to the inference time of the I2V model. 
+
+4.2. Qualitative Analysis 
+
+In this section, we provide an analysis of attacks on both un-conditional and conditional image-to-video generation. Ad-ditionally, we present a robustness analysis in Appendix A to demonstrate that our method remains effective in safeguard-ing images even in the presence of various pre-processing 12599 Original Image  Generated video from original image.         
+
+> Random Noisy Image Generated video from random noisy image.
+> PhotoGuard Image Generated video from PhotoGuard protected image.
+> Our Guarded Image Generated video from guarded image. (a) SVD generation results on original image, random noisy image, PhotoGuard image and our I2VGuard image. Original Image Generated video from original image.
+> Guarded Image Generated video from guarded image.
+> (b) CogVideoX generation results, where we do not set the prompt in the process of video generation.
+
+Figure 4. Qualitative results of adversarial attacks on I2V models SVD and CogVideoX . We also include generation results of SVD with random noise and PhotoGuard [37] perturbations for comparison. All generation results are using the same seed. 
+
+techniques and denoising modules [ 7]. A detailed visualiza-tion of the generation effects is provided in Appendix B . Furthermore, an additional comparison between spatial and temporal attacks is presented in Appendix E . 
+
+Attack on Image-to-Video Generation We analyze the generation results using two image-to-video generation mod-els: Stable Video Diffusion (SVD) and CogVideoX, as shown in Fig. 4. We observe that the noise added to the guarded image is nearly invisible, yet it causes significant variations in the generated results. In the example shown in Fig. 4a, we additionally illustrate the generated results for both a random noisy image and an image protected by PhotoGuard [ 37 ]. The random noise does not affect generation quality, preserv-ing both temporal consistency and normal spatial appear-ance, likely because the VAE filters out such random noise. The PhotoGuard-protected image, however, introduces noise specifically on the person, which slightly affects appearance without compromising temporal consistency. In contrast, our protected image disrupts both spatial content and temporal consistency. Specifically, the woman’s head and hair move-ment appear unnatural, chaotic frames are generated, and unusual textures emerge in the background across all frames. Fig. 4b shows results from CogVideoX under an image-only setting, where no prompt is applied during training and in-ference. CogVideoX, which is relatively more powerful than SVD, requires relatively stronger noise to affect generation. It can be observed that motion distortions still occur, particu-12600 Original Image  Generated video from original image.    
+
+> Guarded Image Generated video from guarded image. (a) ControlNeXT-SVD-v2 generation results. Original Image Generated video from original image.
+> Guarded Image Generated video from guarded image.
+> (b) CogVideoX generation results. The prompt is “ Many ostriches are running ”.
+
+Figure 5. Qualitative results of adversarial attacks on conditional I2V models ControlNeXt and CogVideoX . It can be observed that visual features are not controlled effectively, leading to unreasonable generation results. All generation results are using the same seed. 
+
+larly in areas where motion takes place, such as the blurred head movement of the man, with the noise causing the sur-rounding regions to fail in generation, resulting in a blur. In summary, our method effectively disrupts both spatial content and temporal consistency in generated videos. 
+
+Attack on Conditional Image-to-Video Generation We present an attack on conditional image-to-video mod-els in Fig. 5, specifically examining pose-conditioned ControlNeXt-SVD and text-guided video generation with CogVideoX. In the first row of Fig. 5a, the ControlNeXt model effectively controls the character’s motion while main-taining consistent character appearance and background fea-tures. However, in the second row, where we guard the origi-nal image, the model fails to preserve the character’s appear-ance and fidelity in the background. Noticeable differences emerge: for instance, the fruits in the background exhibit blurring, and the character appears deformed. These spatial distortions illustrate the effectiveness of our attack method. Despite this, the pose control remains robust, likely due to the intensive training of the original SVD UNet, which results in strong overfitting to the specific style and hands shape. In the example of CogVideoX shown in Fig. 5b, we observe that adding special texture noise leads to the generation of temporal inconsistency and blurred content compared with the original ones. Specifically, in this case, texture noise is applied around the animals, causing distortions in the gener-ated output, such as headless and transparent ostriches. In our experiments, CogVideoX exhibits strong prompt-following ability, which is due to an additional powerful text encoder compared to SVD. By slightly increasing the noise strength, we are able to successfully execute the attack. 12601 Video Source Model Subject Consistency(%, ↓) Motion Smoothness(%, ↓) Aesthetic Quality (%, ↓) Image Quality( ↓)                   
+
+> Original Image SVD 95.86 ±2.62 97.90 ±1.43 56.76 ±4.75 67.28 ±6.18
+> Guarded Image 91.57 ±3.95 97.18 ±1.21 53.42 ±4.93 64.38 ±8.23
+> Original Image CogVideoX 97.02 ±1.96 99.19 ±0.27 59.94 ±5.53 67.60 ±6.49
+> Guarded Image 93.50 ±3.58 97.97 ±0.32 53.95 ±5.62 65.24 ±9.85
+> Table 1. Analysis of video generation effects of SVD and CogVideoX from original images and images guarded by our method. Mean and variance of evaluations are reported. We exclude results with extremely high subject consistency and motion smoothness, as these indicate static frames, which are outside the scope of this evaluation. An ablation study on the different attack methods is also presented in ?? .
+
+Image Type PSNR( ↑) SSIM( ↑) FID( ↓)
+
+Random Noise 26.22 ±0.04 0.774 ±0.003 14.31 Guarded Image 31.83 ±0.19 0.868 ±0.016 16.78 
+
+> Table 2. Analysis of perturbations between original and modified images. Random noise is introduced to the original images to es-tablish a baseline, and the mean and variance of the perturbations are reported.
+> Figure 6. Frame-level quantitative evaluation with the same seed.
+
+4.3. Quantitative Analysis 
+
+Image Perturbation Analysis We present the modified image quality results in Tab. 2. Random noise was added to the original images to establish a baseline for comparison. The mean and variance of the added noise in this baseline are generally comparable to the modifications introduced in our attacked images. The results demonstrate that, despite simi-lar perturbation strength, our method achieves significantly higher image quality, as indicated by higher score in both peak signal-to-noise ratio (PSNR) and structural similarity index measure (SSIM). A qualitative comparison reveals that the noise added to the image possesses its own texture, which is less visible than the random noise added. In terms of image quality and diversity, our approach yields a higher Fr ´echet Inception Distance (FID). This is expected because the specific texture noise we add aligns with the original im-age texture, resulting in lower diversity compared to images with added random noise. 
+
+Video Generation Analysis Evaluation results for gener-ated videos of SVD and CogVideoX are shown in Tab. 1. First, we assess the performance of the I2V model on original images, finding that it demonstrates strong subject consis-tency, smooth motion transitions, high aesthetic quality, and well-preserved low-level image quality. This suggests that the I2V models are capable of generating visually coherent and temporally stable content. In particular, CogVideoX per-forms a better performance than SVD because transformers scale more easily in both data and model size than UNet, making CogVideoX superior to SVD in size and perfor-mance. In contrast, our method, which uses a similar noise strength, significantly impacts all evaluated metrics. To be precise, temporal assessments reveal declines around 4% in subject consistency and around 1% in motion smoothness, showing that our method effectively disrupts the model’s temporal coherence. Specifically, the decline in subject con-sistency is reflected in irregular movement of the main ob-ject’s location or the sporadic appearance and disappearance of the object. The decline in motion smoothness is reflected in abrupt, discontinuous frame-to-frame movements. Spa-tial evaluations also show that our method considerably di-minishes aesthetic quality and low-level image quality by 
+
+3 ∼ 6% and 2 ∼ 3%, respectively. The decrease in aesthetic quality is evident in the appearance of unusual textures or ob-ject deformations that detract from the visual appeal. These reductions reflect a successful attack on the image-to-video model. Notably, because CogVideoX employs a 3D VAE, which handles spatiotemporal noise in videos better than the 2D+1D VAE in SVD, CogVideoX shows greater resistance to attacks compared to SVD. Additionally, we provide a frame-level quantitative evalu-ation in Fig. 6. The results indicate that our method effec-tively disrupts temporal consistency, leading to a propagated deviation from the original generation. 
+
+# 5. Conclusion 
+
+In this paper, we presented I2VGuard, a novel adversarial method that applies imperceptible perturbations on images to degrade the quality of videos generated by diffusion-based image-to-video models, thereby protecting images from mis-use. Concretely, we designed three attack modules, i.e. spa-tial attack, temporal attack and diffusion attack, to disrupt visual fidelity, temporal consistency, and cross-model robust-ness, respectively. Extensive experiments on state-of-the-art generative models, i.e. CogVideoX and SVD, demonstrated the effectiveness of our method. 12602 References 
+
+[1] LAION AI. Laion-aesthetics. 5 [2] Ali Asghar, Amna Shifa, and Mamoona Naveed Asghar. Sur-vey on video security: Examining threats, challenges, and future trends. Computers, Materials & Continua , 80(3), 2024. 2[3] Omer Bar-Tal, Hila Chefer, Omer Tov, Charles Herrmann, Roni Paiss, Shiran Zada, Ariel Ephrat, Junhwa Hur, Yuanzhen Li, Tomer Michaeli, et al. Lumiere: A space-time diffusion model for video generation. arXiv preprint arXiv:2401.12945 ,2024. 2 [4] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam Levi, Zion English, Vikram Voleti, Adam Letts, et al. Stable video diffusion: Scaling latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127 , 2023. 2, 4, 5 [5] Tim Brooks, Bill Peebles, Connor Holmes, Will DePue, Yufei Guo, Li Jing, David Schnurr, Joe Taylor, Troy Luhman, Eric Luhman, Clarence Ng, Ricky Wang, and Aditya Ramesh. Video generation models as world simulators. 2024. 2 [6] Mathilde Caron, Hugo Touvron, Ishan Misra, Herv ´e J ´egou, Julien Mairal, Piotr Bojanowski, and Armand Joulin. Emerg-ing properties in self-supervised vision transformers. In Pro-ceedings of the IEEE/CVF international conference on com-puter vision , pages 9650–9660, 2021. 5 [7] Liangyu Chen, Xiaojie Chu, Xiangyu Zhang, and Jian Sun. Simple baselines for image restoration. In European confer-ence on computer vision , pages 17–33. Springer, 2022. 6 [8] Ting Chen, Simon Kornblith, Mohammad Norouzi, and Ge-offrey Hinton. A simple framework for contrastive learning of visual representations. In International conference on machine learning , pages 1597–1607. PMLR, 2020. 4 [9] Weixin Chen, Dawn Song, and Bo Li. Trojdiff: Trojan attacks on diffusion models with diverse targets. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4035–4044, 2023. 2 [10] Xinlei Chen and Kaiming He. Exploring simple siamese rep-resentation learning. In IEEE Conference on Computer Vision and Pattern Recognition, 2021 . Computer Vision Foundation / IEEE, 2021. 4 [11] June Suk Choi, Kyungmin Lee, Jongheon Jeong, Saining Xie, Jinwoo Shin, and Kimin Lee. Diffusionguard: A robust defense against malicious diffusion-based image editing. In 
+
+ICML 2024 Next Generation of AI Safety Workshop . 2 [12] Sheng-Yen Chou, Pin-Yu Chen, and Tsung-Yi Ho. How to backdoor diffusion models? In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 4015–4024, 2023. 2 [13] Hai Ci, Yiren Song, Pei Yang, Jinheng Xie, and Mike Zheng Shou. Wmadapter: Adding watermark control to latent diffu-sion models. arXiv preprint arXiv:2406.08337 , 2024. 2 [14] ¨Ozg ¨un C¸ ic¸ ek, Ahmed Abdulkadir, Soeren S Lienkamp, Thomas Brox, and Olaf Ronneberger. 3d u-net: learn-ing dense volumetric segmentation from sparse annota-tion. In Medical Image Computing and Computer-Assisted Intervention–MICCAI 2016: 19th International Conference, Athens, Greece, October 17-21, 2016, Proceedings, Part II 19 , pages 424–432. Springer, 2016. 2 [15] Prafulla Dhariwal and Alexander Nichol. Diffusion models beat gans on image synthesis. Advances in neural information processing systems , 34:8780–8794, 2021. 2 [16] Weitao Feng, Wenbo Zhou, Jiyan He, Jie Zhang, Tianyi Wei, Guanlin Li, Tianwei Zhang, Weiming Zhang, and Nenghai Yu. Aqualora: Toward white-box protection for customized stable diffusion models via watermark lora. arXiv preprint arXiv:2405.11135 , 2024. 2 [17] Pierre Fernandez, Guillaume Couairon, Herv ´e J ´egou, Matthijs Douze, and Teddy Furon. The stable signature: Rooting watermarks in latent diffusion models. In Proceedings of the IEEE/CVF International Conference on Computer Vision ,pages 22466–22477, 2023. 2 [18] Yuwei Guo, Ceyuan Yang, Anyi Rao, Zhengyang Liang, Yao-hui Wang, Yu Qiao, Maneesh Agrawala, Dahua Lin, and Bo Dai. Animatediff: Animate your personalized text-to-image diffusion models without specific tuning. arXiv preprint arXiv:2307.04725 , 2023. 2 [19] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-sion probabilistic models. Advances in neural information processing systems , 33:6840–6851, 2020. 2 [20] Jonathan Ho, William Chan, Chitwan Saharia, Jay Whang, Ruiqi Gao, Alexey Gritsenko, Diederik P Kingma, Ben Poole, Mohammad Norouzi, David J Fleet, et al. Imagen video: High definition video generation with diffusion models. arXiv preprint arXiv:2210.02303 , 2022. 2 [21] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William Chan, Mohammad Norouzi, and David J Fleet. Video diffusion models. Advances in Neural Information Processing Systems ,35:8633–8646, 2022. 2 [22] Wenyi Hong, Ming Ding, Wendi Zheng, Xinghan Liu, and Jie Tang. Cogvideo: Large-scale pretraining for text-to-video gen-eration via transformers. arXiv preprint arXiv:2205.15868 ,2022. 2 [23] Robert H ¨onig, Javier Rando, Nicholas Carlini, and Florian Tram `er. Adversarial perturbations cannot reliably protect artists from generative ai. arXiv preprint arXiv:2406.12027 ,2024. 3 [24] Li Hu. Animate anyone: Consistent and controllable image-to-video synthesis for character animation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 8153–8163, 2024. 2 [25] Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang, Chenyang Si, Yuming Jiang, Yuanhan Zhang, Tianxing Wu, Qingyang Jin, Nattapol Chanpaisit, et al. Vbench: Comprehensive bench-mark suite for video generative models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 21807–21818, 2024. 5 [26] Junjie Ke, Qifei Wang, Yilin Wang, Peyman Milanfar, and Feng Yang. Musiq: Multi-scale image quality transformer. In 
+
+Proceedings of the IEEE/CVF international conference on computer vision , pages 5148–5157, 2021. 5 [27] PKU-Yuan Lab and Tuzhan AI etc. Open-sora-plan, 2024. 2 [28] Guanlin Li, Shuai Yang, Jie Zhang, and Tianwei Zhang. Prime: Protect your videos from malicious editing. arXiv preprint arXiv:2402.01239 , 2024. 3, 5 12603 [29] Chumeng Liang and Xiaoyu Wu. Mist: Towards improved adversarial examples for diffusion models. arXiv preprint arXiv:2305.12683 , 2023. 2 [30] Chumeng Liang, Xiaoyu Wu, Yang Hua, Jiaru Zhang, Yiming Xue, Tao Song, Zhengui Xue, Ruhui Ma, and Haibing Guan. Adversarial example does good: Preventing painting imita-tion from diffusion models via adversarial examples. arXiv preprint arXiv:2302.04578 , 2023. 2 [31] Alexander Quinn Nichol and Prafulla Dhariwal. Improved denoising diffusion probabilistic models. In International conference on machine learning , pages 8162–8171. PMLR, 2021. 2 [32] Josephine Passananti, Stanley Wu, Shawn Shan, Haitao Zheng, and Ben Y Zhao. Disrupting style mimicry attacks on video imagery. arXiv preprint arXiv:2405.06865 , 2024. 3 [33] William Peebles and Saining Xie. Scalable diffusion models with transformers. In Proceedings of the IEEE/CVF Inter-national Conference on Computer Vision , pages 4195–4205, 2023. 2 [34] Bohao Peng, Jian Wang, Yuechen Zhang, Wenbo Li, Ming-Chang Yang, and Jiaya Jia. Controlnext: Powerful and effi-cient control for image and video generation. arXiv preprint arXiv:2408.06070 , 2024. 2, 4, 5 [35] Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Bj ¨orn Ommer. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pages 10684–10695, 2022. 2 [36] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image segmen-tation. In Medical image computing and computer-assisted intervention–MICCAI 2015: 18th international conference, Munich, Germany, October 5-9, 2015, proceedings, part III 18 , pages 234–241. Springer, 2015. 2 [37] Hadi Salman, Alaa Khaddaj, Guillaume Leclerc, Andrew Ilyas, and Aleksander Madry. Raising the cost of malicious ai-powered image editing. In Proceedings of the 40th Interna-tional Conference on Machine Learning , pages 29894–29918, 2023. 2, 4, 5, 6 [38] Shawn Shan, Jenna Cryan, Emily Wenger, Haitao Zheng, Rana Hanocka, and Ben Y Zhao. Glaze: Protecting artists from style mimicry by {Text-to-Image } models. In 32nd USENIX Security Symposium (USENIX Security 23) , pages 2187–2204, 2023. 2 [39] Uriel Singer, Adam Polyak, Thomas Hayes, Xi Yin, Jie An, Songyang Zhang, Qiyuan Hu, Harry Yang, Oron Ashual, Oran Gafni, et al. Make-a-video: Text-to-video generation without text-video data. arXiv preprint arXiv:2209.14792 , 2022. 2 [40] Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. Deep unsupervised learning using nonequilibrium thermodynamics. In International confer-ence on machine learning , pages 2256–2265. PMLR, 2015. 2[41] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502 ,2020. 2 [42] Jingwei Sun, Xuchong Zhang, Changfeng Sun, Qicheng Bai, and Hongbin Sun. Latent feature and attention dual erasure attack against multi-view diffusion models for 3d assets pro-tection. arXiv preprint arXiv:2408.11408 , 2024. 3 [43] Kling AI Team. Kling ai, 2024. 2 [44] Luma AI Team. Luma ai, 2024. [45] The Movie Gen team @ Meta. Movie gen: A cast of media foundation models. 2024. 2 [46] Vu Tuan Truong, Luan Ba Dang, and Long Bao Le. Attacks and defenses for generative diffusion models: A comprehen-sive survey. arXiv preprint arXiv:2408.03400 , 2024. 2 [47] A Vaswani. Attention is all you need. Advances in Neural Information Processing Systems , 2017. 2 [48] Jiuniu Wang, Hangjie Yuan, Dayou Chen, Yingya Zhang, Xiang Wang, and Shiwei Zhang. Modelscope text-to-video technical report. arXiv preprint arXiv:2308.06571 , 2023. 2 [49] Yaohui Wang, Xinyuan Chen, Xin Ma, Shangchen Zhou, Ziqi Huang, Yi Wang, Ceyuan Yang, Yinan He, Jiashuo Yu, Peiqing Yang, et al. Lavie: High-quality video gener-ation with cascaded latent diffusion models. arXiv preprint arXiv:2309.15103 , 2023. 2 [50] Yuxin Wen, John Kirchenbauer, Jonas Geiping, and Tom Goldstein. Tree-ring watermarks: Fingerprints for diffu-sion images that are invisible and robust. arXiv preprint arXiv:2305.20030 , 2023. 2 [51] Jay Zhangjie Wu, Yixiao Ge, Xintao Wang, Stan Weixian Lei, Yuchao Gu, Yufei Shi, Wynne Hsu, Ying Shan, Xiaohu Qie, and Mike Zheng Shou. Tune-a-video: One-shot tuning of image diffusion models for text-to-video generation. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 7623–7633, 2023. 2 [52] Zhen Xing, Qijun Feng, Haoran Chen, Qi Dai, Han Hu, Hang Xu, Zuxuan Wu, and Yu-Gang Jiang. A survey on video diffusion models. ACM Computing Surveys , 2023. 2 [53] Zhuoyi Yang, Jiayan Teng, Wendi Zheng, Ming Ding, Shiyu Huang, Jiazheng Xu, Yuanming Yang, Wenyi Hong, Xiao-han Zhang, Guanyu Feng, et al. Cogvideox: Text-to-video diffusion models with an expert transformer. arXiv preprint arXiv:2408.06072 , 2024. 2, 4, 5 [54] Jianping Zhang, Zhuoer Xu, Shiwen Cui, Changhua Meng, Weibin Wu, and Michael R Lyu. On the robustness of latent diffusion models. arXiv preprint arXiv:2306.08257 , 2023. 2, 4[55] Zangwei Zheng, Xiangyu Peng, Tianji Yang, Chenhui Shen, Shenggui Li, Hongxin Liu, Yukun Zhou, Tianyi Li, and Yang You. Open-sora: Democratizing efficient video production for all, 2024. 2 [56] Peifei Zhu, Tsubasa Takahashi, and Hirokatsu Kataoka. Watermark-embedded adversarial examples for copyright protection against diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 24420–24430, 2024. 2 12604

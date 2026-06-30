@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-shaheryar-black-hole-driven-identity-absorbing-in-diffusion-models-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 1632,
+      "height": 234,
+      "label": "Table"
+    }
+  ]
+}

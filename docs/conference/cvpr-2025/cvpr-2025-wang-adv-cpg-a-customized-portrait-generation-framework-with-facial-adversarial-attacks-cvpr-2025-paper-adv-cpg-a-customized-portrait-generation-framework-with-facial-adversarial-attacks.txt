@@ -1,0 +1,9 @@
+Title: 
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Wang_Adv-CPG_A_Customized_Portrait_Generation_Framework_with_Facial_Adversarial_Attacks_CVPR_2025_paper.pdf
+
+Published Time: Mon, 02 Jun 2025 02:25:29 GMT
+
+Warning: This page contains iframe that are currently hidden, consider enabling iframe processing.
+
+Markdown Content:

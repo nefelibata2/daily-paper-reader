@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "extractor": "papercropper",
+  "tables": [
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-sami-gradient-inversion-attacks-on-parameter-efficient-fine-tuning-cvpr-2025-paper/table-001.webp",
+      "caption": "",
+      "page": 0,
+      "index": 1,
+      "width": 686,
+      "height": 236,
+      "label": "Table"
+    },
+    {
+      "url": "assets/tables/cvpr-2025-accepted/cvpr-2025-sami-gradient-inversion-attacks-on-parameter-efficient-fine-tuning-cvpr-2025-paper/table-002.webp",
+      "caption": "",
+      "page": 0,
+      "index": 2,
+      "width": 599,
+      "height": 124,
+      "label": "Table"
+    }
+  ]
+}
