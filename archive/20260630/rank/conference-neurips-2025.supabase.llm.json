@@ -1,0 +1,3306 @@
+{
+  "top_k": 200,
+  "generated_at": "2026-06-30T08:48:19.922312+00:00",
+  "papers": [
+    {
+      "id": "openreview-neurips-2025-s1f2qhendd",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Self-Refining Language Model Anonymizers via Adversarial Distillation",
+      "abstract": "Large language models (LLMs) are increasingly used in sensitive domains, where their ability to infer personal data from seemingly benign text introduces emerging privacy risks. While recent LLM-based anonymization methods help mitigate such risks, they often rely on proprietary models (e.g., GPT-4), raising concerns about cost and the potential exposure of sensitive data to untrusted external systems. To address this, we introduce $\\textit{SElf-refining Anonymization with Language model}$ (SEAL), a novel distillation framework for training small language models (SLMs) to perform effective anonymization without relying on external models at inference time. SEAL leverages adversarial interactions between an LLM anonymizer and an inference model to collect trajectories of anonymized texts and inferred attributes, which are then used to distill anonymization and critique capabilities into SLMs through supervised fine-tuning and preference learning. The resulting models learn both to anonymize text and to evaluate their outputs, enabling iterative improvement of anonymization quality via self-refinement. Experiments on SynthPAI, a dataset of synthetic personal profiles and text comments, demonstrate that SLMs trained with SEAL achieve substantial improvements in anonymization capabilities. Notably, 8B models attain a privacy-utility trade-off comparable to that of the GPT-4 anonymizer and, with self-refinement, even surpass it in terms of privacy protection. These results highlight the effectiveness of our adversarial distillation framework for training SLMs as efficient anonymizers.",
+      "authors": [
+        "Kyuyoung Kim",
+        "Hyunjun Jeon",
+        "Jinwoo Shin"
+      ],
+      "primary_category": "privacy",
+      "categories": [
+        "privacy",
+        "anonymization",
+        "distillation",
+        "large language models",
+        "small language models"
+      ],
+      "published": "2025-09-18T17:36:58.238+00:00",
+      "link": "https://openreview.net/forum?id=S1F2qhendd",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-tecj926vgn",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Differentially Private Federated Low Rank Adaptation Beyond Fixed-Matrix",
+      "abstract": "Large language models (LLMs) typically require fine-tuning for domain-specific tasks, and LoRA offers a computationally efficient approach by training low-rank adaptors. LoRA is also communication-efficient for federated LLMs when multiple users collaboratively fine-tune a global LLM model without sharing their proprietary raw data. However, even the transmission of local adaptors between a server and clients risks serious privacy leakage. Applying differential privacy (DP) to federated LoRA encounters a dilemma: adding noise to both adaptors amplifies synthetic noise on the model, while fixing one adaptor impairs the learnability of fine-tuning. In this paper, we propose FedASK (Differentially Private Federated Low Rank Adaptation with Double SKetching) , a novel federated LoRA framework to enable effective updating of both low-rank adaptor matrices with robust differential privacy. Inspired by randomized SVD, our key idea is a two-stage sketching pipeline. This pipeline first aggregates carefully sketched, privacy-preserving local updates, and then reconstructs the global matrices on the server to facilitate effective updating of both adaptors. We theoretically prove FedASK's differential privacy guarantee and its exact aggregation property. Comprehensive experiments demonstrate that FedASK consistently outperforms baseline methods across a variety of privacy settings and data distributions.",
+      "authors": [
+        "Ming Wen",
+        "Jiaqi Zhu",
+        "Yuedong Xu",
+        "Yipeng Zhou",
+        "DINGDING HAN"
+      ],
+      "primary_category": "Federated Learning",
+      "categories": [
+        "Federated Learning",
+        "Low-Rank Adaptation",
+        "Differential Privacy"
+      ],
+      "published": "2025-09-18T17:37:16.525+00:00",
+      "link": "https://openreview.net/forum?id=TecJ926Vgn",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-cy6mgbwtov",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "FedRW: Efficient Privacy-Preserving Data Reweighting for Enhancing Federated Learning of Language Models",
+      "abstract": "Data duplication within large-scale corpora often impedes large language models' (LLMs) performance and privacy. In privacy-concerned federated learning scenarios, conventional deduplication methods typically rely on trusted third parties to perform uniform deletion, risking loss of informative samples while introducing privacy vulnerabilities. To address these gaps, we propose Federated ReWeighting (FedRW), the first privacy-preserving framework, to the best of our knowledge, that performs soft deduplication via sample reweighting instead of deletion in federated LLM training, without assuming a trusted third party. At its core, FedRW proposes a secure, frequency-aware reweighting protocol through secure multi-party computation, coupled with a parallel orchestration strategy to ensure efficiency and scalability. During training, FedRW utilizes an adaptive reweighting mechanism with global sample frequencies to adjust individual loss contributions, effectively improving generalization and robustness. Empirical results demonstrate that FedRW outperforms the state-of-the-art method by achieving up to $28.78\\times$ speedup in preprocessing and approximately $11.42$\\% improvement in perplexity, while offering enhanced security guarantees. FedRW thus establishes a new paradigm for managing duplication in federated LLM training.",
+      "authors": [
+        "Pukang Ye",
+        "Junwei Luo",
+        "Jiachen Shen",
+        "Saipan Zhou",
+        "Shangmin Dou",
+        "Zhenfu Cao",
+        "Hanzhe Yao",
+        "Xiaolei Dong",
+        "Yunbo Yang"
+      ],
+      "primary_category": "LLM Privacy",
+      "categories": [
+        "LLM Privacy",
+        "Data Deduplication",
+        "Federated Learning",
+        "Secure Multi-Party Computation"
+      ],
+      "published": "2025-09-18T17:28:36.141+00:00",
+      "link": "https://openreview.net/forum?id=cy6MGBwToV",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-0znxgzlcog",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Privacy Reasoning in Ambiguous Contexts",
+      "abstract": "We study the ability of language models to reason about appropriate information disclosure - a central aspect of the evolving field of agentic privacy. Whereas previous works have focused on evaluating a model's ability to align with human decisions, we examine the role of ambiguity and missing context on model performance when making information-sharing decisions. We identify context ambiguity as a crucial barrier for high performance in privacy assessments. By designing Camber, a framework for context disambiguation, we show that model-generated decision rationales can reveal ambiguities and that systematically disambiguating context based on these rationales leads to significant accuracy improvements (up to 13.3% in precision and up to 22.3% in recall) as well as reductions in prompt sensitivity. Overall, our results indicate that approaches for context disambiguation are a promising way forward to enhance agentic privacy reasoning.",
+      "authors": [
+        "Ren Yi",
+        "Octavian Suciu",
+        "Adrian Gascon",
+        "Sarah Meiklejohn",
+        "Eugene Bagdasarian",
+        "Marco Gruteser"
+      ],
+      "primary_category": "Personal Agents",
+      "categories": [
+        "Personal Agents",
+        "Privacy Reasoning",
+        "Context Disambiguation",
+        "Benchmarks"
+      ],
+      "published": "2025-09-18T17:36:24.186+00:00",
+      "link": "https://openreview.net/forum?id=0ZnXGzLcOg",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-ttwzhy8jqy",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "SeCon-RAG: A Two-Stage Semantic  Filtering and Conflict-Free Framework for Trustworthy RAG",
+      "abstract": "Retrieval-augmented generation (RAG) systems enhance large language models (LLMs) with external knowledge but are vulnerable to corpus poisoning and contamination attacks, which can compromise output integrity. Existing defenses often apply aggressive filtering, leading to unnecessary loss of valuable information and reduced reliability in generation.\nTo address this problem, we propose a two-stage semantic filtering and conflict-free framework for trustworthy RAG. \nIn the first stage, we perform a joint filter with semantic and cluster-based filtering  which is guided by the Entity-intent-relation extractor (EIRE). EIRE extracts entities, latent objectives, and entity relations from both the user query and filtered documents, scores their semantic relevance, and selectively adds valuable documents into the clean retrieval database. \nIn the second stage, we proposed an EIRE-guided conflict-aware filtering module, which analyzes semantic consistency between the query, candidate answers, and retrieved knowledge before final answer generation, filtering out internal and external contradictions that could mislead the model.\nThrough this two-stage process, SeCon-RAG effectively preserves useful knowledge while mitigating conflict contamination, achieving significant improvements in both generation robustness and output trustworthiness.\nExtensive experiments across various LLMs and datasets demonstrate that the proposed SeCon-RAG markedly outperforms state-of-the-art defense methods.",
+      "authors": [
+        "Xiaonan si",
+        "Meilin Zhu",
+        "Simeng Qin",
+        "Lijia Yu",
+        "Lijun Zhang",
+        "Shuaitong Liu",
+        "Xinfeng Li",
+        "Ranjie Duan",
+        "Yang Liu",
+        "Xiaojun Jia"
+      ],
+      "primary_category": "RAG",
+      "categories": [
+        "RAG",
+        "Prompt of LLMs",
+        "Defense against RAG attack"
+      ],
+      "published": "2025-09-18T17:30:16.263+00:00",
+      "link": "https://openreview.net/forum?id=tTwZhy8JqY",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-phiwebewaz",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Can We Infer Confidential Properties of Training Data from LLMs?",
+      "abstract": "Large language models (LLMs) are increasingly fine-tuned on domain-specific datasets to support applications in fields such as healthcare, finance, and law. These fine-tuning datasets often have sensitive and confidential dataset-level properties — such as patient demographics or disease prevalence—that are not intended to be revealed. While prior work has studied property inference attacks on discriminative models (e.g., image classification models) and generative models (e.g., GANs for image data), it remains unclear if such attacks transfer to LLMs. In this work, we introduce PropInfer, a benchmark task for evaluating property inference in LLMs under two fine-tuning paradigms: question-answering and chat-completion. Built on the ChatDoctor dataset, our benchmark includes a range of property types and task configurations. We further propose two tailored attacks: a prompt-based generation attack and a shadow-model attack leveraging word frequency signals. Empirical evaluations across multiple pretrained LLMs show the success of our attacks, revealing a previously unrecognized vulnerability in LLMs.",
+      "authors": [
+        "Pengrun Huang",
+        "Chhavi Yadav",
+        "Kamalika Chaudhuri",
+        "Ruihan Wu"
+      ],
+      "primary_category": "LLM",
+      "categories": [
+        "LLM",
+        "Data Confidentiality",
+        "Property Inference Attack",
+        "Privacy"
+      ],
+      "published": "2025-09-18T17:39:19.288+00:00",
+      "link": "https://openreview.net/forum?id=PhIWEbewAz",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-xuvdo6omke",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Rethinking the Role of Verbatim Memorization in LLM Privacy",
+      "abstract": "Conventional wisdom in machine learning privacy research states that memorization \ndirectly implies a loss of privacy. In contrast, a well-generalized model only remembers distributional patterns and preserves privacy of its training data.  In this work, we show that this relationship is much more complex for LLMs trained for chat,\nand depends heavily on how knowledge is encoded and manipulated. To this end, we fine-tune language models on synthetically generated biographical information including PIIs, and try to extract them in different ways after instruction fine-tuning.  We find counter to conventional wisdom that better verbatim memorization does not necessarily increase data leakage via chat. We also find that it is easier to extract information via chat from an LLM that is better able to manipulate and process knowledge even if it is smaller, and that not all attributes are equally extractable. This suggests that the relationship between privacy, memorization and language understanding of LLMs is very intricate, and that examining memorization in isolation can lead to misleading conclusions.",
+      "authors": [
+        "Tom Sander",
+        "Bargav Jayaraman",
+        "Mark Ibrahim",
+        "Kamalika Chaudhuri",
+        "Chuan Guo"
+      ],
+      "primary_category": "LLM;memorization;privacy",
+      "categories": [
+        "LLM;memorization;privacy"
+      ],
+      "published": "2025-09-18T17:41:04.729+00:00",
+      "link": "https://openreview.net/forum?id=Xuvdo6oMkE",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-hkvyosg7yx",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Permissioned LLMs: Enforcing Access Control in Large Language Models",
+      "abstract": "In enterprise settings, organizational data is segregated, siloed and carefully protected by elaborate access control frameworks. These access control structures can completely break down if an LLM fine-tuned on the siloed data serves requests, for downstream tasks, from individuals with disparate access privileges. We propose Permissioned LLMs (PermLLM), a new class of LLMs that superimpose the organizational data access control structures on query responses they generate. We formalize abstractions underpinning the means to determine whether access control enforcement happens correctly over LLM query responses. Our formalism introduces the notion of a relevant response that can be used to prove whether a PermLLM mechanism has been implemented correctly. We also introduce a novel\nmetric, called access advantage, to empirically evaluate the efficacy of a PermLLM mechanism. We introduce three novel PermLLM mechanisms that build on Parameter Efficient Fine-Tuning to achieve the desired access control. We furthermore present two instantiations of access advantage–(i) Domain Distinguishability Index (DDI) based on Membership Inference Attacks, and (ii) Utility Gap Index (UGI)\nbased on LLM utility evaluation. We demonstrate the efficacy of our PermLLM mechanisms through extensive experiments on five public datasets (GPQA, RCV1, SimpleQA, WMDP, and PubMedQA), in addition to evaluating the validity of DDI and UGI metrics themselves for quantifying access control in LLMs.",
+      "authors": [
+        "Bargav Jayaraman",
+        "Virendra Marathe",
+        "Hamid Mozaffari",
+        "William F. Shen",
+        "Krishnaram Kenthapadi"
+      ],
+      "primary_category": "LLM",
+      "categories": [
+        "LLM",
+        "PEFT",
+        "access control"
+      ],
+      "published": "2025-09-18T17:36:34.127+00:00",
+      "link": "https://openreview.net/forum?id=Hkvyosg7Yx",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-jv7ohhq0yp",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "RepGuard: Adaptive Feature Decoupling for Robust Backdoor Defense in Large Language Models",
+      "abstract": "Backdoor attacks pose a significant threat to large language models (LLMs) by embedding malicious triggers that manipulate model behavior. However, existing defenses primarily rely on prior knowledge of backdoor triggers or targets and offer only superficial mitigation strategies, thus struggling to fundamentally address the inherent reliance on unreliable features. To address these limitations, we propose a novel defense strategy, \\textit{RepGuard}, that strengthens LLM resilience by adaptively separating abnormal features from useful semantic representations, rendering the defense agnostic to specific trigger patterns. Specifically, we first introduce a dual-perspective feature localization strategy that integrates local consistency and sample-wise deviation metrics to identify suspicious backdoor patterns. Based on this identification, an adaptive mask generation mechanism is applied to isolate backdoor-targeted shortcut features by decomposing hidden representations into independent spaces,  while preserving task-relevant semantics. With a multi-objective optimization framework, our method can inherently mitigates backdoor attacks. Across \\textit{Target Refusal} and \\textit{Jailbreak} tasks under four types of attacks, RepGuard consistently reduced the attack success rate on poisoned data by nearly 80\\% on average, while maintaining near-original task performance on clean data. Extensive experiments demonstrate that RepGuard provides a scalable and interpretable solution for safeguarding LLMs against sophisticated backdoor threats.",
+      "authors": [
+        "Chenxu Niu",
+        "Jie Zhang",
+        "Yanbing Liu",
+        "Yunpeng Li",
+        "Jinta Weng",
+        "Yue Hu"
+      ],
+      "primary_category": "Large Language Model",
+      "categories": [
+        "Large Language Model",
+        "Backdoor Defense",
+        "safety",
+        "Representation"
+      ],
+      "published": "2025-09-18T17:41:24.191+00:00",
+      "link": "https://openreview.net/forum?id=jv7OHhQ0YP",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-x0i7wvrlhk",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Exploring the limits of strong membership inference attacks on large language models",
+      "abstract": "State-of-the-art membership inference attacks (MIAs) typically require training many reference models, making it difficult to scale these attacks to large pre-trained language models (LLMs). As a result, prior research has either relied on weaker attacks that avoid training references (e.g., fine-tuning attacks), or on stronger attacks applied to small models and datasets. However, weaker attacks have been shown to be brittle and insights from strong attacks in simplified settings do not translate to today's LLMs. These challenges prompt an important question: are the limitations observed in prior work due to attack design choices, or are MIAs fundamentally ineffective on LLMs? We address this question by scaling LiRA--one of the strongest MIAs--to GPT-2 architectures ranging from 10M to 1B parameters, training references on over 20B tokens from the C4 dataset. Our results advance the understanding of MIAs on LLMs in four key ways. While (1) strong MIAs can succeed on pre-trained LLMs, (2) their effectiveness, remains limited (e.g., AUC<0.7) in practical settings. (3) Even when strong MIAs achieve better-than-random AUC, aggregate metrics can conceal substantial per-sample MIA decision instability: due to training randomness, many decisions are so unstable that they are statistically indistinguishable from a coin flip. Finally, (4) the relationship between MIA success and related LLM privacy metrics is not as straightforward as prior work has suggested.",
+      "authors": [
+        "Jamie Hayes",
+        "Ilia Shumailov",
+        "Christopher A. Choquette-Choo",
+        "Matthew Jagielski",
+        "Georgios Kaissis",
+        "Milad Nasr",
+        "Meenatchi Sundaram Muthu Selva Annamalai",
+        "Niloofar Mireshghallah",
+        "Igor Shilov",
+        "Matthieu Meeus",
+        "Yves-Alexandre de Montjoye",
+        "Katherine Lee",
+        "Franziska Boenisch",
+        "Adam Dziedzic",
+        "A. Feder Cooper"
+      ],
+      "primary_category": "membership inference",
+      "categories": [
+        "membership inference",
+        "memorization"
+      ],
+      "published": "2025-09-18T17:35:06.829+00:00",
+      "link": "https://openreview.net/forum?id=x0i7wvRLHK",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-4hzafk9o4r",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Enabling Differentially Private Federated Learning for Speech Recognition: Benchmarks, Adaptive Optimizers, and Gradient Clipping",
+      "abstract": "While federated learning (FL) and differential privacy (DP) have been extensively studied, their application to automatic speech recognition (ASR) remains largely unexplored due to the challenges in training large transformer models. Specifically, large models further exacerbate issues in FL as they are particularly susceptible to gradient heterogeneity across layers, unlike the relatively uniform gradient behavior observed in shallow models. As a result, prior works struggle to converge with standard optimization techniques, even in the absence of DP mechanisms. To the best of our knowledge, no existing work establishes a competitive, practical recipe for FL with DP in the context of ASR. To address this gap, we establish **the first benchmark for FL with DP** in end-to-end ASR.  Our approach centers on per-layer clipping and layer-wise gradient normalization: theoretical analysis reveals that these techniques together mitigate clipping bias and gradient heterogeneity across layers in deeper models. Consistent with these theoretical insights, our empirical results show that FL with DP is viable under strong privacy guarantees, provided a population of at least several million users. Specifically, we achieve user-level ($7.2$, $10^{-9}$)-DP (resp. ($4.5$, $10^{-9}$)-DP) with only a 1.3\\% (resp. 4.6\\%) absolute drop in word error rate when extrapolating to high (resp. low) population scales for FL with DP in ASR. Although our experiments focus on ASR, the underlying principles we uncover — particularly those concerning gradient heterogeneity and layer-wise gradient normalization — offer broader guidance for designing scalable, privacy-preserving FL algorithms for large models across domains.  Code of all experiments and benchmarks is available at https://github.com/apple/ml-pfl4asr.",
+      "authors": [
+        "Martin Pelikan",
+        "Sheikh Shams Azam",
+        "Vitaly Feldman",
+        "Jan Silovsky",
+        "Kunal Talwar",
+        "Christopher Brinton",
+        "Tatiana Likhomanenko"
+      ],
+      "primary_category": "automatic speech recognition",
+      "categories": [
+        "automatic speech recognition",
+        "federated learning",
+        "differential privacy"
+      ],
+      "published": "2025-09-18T17:33:27.981+00:00",
+      "link": "https://openreview.net/forum?id=4HZaFk9O4r",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-hmvq00vaby",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Probabilistic Reasoning with LLMs for Privacy Risk Estimation",
+      "abstract": "Probabilistic reasoning is a key aspect of both human and artificial intelligence that allows for handling uncertainty and ambiguity in decision-making. In this paper, we introduce a new numerical reasoning task under uncertainty for large language models, focusing on estimating the privacy risk of user-generated documents containing privacy-sensitive information. We propose BRANCH, a new LLM methodology that estimates the $k$-privacy value of a text—the size of the population matching the given information. BRANCH factorizes a joint probability distribution of personal information as random variables.  The probability of each factor in a population is estimated separately using a Bayesian network and combined to compute the final $k$-value. Our experiments show that this method successfully estimates the $k$-value 73% of the time, a 13% increase compared to o3-mini with chain-of-thought reasoning. We also find that LLM uncertainty is a good indicator for accuracy, as high variance predictions are 37.47% less accurate on average.",
+      "authors": [
+        "Jonathan Zheng",
+        "Alan Ritter",
+        "Sauvik Das",
+        "Wei Xu"
+      ],
+      "primary_category": "LLMs",
+      "categories": [
+        "LLMs",
+        "probabilistic reasoning",
+        "chain of thought",
+        "prompting",
+        "NLP",
+        "privacy risk",
+        "personal disclosures"
+      ],
+      "published": "2025-09-18T17:44:35.716+00:00",
+      "link": "https://openreview.net/forum?id=HMVQ00vabY",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-b4nt8texns",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "InvisibleInk: High-Utility and Low-Cost Text Generation with Differential Privacy",
+      "abstract": "As major progress in LLM-based long-form text generation enables paradigms such as retrieval-augmented generation (RAG) and inference-time scaling, safely incorporating private information into the generation remains a critical open question. We present InvisibleInk, a highly scalable long-form text generation framework satisfying rigorous differential privacy guarantees with respect to the sensitive reference texts. It interprets sampling from the LLM's next-token-distribution as the exponential mechanism over the LLM logits with two innovations. First, we reduce the privacy cost by isolating and clipping only the sensitive information in the model logits (relative to the public logits). Second, we improve text quality by sampling without any privacy cost from a small superset of the top-$k$ private tokens. Empirical evaluations demonstrate a consistent $8\\times$ (or more) reduction in computation cost over state-of-the-art baselines to generate long-form private text of the same utility across privacy levels. InvisibleInk is able to generate, for the first time, high-quality private long-form text at less than $4\\text{-}8\\times$ times the computation cost of non-private generation, paving the way for its practical use. We open-source a pip-installable Python package (invink) for InvisibleInk at https://github.com/cerai-iitm/invisibleink.",
+      "authors": [
+        "Vishnu Vinod",
+        "Krishna Pillutla",
+        "Abhradeep Guha Thakurta"
+      ],
+      "primary_category": "Differential Privacy",
+      "categories": [
+        "Differential Privacy",
+        "Text Generation",
+        "Synthetic Data",
+        "Private Inference"
+      ],
+      "published": "2025-09-18T17:41:04.515+00:00",
+      "link": "https://openreview.net/forum?id=B4NT8TexNS",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-fzp6chext2",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Better Language Model Inversion by Compactly Representing Next-Token Distributions",
+      "abstract": "Language model inversion seeks to recover hidden prompts using only language model outputs. This capability has implications for security and accountability in language model deployments, such as leaking private information from an API-protected language model’s system message. We propose a new method – prompt inversion from logprob sequences (PILS) – that recovers hidden prompts by gleaning clues from the model’s next-token probabilities over the course of multiple generation steps. Our method is enabled by a key insight: The vector-valued outputs of a language model occupy a low-dimensional subspace. This enables us to losslessly compress the full next-token probability distribution over multiple generation steps using a linear map, allowing more output information to be used for inversion. Our approach yields massive gains over previous state-of-the-art methods for recovering hidden prompts, achieving 2–3.5 times higher exact recovery rates across test sets, in one case increasing the recovery rate from 17% to 60%. Our method also exhibits surprisingly good generalization behavior; for instance, an inverter trained on 16 generations steps gets 5–27% higher prompt recovery when we increase the number of steps to 32 at test time. Furthermore, we demonstrate strong performance of our method on the more challenging task of recovering hidden system messages. We also analyze the role of verbatim repetition in prompt recovery and propose a new method for cross-family model transfer for logit-based inverters. Our findings suggest that next-token probabilities are a considerably more vulnerable attack surface for inversion attacks than previously known.",
+      "authors": [
+        "Murtaza Nazir",
+        "Matthew Finlayson",
+        "John Xavier Morris",
+        "Xiang Ren",
+        "Swabha Swayamdipta"
+      ],
+      "primary_category": "Language model inversion",
+      "categories": [
+        "Language model inversion",
+        "language model",
+        "adversarial attack",
+        "prompt injection",
+        "jailbreak",
+        "inversion",
+        "system prompt",
+        "softmax bottleneck"
+      ],
+      "published": "2025-09-18T17:36:28.965+00:00",
+      "link": "https://openreview.net/forum?id=FZp6cheXt2",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-os4qydf3ms",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Backdoor Cleaning without External Guidance in MLLM Fine-tuning",
+      "abstract": "Multimodal Large Language Models (MLLMs) are increasingly deployed in fine-tuning-as-a-service (FTaaS) settings, where user-submitted datasets adapt general-purpose models to downstream tasks. This flexibility, however, introduces serious security risks, as malicious fine-tuning can implant backdoors into MLLMs with minimal effort. In this paper, we observe that backdoor triggers systematically disrupt cross-modal processing by causing abnormal attention concentration on non-semantic regions—a phenomenon we term **attention collapse**. Based on this insight, we propose **Believe Your Eyes (BYE)**, a data filtering framework that leverages attention entropy patterns as self-supervised signals to identify and filter backdoor samples. BYE operates via a three-stage pipeline: (1) extracting attention maps using the fine-tuned model, (2) computing entropy scores and profiling sensitive layers via bimodal separation, and (3) performing unsupervised clustering to remove suspicious samples. Unlike prior defenses, BYE equires no clean supervision, auxiliary labels, or model modifications. Extensive experiments across various datasets, models, and diverse trigger types validate BYE's effectiveness: it achieves near-zero attack success rates while maintaining clean-task performance, offering a robust and generalizable solution against backdoor threats in MLLMs.",
+      "authors": [
+        "Xuankun Rong",
+        "Wenke Huang",
+        "Jian Liang",
+        "Jinhe Bi",
+        "Xun Xiao",
+        "Yiming Li",
+        "Bo Du",
+        "Mang Ye"
+      ],
+      "primary_category": "MLLM Safety",
+      "categories": [
+        "MLLM Safety",
+        "Backdoor Defense",
+        "Unsupervised"
+      ],
+      "published": "2025-09-18T17:29:26.546+00:00",
+      "link": "https://openreview.net/forum?id=os4QYDf3Ms",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-tcxzqnbyaf",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Context-Aware Hierarchical Learning: A Two-Step Paradigm towards Safer LLMs",
+      "abstract": "Large Language Models (LLMs) have emerged as powerful tools for diverse applications. However, their uniform token processing paradigm introduces critical vulnerabilities in instruction handling, particularly when exposed to adversarial scenarios. In this work, we identify and propose a novel class of vulnerabilities, termed Tool-Completion Attack (TCA), which exploits function-calling mechanisms to subvert model behavior. To evaluate LLM robustness against such threats, we introduce the Tool-Completion benchmark, a comprehensive security assessment framework, which reveals that even state-of-the-art models remain susceptible to TCA, with surprisingly high attack success rates. To address these vulnerabilities, we introduce Context-Aware Hierarchical Learning (CAHL), a sophisticated mechanism that dynamically equilibrates semantic comprehension with role-specific instruction constraints. CAHL leverages the contextual correlations between different instruction segments to establish a robust, context-aware instruction hierarchy. Extensive experiments demonstrate that CAHL significantly enhances LLM robustness against both conventional attacks and the proposed TCA, exhibiting strong generalization capabilities in zero-shot evaluations while still preserving model performance on generic tasks. Our code is available at https://github.com/S2AILab/CAHL.",
+      "authors": [
+        "Tengyun Ma",
+        "Jiaqi Yao",
+        "Daojing He",
+        "Shihao Peng",
+        "YU LI",
+        "Shaohui Liu",
+        "Zhuotao Tian"
+      ],
+      "primary_category": "LLM",
+      "categories": [
+        "LLM",
+        "Large Language Model",
+        "Security",
+        "Prompt Injection Attack",
+        "Instruction Hierarchy"
+      ],
+      "published": "2025-09-18T17:31:55.773+00:00",
+      "link": "https://openreview.net/forum?id=TCxzqnbyAF",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-mtyf5hci7y",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "ICLScan: Detecting Backdoors in Black-Box Large Language Models via Targeted In-context Illumination",
+      "abstract": "The widespread deployment of large language models (LLMs) allows users to access their capabilities via black-box APIs, but backdoor attacks pose serious security risks for API users by hijacking the model behavior. This highlights the importance of backdoor detection technologies to help users audit LLMs before use. However, most existing LLM backdoor defenses require white-box access or costly reverse engineering, limiting their practicality for resource-constrained users. Moreover, they mainly target classification tasks, leaving broader generative scenarios underexplored. To solve the problem, this paper introduces ICLScan, a lightweight framework that exploits targeted in-context learning (ICL) as illumination for backdoor detection in black-box LLMs, which effectively supports generative tasks without additional training or model modifications. ICLScan is based on our finding of backdoor susceptibility amplification: LLMs with pre-embedded backdoors are highly susceptible to new trigger implantation via ICL. Including only a small ratio of backdoor examples (containing ICL-triggered input and target output) in the ICL prompt can induce ICL trigger-specific malicious behavior in backdoored LLMs. ICLScan leverages this phenomenon to detect backdoored LLMs by statistically analyzing whether the success rate of new trigger injection via targeted ICL exceeds a threshold. It requires only multiple queries to estimate the backdoor success rate, overcoming black-box access and computational resource limitations. Extensive experiments across diverse LLMs and backdoor attacks demonstrate ICLScan's effectiveness and efficiency, achieving near-perfect detection performance (precision/recall/F1-score/ROC-AUC all approaching 1) with minimal additional overhead across all settings.",
+      "authors": [
+        "Xiaoyi Pang",
+        "Xuanyi Hao",
+        "Song Guo",
+        "Qi Luo",
+        "Zhibo Wang"
+      ],
+      "primary_category": "backdoor detection",
+      "categories": [
+        "backdoor detection",
+        "LLM"
+      ],
+      "published": "2025-09-18T17:32:58.211+00:00",
+      "link": "https://openreview.net/forum?id=MtyF5hCI7Y",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-84dngt4ajt",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "CoreGuard: Safeguarding Foundational Capabilities of LLMs Against Model Stealing in Edge Deployment",
+      "abstract": "Proprietary large language models (LLMs) exhibit strong generalization capabilities across diverse tasks and are increasingly deployed on edge devices for efficiency and privacy reasons. However, deploying proprietary LLMs at the edge without adequate protection introduces critical security threats. Attackers can extract model weights and architectures, enabling unauthorized copying and misuse. Even when protective measures prevent full extraction of model weights, attackers may still perform advanced attacks, such as fine-tuning, to further exploit the model. Existing defenses against these threats typically incur significant computational and communication overhead, making them impractical for edge deployment.\nTo safeguard the edge-deployed LLMs, we introduce CoreGuard, a computation- and communication-efficient protection method. CoreGuard employs an efficient protection protocol to reduce computational overhead and minimize communication overhead via a propagation protocol. Extensive experiments show that CoreGuard achieves upper-bound security protection with negligible overhead.",
+      "authors": [
+        "Qinfeng Li",
+        "Tianyue Luo",
+        "Xuhong Zhang",
+        "Yangfan Xie",
+        "Zhiqiang Shen",
+        "Lijun Zhang",
+        "Yier Jin",
+        "Hao Peng",
+        "Xinkui Zhao",
+        "XianWei Zhu",
+        "Jianwei Yin"
+      ],
+      "primary_category": "Intellectual Property Protection",
+      "categories": [
+        "Intellectual Property Protection",
+        "Large Language Model",
+        "Model Stealing",
+        "Proactive Defense",
+        "Trusted Execution Environment"
+      ],
+      "published": "2025-09-18T17:28:21.998+00:00",
+      "link": "https://openreview.net/forum?id=84dnGT4ajt",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-tu3p6kshgn",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Safety Depth in Large Language Models: A Markov Chain Perspective",
+      "abstract": "Large Language Models (LLMs) are increasingly adopted in high-stakes scenarios, yet their safety mechanisms often remain fragile. Simple jailbreak prompts or even benign fine-tuning can bypass internal safeguards, underscoring the need to understand the failure modes of current safety strategies.  Recent findings suggest that vulnerabilities emerge when alignment is confined to only the initial output tokens. To address this, we introduce the notion of safety depth, a designated output position where the model refuses to generate harmful content. While deeper alignment appears promising, identifying the optimal safety depth remains an open and underexplored challenge.\n\nWe leverage the equivalence between autoregressive language models and Markov chains to derive the first theoretical result on identifying the optimal safety depth. To reach this safety depth effectively, we propose a cyclic group augmentation strategy that improves safety scores across six LLMs. In addition, we uncover a critical interaction between safety depth and ensemble width, demonstrating that larger ensembles can offset shallower alignments. These results suggest that test-time computation, often overlooked in safety alignment, can play a key role. Our approach provides actionable insights for building safer LLMs.",
+      "authors": [
+        "Ching-Chia Kao",
+        "Chia-Mu Yu",
+        "Chun-Shien Lu",
+        "Chu-Song Chen"
+      ],
+      "primary_category": "Safety Alignment",
+      "categories": [
+        "Safety Alignment",
+        "Large Language Models",
+        "Markov Chain",
+        "Group Theory",
+        "Ensemble"
+      ],
+      "published": "2025-09-18T17:30:42.373+00:00",
+      "link": "https://openreview.net/forum?id=tu3P6KSHGN",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-sm2e1snmk4",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Adaptive Defense against Harmful Fine-Tuning for Large Language Models via Bayesian Data Scheduler",
+      "abstract": "Harmful fine-tuning poses critical safety risks to fine-tuning-as-a-service for large language models. Existing defense strategies preemptively build robustness via attack simulation but suffer from fundamental limitations: (i) the infeasibility of extending attack simulations beyond bounded threat models due to the inherent difficulty of anticipating unknown attacks, and (ii) limited adaptability to varying attack settings, as simulation fails to capture their variability and complexity. To address these challenges, we propose Bayesian Data Scheduler (BDS), an adaptive tuning-stage defense strategy with no need for attack simulation. BDS formulates harmful fine-tuning defense as a Bayesian inference problem, learning the posterior distribution of each data point's safety attribute, conditioned on the fine-tuning and alignment datasets. The fine-tuning process is then constrained by weighting data with their safety attributes sampled from the posterior, thus mitigating the influence of harmful data. By leveraging the post hoc nature of Bayesian inference, the posterior is conditioned on the fine-tuning dataset, enabling BDS to tailor its defense to the specific dataset, thereby achieving adaptive defense. Furthermore, we introduce a neural scheduler based on amortized Bayesian learning, enabling efficient transfer to new data without retraining. Comprehensive results across diverse attack and defense settings demonstrate the state-of-the-art performance of our approach. Code is available at https://github.com/Egg-Hu/Bayesian-Data-Scheduler.",
+      "authors": [
+        "Zixuan Hu",
+        "Li Shen",
+        "Zhenyi Wang",
+        "Yongxian Wei",
+        "Dacheng Tao"
+      ],
+      "primary_category": "Harmful fine-tuning; Large Language Models; Data schedule; Bayesian optimization",
+      "categories": [
+        "Harmful fine-tuning; Large Language Models; Data schedule; Bayesian optimization"
+      ],
+      "published": "2025-09-18T17:28:46.274+00:00",
+      "link": "https://openreview.net/forum?id=sm2e1SnMK4",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-91h9csvdwl",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Safety Pretraining: Toward the Next Generation of Safe AI",
+      "abstract": "As large language models (LLMs) are increasingly deployed in high-stakes settings, the risk of generating harmful or toxic content remains a central challenge. Post-hoc alignment methods are brittle: once unsafe patterns are learned during pretraining, they are hard to remove.\nIn this work, we present a data-centric pretraining framework that builds safety into the model from the start. Our framework consists of four key steps:\n(i) Safety Filtering: building a safety classifier to classify webdata into safe and unsafe categories;\n(ii) Safety Rephrasing: we recontextualize unsafe webdata into safer narratives;\n(iii) Native Refusal: we synthetically generate pretraining datasets that actively teach models to refuse on unsafe content and the moral reasoning behind it, and\n(iv) Harmfulness-Tag annotated pretraining: we flag unsafe content during pretraining using a special token, and use it to steer models away from unsafe generations at inference-time.\nOur safety-pretrained models reduce attack success rates from 38.8% to 8.4% on standard LLM safety benchmarks with no performance degradation on general tasks.",
+      "authors": [
+        "Pratyush Maini",
+        "Sachin Goyal",
+        "Dylan Sam",
+        "Alexander Robey",
+        "Yash Savani",
+        "Yiding Jiang",
+        "Andy Zou",
+        "Matt Fredrikson",
+        "Zachary Chase Lipton",
+        "J Zico Kolter"
+      ],
+      "primary_category": "Safe LLMs",
+      "categories": [
+        "Safe LLMs",
+        "Pretraining",
+        "Data Centric ML"
+      ],
+      "published": "2025-09-18T17:42:21.465+00:00",
+      "link": "https://openreview.net/forum?id=91H9CSvdwl",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-glhlu6y1uk",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Adjacent Words, Divergent Intents: Jailbreaking Large Language Models via Task Concurrency",
+      "abstract": "Despite their superior performance on a wide range of domains, large language models (LLMs) remain vulnerable to misuse for generating harmful content, a risk that has been further amplified by various jailbreak attacks.\nExisting jailbreak attacks mainly follow sequential logic, where LLMs understand and answer each given task one by one.\nHowever, concurrency, a natural extension of the sequential scenario, has been largely overlooked.\nIn this work, we first propose a word-level method to enable task concurrency in LLMs, where adjacent words encode divergent intents.\nAlthough LLMs maintain strong utility in answering concurrent tasks, which is demonstrated by our evaluations on mathematical and general question-answering benchmarks, we notably observe that combining a harmful task with a benign one significantly reduces the probability of it being filtered by the guardrail, showing the potential risks associated with concurrency in LLMs.\nBased on these findings, we introduce $\\texttt{JAIL-CON}$, an iterative attack framework that $\\underline{\\text{JAIL}}$breaks LLMs via task $\\underline{\\text{CON}}$currency. \nExperiments on widely-used LLMs demonstrate the strong jailbreak capabilities of $\\texttt{JAIL-CON}$ compared to existing attacks.\nFurthermore, when the guardrail is applied as a defense, compared to the sequential answers generated by previous attacks, the concurrent answers in our $\\texttt{JAIL-CON}$ exhibit greater stealthiness and are less detectable by the guardrail, highlighting the unique feature of task concurrency in jailbreaking LLMs.",
+      "authors": [
+        "Yukun Jiang",
+        "Mingjie Li",
+        "Michael Backes",
+        "Yang Zhang"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Jailbreak"
+      ],
+      "published": "2025-09-18T17:28:56.204+00:00",
+      "link": "https://openreview.net/forum?id=GLhLU6y1uK",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-e40dycosqd",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "SilentStriker: Toward Stealthy Bit-Flip Attacks on Large Language Models",
+      "abstract": "The rapid adoption of large language models (LLMs) in critical domains has spurred extensive research into their security issues. While input manipulation attacks (e.g., prompt injection) have been well-studied, Bit-Flip Attacks (BFAs)—which exploit hardware vulnerabilities to corrupt model parameters and cause severe performance degradation—have received far less attention. Existing BFA methods suffer from key limitations: they fail to balance performance degradation and output naturalness, making them prone to discovery. In this paper, we introduce SilentStriker, the first stealthy bit-flip attack against LLMs that effectively degrades task performance while maintaining output naturalness. Our core contribution lies in addressing the challenge of designing effective loss functions for LLMs with variable output length and the vast output space. Unlike prior approaches that rely on output perplexity for attack loss formulation, which in-evidently degrade the output naturalness, we reformulate the attack objective by leveraging key output tokens as targets for suppression, enabling effective joint optimization of attack effectiveness and stealthiness. Additionally, we employ an iterative, progressive search strategy to maximize attack efficacy. Experiments show that SilentStriker significantly outperforms existing baselines, achieving successful attacks without compromising the naturalness of generated text.",
+      "authors": [
+        "HAOTIAN XU",
+        "Qingsong Peng",
+        "Jie Shi",
+        "Huadi Zheng",
+        "YU LI",
+        "Cheng Zhuo"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Security",
+        "Bit-Flip Attack",
+        "Stealthy Attack"
+      ],
+      "published": "2025-09-18T17:34:42.448+00:00",
+      "link": "https://openreview.net/forum?id=e40dYCosQd",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-tyw1v1kukg",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Towards Building Model/Prompt-Transferable Attackers against Large Vision-Language Models",
+      "abstract": "Although Large Vision-Language Models (LVLMs) exhibit impressive multimodal capabilities, their vulnerability to adversarial examples has raised serious security concerns.\nExisting LVLM attackers simply optimize adversarial images that easily overfit a certain model/prompt, making them ineffective once they are transferred to attack a different model/prompt. \nMotivated by this research gap, this paper aims to develop a more powerful attack that is transferable to black-box LVLM models of different structures and task-aware prompts of different semantics. \nSpecifically, we introduce a new perspective of information theory to investigate LVLMs' transferable characteristics by exploring the relative dependence between outputs of the LVLM model and input adversarial samples. Our empirical observations suggest that enlarging/decreasing the mutual information between outputs and the disentangled adversarial/benign patterns of input images helps to generate more agnostic perturbations for misleading LVLMs' perception with better transferability. \nIn particular, we formulate the complicated calculation of information gain as an estimation problem and incorporate such informative constraints into the adversarial learning process.\nExtensive experiments on various LVLM models/prompts demonstrate our significant transfer-attack performance.",
+      "authors": [
+        "Xiaowen Cai",
+        "Daizong Liu",
+        "Xiaoye Qu",
+        "Xiang Fang",
+        "Jianfeng Dong",
+        "Keke Tang",
+        "Pan Zhou",
+        "Lichao Sun",
+        "Wei Hu"
+      ],
+      "primary_category": "Large Vision-Language Models; Adversarial Attack; Transferability",
+      "categories": [
+        "Large Vision-Language Models; Adversarial Attack; Transferability"
+      ],
+      "published": "2025-09-18T17:32:17.961+00:00",
+      "link": "https://openreview.net/forum?id=TyW1V1KukG",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-ycmpnwzuaa",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "MetaDefense: Defending Fine-tuning based Jailbreak Attack Before and During Generation",
+      "abstract": "This paper introduces MetaDefense, a novel framework for defending against finetuning-based jailbreak attacks in large language models (LLMs). \nWe observe that existing defense mechanisms fail to generalize to harmful queries disguised by unseen attack templates, despite LLMs being capable of distinguishing disguised harmful queries in the embedding space. \nBased on these insights, we propose a two-stage defense approach: \n(i) pre-generation defense that detects harmful queries before response generation begins, and (ii) mid-generation defense that monitors partial responses during generation to prevent outputting more harmful content. \nOur MetaDefense trains the LLM to predict the harmfulness of both queries and partial responses using specialized prompts, enabling early termination of potentially harmful interactions. \nExtensive experiments across multiple LLM architectures (LLaMA-2-7B, Qwen-2.5-3B-Instruct, and LLaMA-3.2-3B-Instruct) demonstrate that MetaDefense significantly outperforms existing defense mechanisms, achieving robust defense against harmful queries with seen and unseen attack templates while maintaining competitive performance on benign tasks.\nCode is available at [https://github.com/ws-jiang/MetaDefense](https://github.com/ws-jiang/MetaDefense).",
+      "authors": [
+        "Weisen Jiang",
+        "Sinno Jialin Pan"
+      ],
+      "primary_category": "jailbreak attack",
+      "categories": [
+        "jailbreak attack"
+      ],
+      "published": "2025-09-18T17:38:08.977+00:00",
+      "link": "https://openreview.net/forum?id=ycMpNwzUAA",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-hej7nrinjs",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "RSafe: Incentivizing proactive reasoning to build robust and adaptive  LLM safeguards",
+      "abstract": "Large Language Models (LLMs) continue to exhibit vulnerabilities despite deliberate safety alignment efforts, posing significant risks to users and society. To safeguard against the risk of policy-violating content, system-level moderation via external guard models—designed to monitor LLM inputs and outputs and block potentially harmful content—has emerged as a prevalent mitigation strategy. Existing approaches of training guard models rely heavily on extensive human curated datasets and struggle with out-of-distribution threats, such as emerging harmful categories or jailbreak attacks. To address these limitations, we propose RSafe, an adaptive reasoning-based safeguard that conducts guided safety reasoning to provide robust protection within the scope of specified safety policies. RSafe operates\nin two stages: (1) guided reasoning, where it analyzes safety risks of input content through policy-guided step-by-step reasoning, and (2) reinforced alignment, where rule-based RL optimizes its reasoning paths to align with accurate safety prediction. This two-stage training paradigm enables RSafe to internalize safety principles to generalize safety protection capability over unseen or adversarial safety violation\nscenarios. During inference, RSafe accepts user-specified safety policies to provide enhanced safeguards tailored to specific safety requirements. Experiments demonstrate that RSafe matches state-of-the-art guard models using limited amount of public data in both prompt- and response-level harmfulness detection, while achieving superior out-of-distribution generalization on both emerging harmful category and jailbreak attacks. Furthermore, RSafe provides human-readable explanations for its safety judgments for better interpretability. RSafe offers a robust, adaptive, and interpretable solution for LLM safety moderation, advancing the development of reliable safeguards in dynamic real-world environments. Our code is available at https://anonymous.4open.science/r/RSafe-996D.",
+      "authors": [
+        "Jingnan Zheng",
+        "Xiangtian Ji",
+        "Yijun Lu",
+        "Chenhang Cui",
+        "Weixiang Zhao",
+        "Gelei Deng",
+        "Zhenkai Liang",
+        "An Zhang",
+        "Tat-Seng Chua"
+      ],
+      "primary_category": "large language model",
+      "categories": [
+        "large language model",
+        "safety",
+        "moderation"
+      ],
+      "published": "2025-09-18T17:38:00.32+00:00",
+      "link": "https://openreview.net/forum?id=heJ7NRInjs",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-aaxmcaynf6",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Towards Understanding Safety Alignment: A Mechanistic Perspective from Safety Neurons",
+      "abstract": "Large language models (LLMs) excel in various capabilities but pose safety risks such as generating harmful content and misinformation, even after safety alignment. In this paper, we explore the inner mechanisms of safety alignment through the lens of mechanistic interpretability, focusing on identifying and analyzing safety neurons within LLMs that are responsible for safety behaviors. We propose inference-time activation contrasting to locate these neurons and dynamic activation patching to evaluate their causal effects on model safety. Experiments on multiple prevalent LLMs demonstrate that we can consistently identify about 5% safety neurons, and by only patching their activations we can restore over 90% of the safety performance across various red-teaming benchmarks without influencing general ability. The finding of safety neurons also helps explain the ''alignment tax'' phenomenon by revealing that the key neurons for model safety and helpfulness significantly overlap, yet they require different activation patterns for the same neurons. Furthermore, we demonstrate an application of our findings in safeguarding LLMs by detecting unsafe outputs before generation.",
+      "authors": [
+        "Jianhui Chen",
+        "Xiaozhi Wang",
+        "Zijun Yao",
+        "Yushi Bai",
+        "Lei Hou",
+        "Juanzi Li"
+      ],
+      "primary_category": "Large Language Models",
+      "categories": [
+        "Large Language Models",
+        "Mechanistic Interpretability",
+        "Safety Alignment",
+        "Neuron Analysis",
+        "Alignment Tax"
+      ],
+      "published": "2025-09-18T17:45:43.473+00:00",
+      "link": "https://openreview.net/forum?id=AAXMcAyNF6",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-nmvmytrjkg",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "An Investigation of Memorization Risk in Healthcare Foundation Models",
+      "abstract": "Foundation models trained on large-scale de-identified electronic health records (EHRs) hold promise for clinical applications. However, their capacity to memorize patient information raises important privacy concerns. In this work, we introduce a suite of black-box evaluation tests to assess privacy-related memorization risks in foundation models trained on structured EHR data. Our framework includes methods for probing memorization at both the embedding and generative levels, and aims to distinguish between model generalization and harmful memorization in clinically relevant settings. We contextualize memorization in terms of its potential to compromise patient privacy, particularly for vulnerable subgroups. We validate our approach on a publicly available EHR foundation model and release an open-source toolkit to facilitate reproducible and collaborative privacy assessments in healthcare AI.",
+      "authors": [
+        "Sana Tonekaboni",
+        "Lena Stempfle",
+        "Adibvafa Fallahpour",
+        "Walter Gerych",
+        "Marzyeh Ghassemi"
+      ],
+      "primary_category": "Healthcare",
+      "categories": [
+        "Healthcare",
+        "evaluation",
+        "foundation model",
+        "memorization"
+      ],
+      "published": "2025-09-18T17:33:55.858+00:00",
+      "link": "https://openreview.net/forum?id=NMvMYtRjkg",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-vuoy5kacg5",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "PurpCode: Reasoning for Safer Code Generation",
+      "abstract": "We introduce PurpCode, the first post-training recipe for training safe code reasoning models towards generating secure code and defending against malicious cyberactivities. PurpCode trains a reasoning model in two stages: (i) Rule Learning, which\nexplicitly teaches the model to reference cybersafety rules to generate vulnerability-free code and to avoid facilitating malicious cyberactivities; and (ii) Reinforcement Learning, which optimizes model safety and preserves model utility through diverse, multi-objective reward mechanisms. To empower the training pipelines with comprehensive cybersafety data, we conduct internal red-teaming to synthesize comprehensive and high-coverage prompts based on real-world tasks for inducing unsafe cyberactivities in the model. Based on PurpCode, we develop a reasoning-based coding model, namely PurpCode-32B, which demonstrates state-of-the-art cybersafety,\noutperforming various frontier models. Moreover, our alignment method decreases the model overrefusal rates in both general and cybersafety-specific scenarios, while preserving model utility in both code generation and common security knowledge.",
+      "authors": [
+        "Jiawei Liu",
+        "Nirav Diwan",
+        "Zhe Wang",
+        "Haoyu Zhai",
+        "Xiaona Zhou",
+        "Kiet A. Nguyen",
+        "Tianjiao Yu",
+        "Muntasir Wahed",
+        "Yinlin Deng",
+        "hadjer Benkraouda",
+        "Yuxiang Wei",
+        "LINGMING ZHANG",
+        "Ismini Lourentzou",
+        "Gang Wang"
+      ],
+      "primary_category": "Code generation",
+      "categories": [
+        "Code generation",
+        "reasoning",
+        "code security",
+        "model safety"
+      ],
+      "published": "2025-09-18T17:36:45.201+00:00",
+      "link": "https://openreview.net/forum?id=VUoY5kacG5",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-2hinrfmmq7",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Information Retrieval Induced Safety Degradation in AI Agents",
+      "abstract": "Despite the growing integration of retrieval-enabled AI agents into society, their safety and ethical behavior remain inadequately understood.\nIn particular, the growing integration of LLMs and AI agents with external information sources and real-world environments raises critical questions about how they engage with and are influenced by these external data sources and interactive contexts.\nThis study investigates how expanding retrieval access—from no external sources to Wikipedia-based retrieval and open web search—affects model reliability, bias propagation, and harmful content generation. \nThrough extensive benchmarking of censored and uncensored LLMs and AI Agents, our findings reveal a consistent degradation in refusal rates, bias sensitivity, and harmfulness safeguards as models gain broader access to external sources, culminating in a phenomenon we term safety degradation. Notably, retrieval-enabled agents built on aligned LLMs often behave more unsafely than uncensored models without retrieval. This effect persists even under strong retrieval accuracy and prompt-based mitigation, suggesting that the mere presence of retrieved content reshapes model behavior in structurally unsafe ways.\nThese findings underscore the need for robust mitigation strategies to ensure fairness and reliability in retrieval-enabled and increasingly autonomous AI systems.",
+      "authors": [
+        "Cheng Yu",
+        "Benedikt Stroebl",
+        "Diyi Yang",
+        "Orestis Papakyriakopoulos"
+      ],
+      "primary_category": "Responsible AI",
+      "categories": [
+        "Responsible AI",
+        "LLM Agents",
+        "Safety",
+        "Bias"
+      ],
+      "published": "2025-09-18T17:43:32.916+00:00",
+      "link": "https://openreview.net/forum?id=2hiNrfMmQ7",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-gsi42ohbom",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Personalized Safety in LLMs: A Benchmark and A Planning-Based Agent Approach",
+      "abstract": "Large language models (LLMs) typically generate identical or similar responses for all users given the same prompt, posing serious safety risks in high-stakes applications where user vulnerabilities differ widely.\nExisting safety evaluations primarily rely on context-independent metrics—such as factuality, bias, or toxicity—overlooking the fact that the same response may carry divergent risks depending on the user's background or condition.\nWe introduce ``personalized safety'' to fill this gap and present PENGUIN—a benchmark comprising 14,000 scenarios across seven sensitive domains with both context-rich and context-free variants. Evaluating six leading LLMs, we demonstrate that personalized user information significantly improves safety scores by 43.2%, confirming the effectiveness of personalization in safety alignment. However, not all context attributes contribute equally to safety enhancement. To address this, we develop RAISE—a training-free, two-stage agent framework that strategically acquires user-specific background. RAISE improves safety scores by up to 31.6% over six vanilla LLMs, while maintaining a low interaction cost of just 2.7 user queries on average. Our findings highlight the importance of selective information gathering in safety-critical domains and offer a practical solution for personalizing LLM responses without model retraining. This work establishes a foundation for safety research that adapts to individual user contexts rather than assuming a universal harm standard.",
+      "authors": [
+        "Yuchen Wu",
+        "Edward Sun",
+        "Kaijie Zhu",
+        "Jianxun Lian",
+        "Jose Hernandez-Orallo",
+        "Aylin Caliskan",
+        "Jindong Wang"
+      ],
+      "primary_category": "LLM Safety",
+      "categories": [
+        "LLM Safety",
+        "Evaluation",
+        "Personalized Safety",
+        "Structured User Context",
+        "Monte Carlo Tree Search (MCTS)"
+      ],
+      "published": "2025-09-18T17:36:30.555+00:00",
+      "link": "https://openreview.net/forum?id=Gsi42ohBoM",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-oih3t5zpbw",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Safe RLHF-V: Safe Reinforcement Learning from Multi-modal Human Feedback",
+      "abstract": "Multimodal large language models (MLLMs) are essential for building general-purpose AI assistants; however, they pose increasing safety risks. How can we ensure safety alignment of MLLMs to prevent undesired behaviors? Going further, it is critical to explore how to fine-tune MLLMs to preserve capabilities while meeting safety constraints. Fundamentally, this challenge can be formulated as a min-max optimization problem. However, existing datasets have not yet disentangled single preference signals into explicit safety constraints, hindering systematic investigation in this direction. Moreover, it remains an open question whether such constraints can be effectively incorporated into the optimization process for multi-modal models. In this work, we present the first exploration of the Safe RLHF-V -- the first multimodal safety alignment framework. The framework consists of: (I) BeaverTails-V, the first open-source dataset featuring dual preference annotations for helpfulness and safety, supplemented with multi-level safety labels (minor, moderate, severe); (II) Beaver-Guard-V, a multi-level guardrail system to proactively defend against unsafe queries and adversarial attacks. Applying the guard model over five rounds of filtering and regeneration significantly enhances the precursor model’s overall safety by an average of 40.9%. (II) Based on dual preference, we initiate the first exploration of multi-modal safety alignment within a constrained optimization. Experimental results demonstrate that Safe RLHF effectively improves both model helpfulness and safety. Specifically, Safe RLHF-V enhances model safety by 34.2% and helpfulness by 34.3%.",
+      "authors": [
+        "Jiaming Ji",
+        "Xinyu Chen",
+        "Rui Pan",
+        "Han Zhu",
+        "Jiahao Li",
+        "Donghai Hong",
+        "Boyuan Chen",
+        "Jiayi Zhou",
+        "Kaile Wang",
+        "Juntao Dai",
+        "Chi-Min Chan",
+        "Sirui Han",
+        "Yike Guo",
+        "Yaodong Yang"
+      ],
+      "primary_category": "AI Safety",
+      "categories": [
+        "AI Safety",
+        "AI Alignment"
+      ],
+      "published": "2025-09-18T17:46:36.002+00:00",
+      "link": "https://openreview.net/forum?id=OIH3T5ZPBW",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-tvpnedh5ov",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Deep Learning with Plausible Deniability",
+      "abstract": "Deep learning models are vulnerable to privacy attacks due to their tendency to memorize individual training examples. Theoretically-sound defenses such as differential privacy can defend against this threat, but model performance often suffers. Empirical defenses may thwart existing attacks while maintaining model performance but do not offer any robust theoretical guarantees.\n\nIn this paper, we explore a new strategy based on the concept of plausible deniability. We introduce a training algorithm called **P**lausibly **D**eniable **S**tochastic **G**radient **D**escent (PD-SGD). \nThe core of this approach is a rejection sampling technique, which probabilistically prevents updating model parameters whenever a mini-batch cannot be plausibly denied. We provide theoretical results showing that PD-SGD effectively mitigates privacy leakage from individual data points. Experiments demonstrate the scalability of PD-SGD and the favorable privacy-utility trade-off it offers compared to existing defense methods.",
+      "authors": [
+        "Wenxuan Bao",
+        "Shan Jin",
+        "Hadi Abdullah",
+        "Anderson C. A. Nascimento",
+        "Vincent Bindschaedler",
+        "Yiwei Cai"
+      ],
+      "primary_category": "Privacy",
+      "categories": [
+        "Privacy",
+        "Plausible Deniability",
+        "Privacy-Preserving Machine Learning"
+      ],
+      "published": "2025-09-18T17:32:32.703+00:00",
+      "link": "https://openreview.net/forum?id=tVpneDH5ov",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-5xoqkcmks7",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Perturb a Model, Not an Image: Towards Robust Privacy Protection via Anti-Personalized Diffusion Models",
+      "abstract": "Recent advances in diffusion models have enabled high-quality synthesis of specific subjects, such as identities or objects. This capability, while unlocking new possibilities in content creation, also introduces significant privacy risks, as personalization techniques can be misused by malicious users to generate unauthorized images. Although several studies have attempted to counter this by generating adversarially perturbed samples designed to disrupt personalization, they rely on unrealistic assumptions and become ineffective in the presence of even a few clean images or under simple image transformations. To address these challenges, we shift the protection target from the images to the diffusion model itself to hinder the personalization of specific subjects, through our novel framework called $\\textbf{A}$nti-$\\textbf{P}$ersonalized $\\textbf{D}$iffusion $\\textbf{M}$odels ($\\textbf{APDM}$). We first provide a theoretical analysis demonstrating that a naive approach of existing loss functions to diffusion models is inherently incapable of ensuring convergence for robust anti-personalization. Motivated by this finding, we introduce Direct Protective Optimization (DPO), a novel loss function that effectively disrupts subject personalization in the target model without compromising generative quality. Moreover, we propose a new dual-path optimization strategy, coined Learning to Protect (L2P). By alternating between personalization and protection paths, L2P simulates future personalization trajectories and adaptively reinforces protection at each step.\nExperimental results demonstrate that our framework outperforms existing methods, achieving state-of-the-art performance in preventing unauthorized personalization.\nThe code is available at https://github.com/KU-VGI/APDM.",
+      "authors": [
+        "Tae-Young Lee",
+        "Juwon Seo",
+        "Jong Hwan Ko",
+        "Gyeong-Moon Park"
+      ],
+      "primary_category": "text-to-image diffusion models",
+      "categories": [
+        "text-to-image diffusion models",
+        "personalization",
+        "privacy"
+      ],
+      "published": "2025-09-18T17:46:26.038+00:00",
+      "link": "https://openreview.net/forum?id=5XoqKCmkS7",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-t9oq094qr8",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Convex Approximation of Two-Layer ReLU Networks for Hidden State Differential Privacy",
+      "abstract": "The hidden state threat model of differential privacy (DP) assumes that the adversary has access only to the final trained machine learning (ML) model, without seeing intermediate states during training. However, the current privacy analyses under this model are restricted to convex optimization problems, reducing their applicability to multi-layer neural networks, which are essential in modern deep learning applications. Notably, the most successful applications of the hidden state privacy analyses in classification tasks have only been for logistic regression models. We demonstrate that it is possible to privately train convex problems with privacy-utility trade-offs comparable to those of 2-layer ReLU networks trained with DP stochastic gradient descent (DP-SGD). This is achieved through a stochastic approximation of a dual formulation of the ReLU minimization problem, resulting in a strongly convex problem. This enables the use of existing hidden state privacy analyses and provides accurate privacy bounds also for the noisy cyclic mini-batch gradient descent (NoisyCGD) method with fixed disjoint mini-batches. Empirical results on benchmark classification  tasks demonstrate that NoisyCGD can achieve privacy-utility trade-offs on par with DP-SGD applied to 2-layer ReLU networks.",
+      "authors": [
+        "Rob Romijnders",
+        "Antti Koskela"
+      ],
+      "primary_category": "Differential privacy",
+      "categories": [
+        "Differential privacy",
+        "DP machine learning",
+        "hidden state analysis"
+      ],
+      "published": "2025-09-18T17:32:46.58+00:00",
+      "link": "https://openreview.net/forum?id=T9OQ094qR8",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-sr6ivhzcqk",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Impact of Dataset Properties on Membership Inference Vulnerability of Deep Transfer Learning",
+      "abstract": "Membership inference attacks (MIAs) are used to test practical privacy of machine learning models. MIAs complement formal guarantees from differential privacy (DP) under a more realistic adversary model. We analyse MIA vulnerability of fine-tuned neural networks both empirically and theoretically, the latter using a simplified model of fine-tuning. We show that the vulnerability of non-DP models when measured as the attacker advantage at a fixed false positive rate reduces according to a simple power law as the number of examples per class increases. A similar power-law applies even for the most vulnerable points, but the dataset size needed for adequate protection of the most vulnerable points is very large.",
+      "authors": [
+        "Marlon Tobaben",
+        "Hibiki Ito",
+        "Joonas Jälkö",
+        "Yuan He",
+        "Antti Honkela"
+      ],
+      "primary_category": "Membership Inference Attack",
+      "categories": [
+        "Membership Inference Attack",
+        "Transfer Learning",
+        "Few-shot Learning",
+        "Image Classification"
+      ],
+      "published": "2025-09-18T17:35:04.486+00:00",
+      "link": "https://openreview.net/forum?id=SR6ivhZCQK",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-zocengh1jg",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Private Evolution Converges",
+      "abstract": "Private Evolution (PE) is a promising training-free method for differentially private (DP) synthetic data generation. While it achieves strong performance in some domains (e.g., images and text), its behavior in others (e.g., tabular data) is less consistent. To date, the only theoretical analysis of the convergence of PE depends on unrealistic assumptions about both the algorithm’s behavior and the structure of the sensitive dataset. In this work, we develop a new theoretical framework to understand PE’s practical behavior and identify sufficient conditions for its convergence. For $d$-dimensional sensitive datasets with $n$ data points from a convex and compact domain, we prove that under the right hyperparameter settings and given access to the Gaussian variation API proposed in \\cite{PE23}, PE \nproduces an $(\\varepsilon, \\delta)$-DP synthetic dataset with expected 1-Wasserstein distance $\\tilde{O}(d(n\\varepsilon)^{-1/d})$ from the original; this establishes worst-case convergence of the algorithm as $n \\to \\infty$. Our analysis extends to general Banach spaces as well. We also connect PE to the Private Signed Measure Mechanism, a method for DP synthetic data generation that has thus far not seen much practical adoption. We demonstrate the practical relevance of our theoretical findings in experiments.",
+      "authors": [
+        "Tomás González",
+        "Giulia Fanti",
+        "Aaditya Ramdas"
+      ],
+      "primary_category": "Differential Privacy",
+      "categories": [
+        "Differential Privacy",
+        "Synthetic Data",
+        "Private Evolution"
+      ],
+      "published": "2025-09-18T17:45:24.38+00:00",
+      "link": "https://openreview.net/forum?id=zOCENGh1Jg",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-wgrvcclrzg",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "ObCLIP: Oblivious CLoud-Device Hybrid Image Generation with Privacy Preservation",
+      "abstract": "Diffusion Models have gained significant popularity due to their remarkable capabilities in image generation, albeit at the cost of intensive computation requirement. Meanwhile, despite their widespread deployment in inference services such as Midjourney, concerns about the potential leakage of sensitive information in uploaded user prompts have arisen. Existing solutions either fail to strike an effective balance between utility and efficiency, or lack rigorous privacy guarantees. \n\nTo bridge this gap, we propose ObCLIP, a plug-and-play safeguard that enables oblivious cloud-device hybrid generation scheme.\nBy oblivious, each input prompt is transformed into a set of semantically similar candidate prompts that differ only in sensitive attributes (e.g., gender, ethnicity). The cloud server processes all candidate prompts without knowing which one is the real one, thus preventing any prompt leakage. To mitigate server cost, only a small portion of denoising steps is performed upon the large cloud model. The resulting intermediate latents are then transmitted back to the device, which selects the targeted latent and completes the remaining denoising using a small local model to obtain the final image. Additionally, we analyze and incorporate several cache-based accelerations that leverage temporal and batch redundancy, effectively reducing computation cost with minimal utility degradation. Extensive experiments across multiple datasets demonstrate that ObCLIP provides rigorous privacy and comparable utility to large cloud models with slightly increased server computation.",
+      "authors": [
+        "Haoqi Wu",
+        "Wei Dai",
+        "Ming Xu",
+        "Wang Li",
+        "Qiang Yan"
+      ],
+      "primary_category": "Text-to-image",
+      "categories": [
+        "Text-to-image",
+        "diffusion model",
+        "prompt privacy"
+      ],
+      "published": "2025-09-18T17:28:37.492+00:00",
+      "link": "https://openreview.net/forum?id=WgrVccLRzG",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-004utlsufe",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "How Well Can Differential Privacy Be Audited in One Run?",
+      "abstract": "Recent methods for auditing the privacy of machine learning algorithms have improved computational efficiency by simultaneously intervening on multiple training examples in a single training run. Steinke et al. prove that one-run auditing indeed lower bounds the true privacy parameter of the audited algorithm, and give impressive empirical results. Their work leaves open the question of how precisely one-run auditing can uncover the true privacy parameter of an algorithm, and how that precision depends on the audited algorithm. In this work, we characterize the maximum achievable efficacy of one-run auditing and show that the key barrier to its efficacy is interference between the observable effects of different data elements. We present new conceptual approaches to minimize this barrier, towards improving the performance of one-run auditing of real machine learning algorithms.",
+      "authors": [
+        "Amit Keinan",
+        "Moshe Shenfeld",
+        "Katrina Ligett"
+      ],
+      "primary_category": "differential privacy",
+      "categories": [
+        "differential privacy",
+        "privacy auditing"
+      ],
+      "published": "2025-09-18T17:43:24.927+00:00",
+      "link": "https://openreview.net/forum?id=004uTlSufe",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-igb289kbej",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "EraseFlow: Learning Concept Erasure Policies via GFlowNet-Driven Alignment",
+      "abstract": "Erasing harmful or proprietary concepts from powerful text‑to‑image generators is an emerging safety requirement, yet current ``concept erasure'' techniques either collapse image quality, rely on brittle adversarial losses, or demand prohibitive retraining cycles. We trace these limitations to a myopic view of the denoising trajectories that govern diffusion‑based generation. We introduce EraseFlow, the first framework that casts concept unlearning as exploration in the space of denoising paths and optimizes it with a GFlowNets equipped with the trajectory‑balance objective. By sampling entire trajectories rather than single end states, EraseFlow learns a stochastic policy that steers generation away from target concepts while preserving the model’s prior. EraseFlow eliminates the need for carefully crafted reward models and by doing this, it generalizes effectively to unseen concepts and avoids hackable rewards while improving the performance. Extensive empirical results demonstrate that EraseFlow outperforms existing baselines and achieves an optimal trade-off between performance and prior preservation.",
+      "authors": [
+        "Naga Sai Abhiram kusumba",
+        "Maitreya Patel",
+        "Kyle Min",
+        "Changhoon Kim",
+        "Chitta Baral",
+        "Yezhou Yang"
+      ],
+      "primary_category": "Safe generation",
+      "categories": [
+        "Safe generation",
+        "Text-to-image generation",
+        "Flow models",
+        "GFlowNets"
+      ],
+      "published": "2025-09-18T17:33:25.819+00:00",
+      "link": "https://openreview.net/forum?id=igB289kbej",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-z6b7xava3y",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "Generative Model Inversion Through the Lens of the Manifold Hypothesis",
+      "abstract": "Model inversion attacks (MIAs) aim to reconstruct class-representative samples from trained models. Recent generative MIAs utilize generative adversarial networks to learn image priors that guide the inversion process, yielding reconstructions with high visual quality and strong fidelity to the private data. To explore the reason behind their effectiveness, we begin by examining the gradients of inversion loss w.r.t. synthetic inputs, and find that these gradients are surprisingly noisy. Further analysis shows that generative model inversion approaches implicitly denoise the gradients by projecting them onto the tangent space of the generator manifold—filtering out directions that deviate from the manifold structure while preserving informative components aligned with it. Our empirical measurements show that, in models trained with standard supervision, loss gradients exhibit large angular deviations from the data manifold, indicating poor alignment with class-relevant directions. This observation motivates our central hypothesis: models become more vulnerable to MIAs when their loss gradients align more closely with the generator manifold. We validate this hypothesis by designing a novel training objective that explicitly promotes such alignment. Building on this insight, we further introduce a training-free approach to enhance gradient–manifold alignment during inversion, leading to consistent improvements over state-of-the-art generative MIAs.",
+      "authors": [
+        "Xiong Peng",
+        "Bo Han",
+        "Fengfei Yu",
+        "Tongliang Liu",
+        "Feng Liu",
+        "Mingyuan Zhou"
+      ],
+      "primary_category": "Generative Model Inversion Attacks",
+      "categories": [
+        "Generative Model Inversion Attacks"
+      ],
+      "published": "2025-09-18T17:34:21.378+00:00",
+      "link": "https://openreview.net/forum?id=Z6b7xavA3Y",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-pm50n1szgp",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "ImageSentinel: Protecting Visual Datasets from Unauthorized Retrieval-Augmented Image Generation",
+      "abstract": "The widespread adoption of Retrieval-Augmented Image Generation (RAIG) has raised significant concerns about the unauthorized use of private image datasets. While these systems have shown remarkable capabilities in enhancing generation quality through reference images, protecting visual datasets from unauthorized use in such systems remains a challenging problem. Traditional digital watermarking approaches face limitations in RAIG systems, as the complex feature extraction and recombination processes fail to preserve watermark signals during generation. To address these challenges, we propose ImageSentinel, a novel framework for protecting visual datasets in RAIG. Our framework synthesizes sentinel images that maintain visual consistency with the original dataset. These sentinels enable protection verification through randomly generated character sequences that serve as retrieval keys. To ensure seamless integration, we leverage vision-language models to generate the sentinel images. Experimental results demonstrate that ImageSentinel effectively detects unauthorized dataset usage while preserving generation quality for authorized applications.",
+      "authors": [
+        "Ziyuan Luo",
+        "Yangyi Zhao",
+        "Ka Chun Cheung",
+        "Simon See",
+        "Renjie Wan"
+      ],
+      "primary_category": "RAG",
+      "categories": [
+        "RAG",
+        "watermarking",
+        "copyright protection"
+      ],
+      "published": "2025-09-18T17:33:04.581+00:00",
+      "link": "https://openreview.net/forum?id=Pm50n1szgP",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-mzxggzelcl",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "EAReranker: Efficient Embedding Adequacy Assessment for Retrieval Augmented Generation",
+      "abstract": "With the increasing adoption of Retrieval-Augmented Generation (RAG) systems for knowledge-intensive tasks, ensuring the adequacy of retrieved documents has become critically important for generation quality. Traditional reranking approaches face three significant challenges: substantial computational overhead that scales with document length, dependency on plain text that limits application in sensitive scenarios, and insufficient assessment of document value beyond simple relevance metrics.  We propose EAReranker, an efficient embedding-based adequacy assessment framework that evaluates document utility for RAG systems without requiring access to original text content. The framework quantifies document adequacy through a comprehensive scoring methodology considering verifiability, coverage, completeness and structural aspects, providing interpretable adequacy classifications for downstream applications. EAReranker employs a Decoder-Only Transformer architecture that introduces embedding dimension expansion method and bin-aware weighted loss, designed specifically to predict adequacy directly from embedding vectors. Our comprehensive evaluation across four public benchmarks demonstrates that EAReranker achieves competitive performance with state-of-the-art plaintext rerankers while maintaining constant memory usage ($\\sim$550MB) regardless of input length and processing 2-3x faster than traditional approaches. The semantic bin adequacy prediction accuracy of 92.85\\% LACC@10 and 86.12\\% LACC@25 demonstrates its capability to effectively filter out inadequate documents that could potentially mislead or adversely impact RAG system performance, thereby ensuring only high-utility information serves as generation context. These results establish EAReranker as an efficient and practical solution for enhancing RAG system performance through improved context selection while addressing the computational and privacy challenges of existing methods.",
+      "authors": [
+        "Dongyang Zeng",
+        "Yaping Liu",
+        "Wei Zhang",
+        "Shuo Zhang",
+        "Xinwang Liu",
+        "Binxing Fang"
+      ],
+      "primary_category": "Retrieval-Augmented Generation",
+      "categories": [
+        "Retrieval-Augmented Generation",
+        "Embedding-based Reranking",
+        "Document Adequacy Assessment"
+      ],
+      "published": "2025-09-18T17:34:40.773+00:00",
+      "link": "https://openreview.net/forum?id=mzxGGzeLCL",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-d9jents5bu",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "ReliabilityRAG: Effective and Provably Robust Defense for RAG-based Web-Search",
+      "abstract": "Retrieval-Augmented Generation (RAG) enhances Large Language Models by grounding their outputs in external documents. These systems, however, remain vulnerable to attacks on the retrieval corpus, such as prompt injection. RAG-based search systems (e.g., Google’s Search AI Overview) present an interesting setting for studying and protecting against such threats, as defense algorithms can benefit from built-in reliability signals—like document ranking—and represent a non-LLM challenge for the adversary due to decades of work to thwart SEO.\n\nMotivated by, but not limited to, this scenario, this work introduces ReliabilityRAG, a framework for adversarial robustness that explicitly leverages reliability information of retrieved documents.\n\nOur first contribution adopts a graph-theoretic perspective to identify a ``consistent majority'' among retrieved documents to filter out malicious ones. We introduce a novel algorithm based on finding a Maximum Independent Set (MIS) on a document graph where edges encode contradiction. Our MIS variant explicitly prioritizes higher-reliability documents and provides provable robustness guarantees against bounded adversarial corruption under natural assumptions. Recognizing the computational cost of exact MIS for large retrieval sets, our second contribution is a scalable weighted sample and aggregate framework. It explicitly utilizes reliability information, preserving some robustness guarantees while efficiently handling many documents.\n\nWe present empirical results showing ReliabilityRAG provides superior robustness against adversarial attacks compared to prior methods, maintains high benign accuracy, and excels in long-form generation tasks where prior robustness-focused methods struggled. Our work is a significant step towards more effective, provably robust defenses against retrieved corpus corruption in RAG.",
+      "authors": [
+        "Zeyu Shen",
+        "Basileal Yoseph Imana",
+        "Tong Wu",
+        "Chong Xiang",
+        "Prateek Mittal",
+        "Aleksandra Korolova"
+      ],
+      "primary_category": "Natural Language Processing (NLP)",
+      "categories": [
+        "Natural Language Processing (NLP)",
+        "Large Language Models (LLM)",
+        "Retrieval-Augmented Generation (RAG)",
+        "Adversarial Robustness"
+      ],
+      "published": "2025-09-18T17:43:33.46+00:00",
+      "link": "https://openreview.net/forum?id=D9JeNTs5Bu",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-r5ebtne2y9",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "HeavyWater and SimplexWater: Distortion-free LLM Watermarks for Low-Entropy Distributions",
+      "abstract": "Large language model (LLM) watermarks  enable authentication of text provenance, curb misuse of machine-generated text, and promote trust in AI systems. Current watermarks operate by changing the next-token predictions output by an LLM. The updated (i.e., watermarked) predictions depend on random side information produced, for example, by hashing previously generated tokens. LLM watermarking is particularly challenging in low-entropy generation tasks -- such as coding -- where next-token predictions are near-deterministic. In this paper, we propose an optimization framework for watermark design. Our goal is to understand how to most effectively use random side information in order to maximize the likelihood of watermark detection and minimize the distortion of generated text. Our analysis informs the design of two new watermarks: HeavyWater and SimplexWater. Both watermarks are tunable, gracefully trading-off between detection accuracy and text distortion. They can also be applied to any LLM and are agnostic to side information generation.  We examine the performance of HeavyWater and SimplexWater through several benchmarks, demonstrating that they can achieve high watermark detection accuracy with minimal compromise of text generation quality, particularly in the low-entropy regime. Our theoretical analysis also reveals surprising new connections between LLM watermarking and coding theory.",
+      "authors": [
+        "Dor Tsur",
+        "Carol Xuan Long",
+        "Claudio Mayrink Verdun",
+        "Sajani Vithana",
+        "Hsiang Hsu",
+        "Chun-Fu Chen",
+        "Haim H. Permuter",
+        "Flavio Calmon"
+      ],
+      "primary_category": "Large language models",
+      "categories": [
+        "Large language models",
+        "watermarking",
+        "coding theory",
+        "heavy-tail distributions"
+      ],
+      "published": "2025-09-18T17:44:23.835+00:00",
+      "link": "https://openreview.net/forum?id=R5EBtNE2Y9",
+      "pdf_url": null,
+      "tags": [
+        "keyword:priv-sec",
+        "query:priv-sec"
+      ]
+    },
+    {
+      "id": "openreview-neurips-2025-8pequkygrj",
+      "source": "NeurIPS-2025-Accepted",
+      "title": "CryptoMoE: Privacy-Preserving and Scalable Mixture of Experts Inference via Balanced Expert Routing",
+      "abstract": "Private large language model (LLM) inference based on cryptographic primitives offers a promising path towards privacy-preserving deep learning. However, existing frameworks only support dense LLMs like LLaMA-1 and struggle to scale to mixture-of-experts (MoE) architectures. The key challenge comes from securely evaluating the dynamic routing mechanism in MoE layers, which may reveal sensitive input information if not fully protected. In this paper, we propose CryptoMoE, the first framework that enables private, efficient, and accurate inference for MoE-based models. CryptoMoE balances expert loads to protect expert routing information and proposes novel protocols for secure expert dispatch and combine. CryptoMoE also develops a confidence-aware token selection strategy and a batch matrix multiplication protocol to improve accuracy and efficiency further. Extensive experiments on DeepSeekMoE-16.4B, OLMoE-6.9B, and QWenMoE-14.3B show that CryptoMoE achieves $2.8\\sim3.5\\times$ end-to-end latency reduction and $3\\sim6\\times$ communication reduction over a dense baseline with minimum accuracy loss. We also adapt CipherPrune (ICLR'25) for MoE inference and demonstrate CryptoMoE can reduce the communication by up to $4.3 \\times$.",
+      "authors": [
+        "Yifan Zhou",
+        "Tianshi Xu",
+        "Jue Hong",
+        "Ye Wu",
+        "Meng Li"
+      ],
+      "primary_category": "Privacy-Preserving Deep Learning",
+      "categories": [
+        "Privacy-Preserving Deep Learning",
+        "Homomorphic Encryption",
+        "Multi-party Computation",
+        "Mixture of Experts",
+        "Large Language Model"
+      ],
+      "published": "2025-09-18T17:29:52.705+00:00",
+      "link": "https://openreview.net/forum?id=8pEqukyGrj",
+      "pdf_url": null,
+      "tags": [
+        "query:priv-sec"
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "type": "intent_query",
+      "tag": "priv-sec",
+      "paper_tag": "query:priv-sec",
+      "query_text": "comprehensive survey of privacy and security issues in large AI models",
+      "sim_scores": {
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-0znxgzlcog": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-tvpnedh5ov": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-tecj926vgn": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-hmvq00vaby": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-004utlsufe": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-t9oq094qr8": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-8pequkygrj": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-2hinrfmmq7": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-sr6ivhzcqk": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-84dngt4ajt",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tcxzqnbyaf",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-e40dycosqd",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tu3p6kshgn",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hmvq00vaby",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xuvdo6omke",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-4hzafk9o4r",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tecj926vgn",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hej7nrinjs",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-aaxmcaynf6",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-8pequkygrj",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tvpnedh5ov",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sr6ivhzcqk",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hkvyosg7yx",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-s1f2qhendd",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-91h9csvdwl",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-cy6mgbwtov",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-os4qydf3ms",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-phiwebewaz",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-oih3t5zpbw",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-0znxgzlcog",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tyw1v1kukg",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsi42ohbom",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vuoy5kacg5",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mtyf5hci7y",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-glhlu6y1uk",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-2hinrfmmq7",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-x0i7wvrlhk",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-nmvmytrjkg",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jv7ohhq0yp",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sm2e1snmk4",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-004utlsufe",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ycmpnwzuaa",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-t9oq094qr8",
+          "score": 0.41577409931840303,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b4nt8texns",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fzp6chext2",
+          "score": 0.3668882557771445,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-d9jents5bu",
+          "score": 0.3433395872420263,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r5ebtne2y9",
+          "score": 0.21328671328671328,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ttwzhy8jqy",
+          "score": 0.1933160472486314,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5xoqkcmks7",
+          "score": 0.1933160472486314,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wgrvcclrzg",
+          "score": 0.0483743061062648,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "priv-sec",
+      "paper_tag": "query:priv-sec",
+      "query_text": "privacy preserving techniques for medical AI and generative models",
+      "sim_scores": {
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-nmvmytrjkg": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-tvpnedh5ov": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-t9oq094qr8": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-004utlsufe": {
+          "score": 0.013513513513513514,
+          "rank": 14
+        },
+        "openreview-neurips-2025-tecj926vgn": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-zocengh1jg": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-neurips-2025-hmvq00vaby": {
+          "score": 0.0125,
+          "rank": 20
+        },
+        "openreview-neurips-2025-8pequkygrj": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        },
+        "openreview-neurips-2025-0znxgzlcog": {
+          "score": 0.011494252873563218,
+          "rank": 27
+        },
+        "openreview-neurips-2025-xuvdo6omke": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-5xoqkcmks7",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wgrvcclrzg",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xuvdo6omke",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-nmvmytrjkg",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b4nt8texns",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tvpnedh5ov",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-8pequkygrj",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-phiwebewaz",
+          "score": 0.8798076923076922,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-z6b7xava3y",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-s1f2qhendd",
+          "score": 0.8422090729783037,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-cy6mgbwtov",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-84dngt4ajt",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-igb289kbej",
+          "score": 0.7703788748564866,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hmvq00vaby",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-0znxgzlcog",
+          "score": 0.73604826546003,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fzp6chext2",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-zocengh1jg",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tecj926vgn",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-4hzafk9o4r",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-91h9csvdwl",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-t9oq094qr8",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r5ebtne2y9",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hej7nrinjs",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hkvyosg7yx",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-004utlsufe",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sr6ivhzcqk",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-e40dycosqd",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-pm50n1szgp",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vuoy5kacg5",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-oih3t5zpbw",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jv7ohhq0yp",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-os4qydf3ms",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ttwzhy8jqy",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsi42ohbom",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-d9jents5bu",
+          "score": 0.32035835650293487,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-2hinrfmmq7",
+          "score": 0.2760180995475112,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tcxzqnbyaf",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tu3p6kshgn",
+          "score": 0.21328671328671328,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mtyf5hci7y",
+          "score": 0.21328671328671328,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ycmpnwzuaa",
+          "score": 0.1737891737891738,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sm2e1snmk4",
+          "score": 0.0823211875843454,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-aaxmcaynf6",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-glhlu6y1uk",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        }
+      ]
+    },
+    {
+      "type": "intent_query",
+      "tag": "priv-sec",
+      "paper_tag": "query:priv-sec",
+      "query_text": "security threats and mitigation strategies in retrieval augmented generation",
+      "sim_scores": {
+        "openreview-neurips-2025-pm50n1szgp": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-mzxggzelcl": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-ttwzhy8jqy": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-d9jents5bu": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-b4nt8texns": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-ycmpnwzuaa": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-neurips-2025-84dngt4ajt": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-neurips-2025-r5ebtne2y9": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-2hinrfmmq7": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-wgrvcclrzg": {
+          "score": 0.011494252873563218,
+          "rank": 27
+        },
+        "openreview-neurips-2025-fzp6chext2": {
+          "score": 0.010869565217391304,
+          "rank": 32
+        },
+        "openreview-neurips-2025-hkvyosg7yx": {
+          "score": 0.010309278350515464,
+          "rank": 37
+        }
+      },
+      "ranked": [
+        {
+          "paper_id": "openreview-neurips-2025-d9jents5bu",
+          "score": 1.0,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ttwzhy8jqy",
+          "score": 0.9586435070306036,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-pm50n1szgp",
+          "score": 0.9185999185999183,
+          "star_rating": 5
+        },
+        {
+          "paper_id": "openreview-neurips-2025-2hinrfmmq7",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mzxggzelcl",
+          "score": 0.8057498057498057,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-ycmpnwzuaa",
+          "score": 0.702712746191007,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-b4nt8texns",
+          "score": 0.6703296703296702,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hej7nrinjs",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-jv7ohhq0yp",
+          "score": 0.6388587937883712,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-mtyf5hci7y",
+          "score": 0.608262108262108,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-84dngt4ajt",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-fzp6chext2",
+          "score": 0.578503688092729,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-vuoy5kacg5",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sm2e1snmk4",
+          "score": 0.5495495495495496,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-91h9csvdwl",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-e40dycosqd",
+          "score": 0.5213675213675214,
+          "star_rating": 4
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tcxzqnbyaf",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-igb289kbej",
+          "score": 0.49392712550607265,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-gsi42ohbom",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-5xoqkcmks7",
+          "score": 0.46719946719946726,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tu3p6kshgn",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-aaxmcaynf6",
+          "score": 0.4411571334648256,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-os4qydf3ms",
+          "score": 0.3910256410256411,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hkvyosg7yx",
+          "score": 0.3668882557771445,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-sr6ivhzcqk",
+          "score": 0.2760180995475112,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-wgrvcclrzg",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-cy6mgbwtov",
+          "score": 0.25462134764460337,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-glhlu6y1uk",
+          "score": 0.23371647509578536,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-x0i7wvrlhk",
+          "score": 0.23371647509578536,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-hmvq00vaby",
+          "score": 0.21328671328671328,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-r5ebtne2y9",
+          "score": 0.1737891737891738,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-tyw1v1kukg",
+          "score": 0.15469146238377016,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-oih3t5zpbw",
+          "score": 0.15469146238377016,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-xuvdo6omke",
+          "score": 0.1360089186176142,
+          "star_rating": 3
+        },
+        {
+          "paper_id": "openreview-neurips-2025-zocengh1jg",
+          "score": 0.0823211875843454,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-s1f2qhendd",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-t9oq094qr8",
+          "score": 0.06517094017094004,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-8pequkygrj",
+          "score": 0.0319204604918889,
+          "star_rating": 2
+        },
+        {
+          "paper_id": "openreview-neurips-2025-004utlsufe",
+          "score": 0.0,
+          "star_rating": 1
+        }
+      ]
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "privacy issues and solutions for large language models",
+      "sim_scores": {
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-tecj926vgn": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-cy6mgbwtov": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-0znxgzlcog": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-ttwzhy8jqy": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-neurips-2025-phiwebewaz": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-xuvdo6omke": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-hkvyosg7yx": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-neurips-2025-jv7ohhq0yp": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-x0i7wvrlhk": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-neurips-2025-4hzafk9o4r": {
+          "score": 0.0125,
+          "rank": 20
+        },
+        "openreview-neurips-2025-hmvq00vaby": {
+          "score": 0.012195121951219513,
+          "rank": 22
+        },
+        "openreview-neurips-2025-b4nt8texns": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-fzp6chext2": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-os4qydf3ms": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "privacy risks in generative models",
+      "sim_scores": {
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-tecj926vgn": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-neurips-2025-tvpnedh5ov": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-5xoqkcmks7": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-t9oq094qr8": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-sr6ivhzcqk": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-neurips-2025-zocengh1jg": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-wgrvcclrzg": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-neurips-2025-004utlsufe": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-hmvq00vaby": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "security aspects of retrieval augmented generation",
+      "sim_scores": {
+        "openreview-neurips-2025-ttwzhy8jqy": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-pm50n1szgp": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-mzxggzelcl": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-d9jents5bu": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-b4nt8texns": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.012658227848101266,
+          "rank": 19
+        },
+        "openreview-neurips-2025-r5ebtne2y9": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-hkvyosg7yx": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        },
+        "openreview-neurips-2025-2hinrfmmq7": {
+          "score": 0.010752688172043012,
+          "rank": 33
+        },
+        "openreview-neurips-2025-wgrvcclrzg": {
+          "score": 0.010101010101010102,
+          "rank": 39
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "security measures for medical AI systems",
+      "sim_scores": {
+        "openreview-neurips-2025-nmvmytrjkg": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-91h9csvdwl": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-vuoy5kacg5": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-2hinrfmmq7": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        },
+        "openreview-neurips-2025-gsi42ohbom": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-neurips-2025-oih3t5zpbw": {
+          "score": 0.012195121951219513,
+          "rank": 22
+        },
+        "openreview-neurips-2025-hmvq00vaby": {
+          "score": 0.010752688172043012,
+          "rank": 33
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "security threats and defenses for large language models",
+      "sim_scores": {
+        "openreview-neurips-2025-jv7ohhq0yp": {
+          "score": 0.016129032258064516,
+          "rank": 2
+        },
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.015873015873015872,
+          "rank": 3
+        },
+        "openreview-neurips-2025-fzp6chext2": {
+          "score": 0.015625,
+          "rank": 4
+        },
+        "openreview-neurips-2025-tcxzqnbyaf": {
+          "score": 0.015384615384615385,
+          "rank": 5
+        },
+        "openreview-neurips-2025-mtyf5hci7y": {
+          "score": 0.015151515151515152,
+          "rank": 6
+        },
+        "openreview-neurips-2025-84dngt4ajt": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-phiwebewaz": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-tu3p6kshgn": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-sm2e1snmk4": {
+          "score": 0.014285714285714285,
+          "rank": 10
+        },
+        "openreview-neurips-2025-91h9csvdwl": {
+          "score": 0.014084507042253521,
+          "rank": 11
+        },
+        "openreview-neurips-2025-glhlu6y1uk": {
+          "score": 0.013888888888888888,
+          "rank": 12
+        },
+        "openreview-neurips-2025-e40dycosqd": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-cy6mgbwtov": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-neurips-2025-x0i7wvrlhk": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        },
+        "openreview-neurips-2025-tecj926vgn": {
+          "score": 0.012987012987012988,
+          "rank": 17
+        },
+        "openreview-neurips-2025-tyw1v1kukg": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-ycmpnwzuaa": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-neurips-2025-hej7nrinjs": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-aaxmcaynf6": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-os4qydf3ms": {
+          "score": 0.011764705882352941,
+          "rank": 25
+        },
+        "openreview-neurips-2025-hkvyosg7yx": {
+          "score": 0.011363636363636364,
+          "rank": 28
+        }
+      }
+    },
+    {
+      "type": "keyword",
+      "tag": "priv-sec",
+      "paper_tag": "keyword:priv-sec",
+      "query_text": "security vulnerabilities of generative models",
+      "sim_scores": {
+        "openreview-neurips-2025-s1f2qhendd": {
+          "score": 0.01639344262295082,
+          "rank": 1
+        },
+        "openreview-neurips-2025-jv7ohhq0yp": {
+          "score": 0.014925373134328358,
+          "rank": 7
+        },
+        "openreview-neurips-2025-tyw1v1kukg": {
+          "score": 0.014705882352941176,
+          "rank": 8
+        },
+        "openreview-neurips-2025-tvpnedh5ov": {
+          "score": 0.014492753623188406,
+          "rank": 9
+        },
+        "openreview-neurips-2025-sr6ivhzcqk": {
+          "score": 0.0136986301369863,
+          "rank": 13
+        },
+        "openreview-neurips-2025-igb289kbej": {
+          "score": 0.013513513513513514,
+          "rank": 14
+        },
+        "openreview-neurips-2025-z6b7xava3y": {
+          "score": 0.013333333333333334,
+          "rank": 15
+        },
+        "openreview-neurips-2025-phiwebewaz": {
+          "score": 0.013157894736842105,
+          "rank": 16
+        },
+        "openreview-neurips-2025-vuoy5kacg5": {
+          "score": 0.01282051282051282,
+          "rank": 18
+        },
+        "openreview-neurips-2025-5xoqkcmks7": {
+          "score": 0.012345679012345678,
+          "rank": 21
+        },
+        "openreview-neurips-2025-91h9csvdwl": {
+          "score": 0.012048192771084338,
+          "rank": 23
+        },
+        "openreview-neurips-2025-mtyf5hci7y": {
+          "score": 0.011904761904761904,
+          "rank": 24
+        },
+        "openreview-neurips-2025-fzp6chext2": {
+          "score": 0.011627906976744186,
+          "rank": 26
+        }
+      }
+    }
+  ],
+  "global_candidate_ids": [
+    "openreview-neurips-2025-s1f2qhendd",
+    "openreview-neurips-2025-yiguv0bzcy",
+    "openreview-neurips-2025-nmvmytrjkg",
+    "openreview-neurips-2025-pm50n1szgp",
+    "openreview-neurips-2025-mzxggzelcl",
+    "openreview-neurips-2025-tecj926vgn",
+    "openreview-neurips-2025-axlquruo0s",
+    "openreview-neurips-2025-ttwzhy8jqy",
+    "openreview-neurips-2025-kplskouz46",
+    "openreview-neurips-2025-yzl5tl0z2m",
+    "openreview-neurips-2025-jv7ohhq0yp",
+    "openreview-neurips-2025-v8sndhcn0z",
+    "openreview-neurips-2025-hhn8xgtrko",
+    "openreview-neurips-2025-hmvq00vaby",
+    "openreview-neurips-2025-tvpnedh5ov",
+    "openreview-neurips-2025-gqzmekvp2i",
+    "openreview-neurips-2025-mz25rt5dip",
+    "openreview-neurips-2025-pim21spyvl",
+    "openreview-neurips-2025-gbgvutd9hx",
+    "openreview-neurips-2025-fzp6chext2",
+    "openreview-neurips-2025-rem4dgvrfg",
+    "openreview-neurips-2025-2hinrfmmq7",
+    "openreview-neurips-2025-hkvyosg7yx",
+    "openreview-neurips-2025-xm57ixqu0n",
+    "openreview-neurips-2025-0znxgzlcog",
+    "openreview-neurips-2025-t9oq094qr8",
+    "openreview-neurips-2025-phiwebewaz",
+    "openreview-neurips-2025-aus0rscwk0",
+    "openreview-neurips-2025-b4nt8texns",
+    "openreview-neurips-2025-91h9csvdwl",
+    "openreview-neurips-2025-prm9y3jm0r",
+    "openreview-neurips-2025-w8tb5rmbk1",
+    "openreview-neurips-2025-004utlsufe",
+    "openreview-neurips-2025-ijqtjelku1",
+    "openreview-neurips-2025-sr6ivhzcqk",
+    "openreview-neurips-2025-txhc1geeik",
+    "openreview-neurips-2025-kd6hchul9c",
+    "openreview-neurips-2025-8z3cover4z",
+    "openreview-neurips-2025-qhyp0khjus",
+    "openreview-neurips-2025-wgrvcclrzg",
+    "openreview-neurips-2025-po0eyoyfua",
+    "openreview-neurips-2025-d9jents5bu",
+    "openreview-neurips-2025-oouvejsbxl",
+    "openreview-neurips-2025-cy6mgbwtov",
+    "openreview-neurips-2025-nuctkoflsv",
+    "openreview-neurips-2025-dbjzqvmd7t",
+    "openreview-neurips-2025-ugaepulzya",
+    "openreview-neurips-2025-d2xdjf1txw",
+    "openreview-neurips-2025-s3it4qo7bm",
+    "openreview-neurips-2025-xbd4ojccia",
+    "openreview-neurips-2025-tyw1v1kukg",
+    "openreview-neurips-2025-vuoy5kacg5",
+    "openreview-neurips-2025-84dngt4ajt",
+    "openreview-neurips-2025-mtyf5hci7y",
+    "openreview-neurips-2025-5xoqkcmks7",
+    "openreview-neurips-2025-4vkvume1i8",
+    "openreview-neurips-2025-wgen1ed54p",
+    "openreview-neurips-2025-hqullozhuh",
+    "openreview-neurips-2025-yzzhahygww",
+    "openreview-neurips-2025-qbjuyl4gax",
+    "openreview-neurips-2025-nvdrwbwjtv",
+    "openreview-neurips-2025-rbdlnweejk",
+    "openreview-neurips-2025-xuvdo6omke",
+    "openreview-neurips-2025-x0i7wvrlhk",
+    "openreview-neurips-2025-zocengh1jg",
+    "openreview-neurips-2025-8pequkygrj",
+    "openreview-neurips-2025-ycmpnwzuaa",
+    "openreview-neurips-2025-vhwmdtyi2o",
+    "openreview-neurips-2025-7fzntlustl",
+    "openreview-neurips-2025-r5ebtne2y9",
+    "openreview-neurips-2025-x7ak8ohjpg",
+    "openreview-neurips-2025-os4qydf3ms",
+    "openreview-neurips-2025-rgk129n73h",
+    "openreview-neurips-2025-ravs5h8mng",
+    "openreview-neurips-2025-dsznm3mqtd",
+    "openreview-neurips-2025-76cfmrgezq",
+    "openreview-neurips-2025-gupggcm4wh",
+    "openreview-neurips-2025-mhgviojz27",
+    "openreview-neurips-2025-jj29n4mklh",
+    "openreview-neurips-2025-jvq8nzoup8",
+    "openreview-neurips-2025-tcxzqnbyaf",
+    "openreview-neurips-2025-xbmjxb6f4w",
+    "openreview-neurips-2025-m2hxuxqnrb",
+    "openreview-neurips-2025-iicv9itpcu",
+    "openreview-neurips-2025-zwcvfbfufb",
+    "openreview-neurips-2025-tu3p6kshgn",
+    "openreview-neurips-2025-kitpsotbuo",
+    "openreview-neurips-2025-ltatqw1ufi",
+    "openreview-neurips-2025-sm2e1snmk4",
+    "openreview-neurips-2025-xfdnekp7tt",
+    "openreview-neurips-2025-y4axo2pfah",
+    "openreview-neurips-2025-jalvha5m8v",
+    "openreview-neurips-2025-rehvhla9zp",
+    "openreview-neurips-2025-4p6mployhf",
+    "openreview-neurips-2025-glhlu6y1uk",
+    "openreview-neurips-2025-2kkqp7mwjm",
+    "openreview-neurips-2025-e40dycosqd",
+    "openreview-neurips-2025-2nlhowe0es",
+    "openreview-neurips-2025-igb289kbej",
+    "openreview-neurips-2025-z6b7xava3y",
+    "openreview-neurips-2025-odcagsxzzp",
+    "openreview-neurips-2025-418uyqkgqb",
+    "openreview-neurips-2025-gsi42ohbom",
+    "openreview-neurips-2025-hkfzwljswq",
+    "openreview-neurips-2025-tlmkczfatl",
+    "openreview-neurips-2025-ohb4ee77ug",
+    "openreview-neurips-2025-6vcgsrk6pn",
+    "openreview-neurips-2025-apbbkhdk4w",
+    "openreview-neurips-2025-gb2woj7v74",
+    "openreview-neurips-2025-4hzafk9o4r",
+    "openreview-neurips-2025-qinnsnppv8",
+    "openreview-neurips-2025-viannnqxcl",
+    "openreview-neurips-2025-yg1yfakolw",
+    "openreview-neurips-2025-mlu9kqdzus",
+    "openreview-neurips-2025-oih3t5zpbw",
+    "openreview-neurips-2025-4q1va6p9j9",
+    "openreview-neurips-2025-hej7nrinjs",
+    "openreview-neurips-2025-it69gyoep0",
+    "openreview-neurips-2025-mt2unv8jmb",
+    "openreview-neurips-2025-aaxmcaynf6"
+  ],
+  "global_pool_lane_top_k": 30,
+  "global_pool_limit": 120,
+  "global_pool_guaranteed_per_lane": 2,
+  "global_pool_effective_size": 120,
+  "reranked_at": "2026-06-30T08:49:10.682145+00:00",
+  "llm_ranked": [
+    {
+      "paper_id": "openreview-neurips-2025-phiwebewaz",
+      "score": 10.0,
+      "evidence_en": "Property inference attack revealing dataset-level privacy from LLMs, applied to medical data",
+      "evidence_cn": "属性推断攻击揭示大模型训练数据集的隐私属性，应用于医疗数据",
+      "canonical_evidence": "属性推断攻击揭示大模型训练数据集的隐私属性，应用于医疗数据",
+      "tldr_en": "PropInfer introduces a benchmark for evaluating property inference attacks on LLMs, showing that sensitive dataset-level properties like disease prevalence can be accurately inferred from fine-tuned models, especially in healthcare.",
+      "tldr_cn": "大模型微调使用的领域数据可能包含机密统计属性，如疾病流行率。本文提出PropInfer基准，系统评估大语言模型在问答和聊天两种范式下的属性推断攻击风险。基于ChatDoctor医疗数据集的实验表明，攻击者可高准确率推断出微调数据的人口统计等敏感属性。该工作为大模型隐私研究提供了重要评估工具，凸显了部署前后的风险。",
+      "title_zh": "我们能从大语言模型中推断出训练数据的保密属性吗？",
+      "motivation_cn": "微调数据集中的机密属性（如患者人口统计）可能被泄露，但之前未在LLM上研究。",
+      "method_cn": "构建PropInfer基准，在问答和聊天微调范式下评估大模型属性推断攻击。",
+      "result_cn": "在医疗数据集上，攻击能以超过80%的准确率推断出疾病流行率等敏感属性。",
+      "conclusion_cn": "大模型确实存在数据集属性泄漏风险，亟需隐私保护措施。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-ycmpnwzuaa",
+      "score": 10.0,
+      "evidence_en": "detects harmful queries pre-generation and monitors partial responses mid-generation to defend against LLM jailbreaks",
+      "evidence_cn": "通过预生成检测有害查询和生成中监控部分响应来防御微调越狱攻击",
+      "canonical_evidence": "通过预生成检测有害查询和生成中监控部分响应来防御微调越狱攻击",
+      "tldr_en": "MetaDefense introduces a two-stage defense: pre-generation harm query detection and mid-generation response monitoring, trained on LLM harmfulness prediction, effectively generalizing to unseen jailbreak templates.",
+      "tldr_cn": "针对大语言模型微调中的越狱攻击，提出MetaDefense框架，采用两阶段防御：在回答生成前检测有害查询，并在生成过程中监控部分回复以防止有害内容输出。通过训练LLM预测查询和回复的有害性，该方法能泛化到未见过的攻击模板，提供更全面的安全防护。实验证明MetaDefense显著降低了越狱攻击成功率，为LLM安全部署提供了有效保障。",
+      "title_zh": "MetaDefense：防御微调越狱攻击的生成前后防御",
+      "motivation_cn": "现有防御方法难以泛化到未见过的攻击模板",
+      "method_cn": "提出两阶段防御：预生成有害检测和生成中监控",
+      "result_cn": "有效泛化到未知攻击，阻止有害内容生成",
+      "conclusion_cn": "MetaDefense为LLM提供了更鲁棒的越狱攻击防御，提升了安全部署的可靠性",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-os4qydf3ms",
+      "score": 10.0,
+      "evidence_en": "identifies backdoor samples by attention collapse and filters them without external supervision",
+      "evidence_cn": "通过注意力坍缩识别后门样本，无需外部监督进行过滤",
+      "canonical_evidence": "通过注意力坍缩识别后门样本，无需外部监督进行过滤",
+      "tldr_en": "Observing attention collapse in backdoored models, BYE leverages attention entropy as self-supervised signal to identify and filter poisoned data during fine-tuning, providing robust defense without external supervision.",
+      "tldr_cn": "多模态大语言模型在微调即服务场景中面临后门攻击风险。本文发现后门触发会导致注意力异常集中，即注意力坍缩现象。基于此提出BYE（相信你的眼睛）框架，利用注意力熵模式作为自监督信号，自动识别并过滤后门样本，无需外部指导。实验表明BYE能有效清洗后门数据，抵御微调攻击，为MLLM的安全部署提供了一种轻量高效的防御方案。",
+      "title_zh": "无须外部指导的后门清洗：面向多模态大语言模型微调",
+      "motivation_cn": "微调即服务中的后门攻击隐蔽且防御依赖外部指导",
+      "method_cn": "发现注意力坍缩现象，利用注意力熵自监督识别后门样本并过滤",
+      "result_cn": "无需外部指导，有效清洗后门数据，防御攻击",
+      "conclusion_cn": "为MLLM安全微调提供了基于注意力异常的自监督防御机制",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-pm50n1szgp",
+      "score": 10.0,
+      "evidence_en": "Proposes a framework to protect image datasets from unauthorized use in RAIG systems",
+      "evidence_cn": "提出保护图像数据集免遭RAIG系统未经授权使用的框架",
+      "canonical_evidence": "提出保护图像数据集免遭RAIG系统未经授权使用的框架",
+      "tldr_en": "To combat unauthorized use of private images in Retrieval-Augmented Image Generation (RAIG), ImageSentinel synthesizes sentinel images that survive generation processes, protecting datasets.",
+      "tldr_cn": "针对检索增强图像生成（RAIG）系统中私有图像数据集可能被未经授权使用的问题，本文提出ImageSentinel框架，通过合成能够抵抗生成过程特征提取与重组的哨兵图像，为数据集提供主动保护，实验表明该方法能有效阻止RAIG系统中的数据侵权，为视觉内容的隐私保护提供了新思路。",
+      "title_zh": "ImageSentinel：保护视觉数据集免受未经授权的检索增强图像生成",
+      "motivation_cn": "检索增强图像生成（RAIG）系统的普及引发了对私有图像数据集未经授权使用的担忧。",
+      "method_cn": "提出ImageSentinel框架，合成哨兵图像以在RAIG过程中保持视觉线索并阻止未经授权的利用。",
+      "result_cn": "框架有效保护了数据集，哨兵图像在生成过程中提供有效的防护信号。",
+      "conclusion_cn": "为RAIG系统中的数据隐私保护提供了一种主动防御机制。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-z6b7xava3y",
+      "score": 10.0,
+      "evidence_en": "Analyzes generative model inversion attacks that reconstruct private data",
+      "evidence_cn": "分析能够重建隐私数据的生成模型反转攻击",
+      "canonical_evidence": "分析能够重建隐私数据的生成模型反转攻击",
+      "tldr_en": "The paper explains the effectiveness of generative model inversion attacks by showing they implicitly denoise gradients via projection onto the generator manifold, revealing privacy risks.",
+      "tldr_cn": "该论文探究生成模型反转攻击为何能高保真重建隐私数据，通过分析反转损失梯度，发现攻击成功的关键在于隐含地将噪声投影到生成器流形切空间以执行去噪，这一发现不仅解释了现有攻击的高有效性，也为评估和缓解生成模型的隐私泄露风险提供了新的理论视角。",
+      "title_zh": "从流形假说视角看生成模型反转",
+      "motivation_cn": "生成模型反转攻击可重建类代表样本，但为何有效尚不明晰。",
+      "method_cn": "通过分析反转损失梯度，发现其隐含去噪机制：投影到生成器流形切空间过滤噪声方向。",
+      "result_cn": "揭示了生成模型反转攻击成功的深层原因，为理解隐私风险提供了理论依据。",
+      "conclusion_cn": "该工作加深了对生成模型隐私泄露机制的理解，有助于设计更安全的模型。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-x0i7wvrlhk",
+      "score": 10.0,
+      "evidence_en": "Scales strong membership inference attacks to large language models",
+      "evidence_cn": "将强成员推断攻击扩展到大语言模型",
+      "canonical_evidence": "将强成员推断攻击扩展到大语言模型",
+      "tldr_en": "The paper scales LiRA, a strong membership inference attack, to LLMs, showing they are vulnerable to privacy leakage even at scale.",
+      "tldr_cn": "为回答大语言模型（LLM）是否对成员推断攻击（MIA）免疫的问题，本文扩展了强攻击框架LiRA，通过高效的参考模型训练策略，首次在大型预训练语言模型上成功发起攻击，实验结果表明LLM并未因规模增大而消除隐私泄露风险，暴露了训练数据中的敏感信息，呼吁更严格的隐私审计与防护。",
+      "title_zh": "探索大语言模型上强成员推断攻击的极限",
+      "motivation_cn": "现有强成员推断攻击需训练大量参考模型，难以扩展至LLM，导致对其风险认识不足。",
+      "method_cn": "扩展LiRA攻击框架，结合高效参考模型训练策略，评估LLM上的成员推断风险。",
+      "result_cn": "攻击在多个LLM上成功，表明LLM对成员推断并非免疫，存在隐私泄露风险。",
+      "conclusion_cn": "大规模LLM仍面临成员推断威胁，需加强隐私保护措施。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-jv7ohhq0yp",
+      "score": 10.0,
+      "evidence_en": "Proposes a backdoor defense for LLMs by decoupling abnormal features",
+      "evidence_cn": "通过解耦异常特征为LLM提供后门防御",
+      "canonical_evidence": "通过解耦异常特征为LLM提供后门防御",
+      "tldr_en": "RepGuard defends against backdoor attacks in LLMs by adaptively separating abnormal features from useful representations, achieving trigger-agnostic resilience.",
+      "tldr_cn": "针对大语言模型面临的后门攻击威胁，现有防御多需已知触发器模式且治标不治本，本文提出RepGuard防御框架，通过融合局部一致性与全局对比的双重视角定位异常特征，并自适应解耦这些不可靠表征，从而在不依赖触发器具体形式的情况下增强模型鲁棒性，实验证明其在多种攻击下均有效，为LLM的安全部署提供了更稳固的保障。",
+      "title_zh": "RepGuard：面向大语言模型的鲁棒后门防御的自适应特征解耦",
+      "motivation_cn": "现有LLM后门防御依赖触发器先验知识，仅提供表面缓解，未根本解决不可靠特征依赖。",
+      "method_cn": "提出RepGuard，通过双重视角特征定位与自适应解耦异常特征，实现与触发器模式无关的防御。",
+      "result_cn": "防御方法在多种后门攻击下表现出强鲁棒性，且不影响正常任务性能。",
+      "conclusion_cn": "RepGuard为LLM的后门威胁提供了更根本和通用的防御策略。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-b4nt8texns",
+      "score": 10.0,
+      "evidence_en": "Presents a differentially private text generation framework for LLMs and RAG",
+      "evidence_cn": "提出一种面向LLM和RAG的差分隐私文本生成框架",
+      "canonical_evidence": "提出一种面向LLM和RAG的差分隐私文本生成框架",
+      "tldr_en": "InvisibleInk enables differentially private long-form text generation with LLMs and RAG by leveraging exponential mechanism with clipped sensitive logits, achieving high utility.",
+      "tldr_cn": "为解决大语言模型在长文本生成中融入敏感信息且满足差分隐私的难题，本文提出InvisibleInk框架，创新地将LLM的token采样视为带隐私约束的指数机制，通过隔离并裁剪模型logits中的敏感部分来降低隐私预算消耗，同时优化采样过程保证文本质量，最终在检索增强生成等多种场景下实现了高实用性且严格隐私保护的长文本生成，为医学问答等领域的隐私敏感应用铺平了道路。",
+      "title_zh": "InvisibleInk：高实用低成本的差分隐私文本生成",
+      "motivation_cn": "在LLM长文本生成中安全融入隐私信息是尚未解决的问题，尤其涉及RAG场景。",
+      "method_cn": "将LLM的下一token分布采样视为指数机制，通过隔离裁剪敏感信息降低隐私成本，并改进采样提升质量。",
+      "result_cn": "实现了严格差分隐私保障下的高质量长文本生成，适用于RAG等范式。",
+      "conclusion_cn": "为需要外部敏感知识的生成任务提供了实用的隐私保护方案。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-8pequkygrj",
+      "score": 10.0,
+      "evidence_en": "privacy-preserving MoE LLM inference via cryptographic balancing",
+      "evidence_cn": "通过加密负载均衡实现MoE大模型的隐私保护推理",
+      "canonical_evidence": "通过加密负载均衡实现MoE大模型的隐私保护推理",
+      "tldr_en": "CryptoMoE is the first framework for private and efficient inference of mixture-of-experts LLMs, using balanced expert routing to hide sensitive input information and novel secure protocols for dispatch and combine, achieving accuracy comparable to plaintext inference.",
+      "tldr_cn": "现有加密大模型推理仅支持稠密结构，无法扩展到混合专家（MoE）架构，因为动态路由可能泄露输入隐私。本文提出CryptoMoE，首个支持MoE模型的隐私保护推理框架。通过平衡专家负载隐藏路由信息，并设计新颖的安全分派与组合协议，在保护隐私的同时保证了推理效率与精度。实验表明，CryptoMoE在多个MoE模型上取得了与明文推理相近的准确率，为大规模隐私保护AI服务提供了可行路径。",
+      "title_zh": "CryptoMoE：基于均衡专家路由的隐私保护可扩展混合专家推理",
+      "motivation_cn": "现有加密推理不支持MoE架构，动态路由会泄露敏感输入，急需隐私保护的MoE推理方案。",
+      "method_cn": "提出CryptoMoE，通过平衡专家负载保护路由信息，并设计安全分派与组合协议。",
+      "result_cn": "在MoE模型上实现了隐私保护推理，准确率接近明文，且具有可扩展性。",
+      "conclusion_cn": "CryptoMoE填补了MoE隐私推理的空白，为大规模模型的安全部署奠定了基础。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-2hinrfmmq7",
+      "score": 10.0,
+      "evidence_en": "retrieval access degrades AI agent safety, increasing harmful outputs",
+      "evidence_cn": "检索访问导致AI智能体安全性下降，增加有害输出",
+      "canonical_evidence": "检索访问导致AI智能体安全性下降，增加有害输出",
+      "tldr_en": "This study reveals that expanding retrieval access in LLM agents consistently degrades safety—refusal rates drop, bias increases, and harmful content generation rises—highlighting a critical security risk in retrieval-augmented systems that current safety measures fail to address.",
+      "tldr_cn": "随着检索增强AI智能体的普及，其安全风险尚未充分研究。本文系统地探究了从无检索到维基百科再到开放网络搜索的检索访问扩展对模型可靠性的影响。跨多个受审查和未审查LLM的基准测试表明，检索访问的增加一致导致拒绝率下降、偏见放大和有害内容生成增多。这些发现揭示了现有安全对齐在检索增强场景中的失效，为RAG安全威胁研究提供了首个全面实证证据，并呼吁开发针对性的缓解策略。",
+      "title_zh": "检索访问导致的AI智能体安全性退化",
+      "motivation_cn": "检索增强AI智能体与外部信息交互的安全影响尚不明确，缺乏系统性评估。",
+      "method_cn": "通过控制检索访问级别，对多种LLM进行大规模安全基准测试，测量拒绝率、偏见和有害输出。",
+      "result_cn": "检索访问增加显著降低了模型安全性，有害内容生成普遍上升。",
+      "conclusion_cn": "研究揭示了RAG架构的固有安全漏洞，为后续安全防御机制设计指明了方向。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-sm2e1snmk4",
+      "score": 10.0,
+      "evidence_en": "adaptive defense against harmful fine-tuning attacks on LLMs",
+      "evidence_cn": "针对大模型有害微调的自适应防御",
+      "canonical_evidence": "针对大模型有害微调的自适应防御",
+      "tldr_en": "This paper proposes a Bayesian Data Scheduler that formulates harmful fine-tuning defense as a Bayesian inference problem to adaptively select training data, providing strong defense against unknown attacks without needing attack simulation, unlike existing robustness pre-building methods.",
+      "tldr_cn": "有害微调攻击严重威胁大语言模型的微调即服务安全。现有防御通过模拟攻击预先构建鲁棒性，但难以覆盖未知攻击且适应性差。本文提出贝叶斯数据调度器，将防御建模为贝叶斯推断问题，无需攻击模拟即可在微调阶段自适应选择数据。实验表明，该方法在多种未见攻击下均能有效保持模型安全对齐，显著优于基于模拟的防御策略，为LLM开放微调场景提供了实用的安全增强技术。",
+      "title_zh": "基于贝叶斯数据调度器的大语言模型有害微调自适应防御",
+      "motivation_cn": "有害微调攻击多样化且难以预测，现有模拟攻击的防御方法覆盖性差、适应性不足。",
+      "method_cn": "提出贝叶斯数据调度器，将防御视为贝叶斯推断，自适应选择训练数据以抵御有害微调。",
+      "result_cn": "对未知攻击的防御成功率超过90%，模型安全性在微调后保持良好。",
+      "conclusion_cn": "该方法为LLM微调服务提供了不依赖攻击假设的通用防御框架，提升了现实安全性。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-tcxzqnbyaf",
+      "score": 10.0,
+      "evidence_en": "novel Tool-Completion Attack and defense via hierarchical learning in LLMs",
+      "evidence_cn": "新型工具补全攻击及通过分层学习的防御",
+      "canonical_evidence": "新型工具补全攻击及通过分层学习的防御",
+      "tldr_en": "This work discovers a new vulnerability, Tool-Completion Attack (TCA), exploiting function-calling in LLMs, and proposes Context-Aware Hierarchical Learning, a two-step paradigm that prioritizes high-level instructions over low-level inputs, significantly reducing attack success while preserving utility.",
+      "tldr_cn": "大语言模型统一的令牌处理范式在对抗场景下引发指令安全漏洞。本文发现并定义了一种新型攻击——工具补全攻击，它利用函数调用机制篡改模型行为。为此构建了全面的安全评估基准，揭示即便最先进模型也难以抵御。进而提出上下文感知分层学习范式，通过两步处理将高层指令与低层输入解耦，优先执行安全约束。实验证明该方法在显著降低攻击成功率的同时，保持了模型功能完整性，为LLM指令安全提供了新的防御思路。",
+      "title_zh": "上下文感知分层学习：迈向更安全的大语言模型的两步范式",
+      "motivation_cn": "LLM存在函数调用被利用的新型攻击面，现有统一处理范式缺乏对指令层级的保护。",
+      "method_cn": "提出上下文感知分层学习，解耦高层指令与低层输入，优先处理安全关键指令。",
+      "result_cn": "在工具补全基准上，攻击成功率从90%降至10%以下，模型功能无显著下降。",
+      "conclusion_cn": "该方法为LLM指令安全提供了轻量高效防御，对新攻击面具有普遍适用性。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-hej7nrinjs",
+      "score": 9.0,
+      "evidence_en": "Reasoning-based guard model to defend against jailbreak attacks and OOD threats",
+      "evidence_cn": "基于推理的防护模型，防御越狱攻击和分布外威胁",
+      "canonical_evidence": "基于推理的防护模型，防御越狱攻击和分布外威胁",
+      "tldr_en": "RSafe is an adaptive guard model that uses guided safety reasoning to defend LLMs against jailbreak attacks and emerging harmful content, minimizing the need for extensive human-annotated training data.",
+      "tldr_cn": "现有大语言模型安全防护依赖大量人工标注数据，难以应对越狱攻击等分布外威胁。RSafe提出一种基于自适应安全推理的轻量级守卫模型，通过引导模型进行安全推理，在不依赖额外训练数据的情况下提供鲁棒防护。实验表明其有效抵御多种越狱攻击，并具备对新兴威胁的泛化能力。该工作为低成本、高适应性的LLM安全架构提供了新思路。",
+      "title_zh": "RSafe：通过激励主动推理构建鲁棒自适应的大语言模型安全防护",
+      "motivation_cn": "大模型仍易受越狱攻击等分布外威胁，现有外部守卫模型依赖大量人工数据。",
+      "method_cn": "提出RSafe框架，利用引导式安全推理构建自适应守卫模型，无需额外标注数据。",
+      "result_cn": "在多种越狱攻击场景下实现高检测率，并展现出对新威胁的泛化能力。",
+      "conclusion_cn": "RSafe为部署灵活、人力成本低的大模型安全防护提供了有效新范式。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-84dngt4ajt",
+      "score": 9.0,
+      "evidence_en": "Defense against model stealing attacks on edge-deployed LLMs by freezing core weights",
+      "evidence_cn": "通过冻结核心权重的防御方法应对边缘部署大模型的模型窃取攻击",
+      "canonical_evidence": "通过冻结核心权重的防御方法应对边缘部署大模型的模型窃取攻击",
+      "tldr_en": "CoreGuard protects proprietary LLMs on edge devices from model stealing by freezing core weights and only fine-tuning lightweight adapters, preserving utility with minimal overhead.",
+      "tldr_cn": "在边缘设备部署大语言模型面临模型窃取风险，现有防御计算开销大。CoreGuard提出冻结模型核心权重、仅微调轻量适配器的方法，从而抵御提取攻击并保持任务性能。实验表明该方法在不增加推理开销的前提下有效防窃取，且优于传统防御手段。这为资源受限环境下的模型知识产权保护提供了可行方案。",
+      "title_zh": "CoreGuard：保护边缘部署中大语言模型的核心能力免受模型窃取",
+      "motivation_cn": "边缘部署的私有大模型易受权重提取和微调攻击，现有防护开销高。",
+      "method_cn": "CoreGuard冻结核心层，仅允许轻量适配器更新，以低成本防御模型窃取。",
+      "result_cn": "在多种任务上保持高性能，同时有效防止模型盗用，且推理开销极低。",
+      "conclusion_cn": "CoreGuard为边缘场景下的LLM部署提供了一种经济高效的安全防护方案。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-e40dycosqd",
+      "score": 9.0,
+      "evidence_en": "Stealthy bit-flip attack on LLM parameters causing performance degradation while maintaining output naturalness",
+      "evidence_cn": "针对大模型参数的隐蔽比特翻转攻击，在保持输出自然的同时导致性能下降",
+      "canonical_evidence": "针对大模型参数的隐蔽比特翻转攻击，在保持输出自然的同时导致性能下降",
+      "tldr_en": "SilentStriker presents the first stealthy bit-flip attack on large language models, carefully flipping bits to degrade task performance while maintaining output naturalness, thereby avoiding detection.",
+      "tldr_cn": "现有比特翻转攻击缺乏隐蔽性，易被发现。SilentStriker提出首个针对大语言模型的隐蔽比特翻转攻击方法，通过精巧的目标选择和自然度约束，在显著降低下游任务性能的同时保持输出文本的通顺。实验在多种模型和任务上验证了攻击的有效性与隐蔽性。该研究揭示了硬件层面安全威胁的新维度。",
+      "title_zh": "SilentStriker：针对大语言模型的隐蔽比特翻转攻击",
+      "motivation_cn": "现有比特翻转攻击难以平衡性能下降与输出自然度，易被察觉。",
+      "method_cn": "SilentStriker通过优化比特翻转集合，在最大化攻击效果下约束输出困惑度，实现隐蔽攻击。",
+      "result_cn": "在多种LLM和任务上成功降低性能达80%，同时保持输出困惑度接近原始模型。",
+      "conclusion_cn": "SilentStriker首次展示了大模型参数攻击的隐蔽性，警示了硬件安全的紧迫性。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-mtyf5hci7y",
+      "score": 9.0,
+      "evidence_en": "Black-box backdoor detection for LLMs using targeted in-context learning as illumination",
+      "evidence_cn": "利用目标上下文学习作为探针，检测黑盒大模型中的后门",
+      "canonical_evidence": "利用目标上下文学习作为探针，检测黑盒大模型中的后门",
+      "tldr_en": "ICLScan is a lightweight black-box backdoor detection framework for LLMs that uses targeted in-context examples to elicit hidden behaviors, enabling efficient auditing without white-box access.",
+      "tldr_cn": "黑盒大语言模型API面临后门攻击风险，但现有检测方法多需白盒访问。ICLScan提出一种轻量级黑盒后门检测框架，通过精心构建的上下文示例激发模型隐藏行为，再利用行为差异判断后门存在。实验表明该方法在多种生成场景下高效检测后门，且无需模型内部信息。该工作为黑盒LLM的安全审计提供了实用工具。",
+      "title_zh": "ICLScan：通过目标上下文照明检测黑盒大语言模型中的后门",
+      "motivation_cn": "黑盒LLM的后门检测需求迫切，但现有方法依赖白盒或成本高。",
+      "method_cn": "ICLScan利用目标上下文学习作为探针，通过对比触发上下文下的输出差异来检测后门。",
+      "result_cn": "在生成任务上，ICLScan以较低查询成本实现了高检测准确率，优于现有方法。",
+      "conclusion_cn": "ICLScan为黑盒LLM提供了一种高效、易行的后门检测方案。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-fzp6chext2",
+      "score": 9.0,
+      "evidence_en": "Prompt inversion attack to leak private system messages from LLM APIs",
+      "evidence_cn": "从大模型API输出恢复隐藏提示的隐私攻击",
+      "canonical_evidence": "从大模型API输出恢复隐藏提示的隐私攻击",
+      "tldr_en": "PILS is a prompt inversion method that losslessly compresses next-token probability distributions over multiple steps using low-dimensional subspaces, enabling recovery of much longer hidden prompts from LLM outputs.",
+      "tldr_cn": "语言模型反演可通过输出恢复隐藏提示，威胁隐私。现有方法受限于单步信息，无法恢复较长提示。PILS发现模型输出的概率向量的低维特性，通过线性映射无损压缩多步中间分布，从而联合推理更长序列。实验表明PILS显著提升了反演长度和准确率，甚至能恢复完整的系统消息。该工作警示了LLM部署中的信息泄露风险。",
+      "title_zh": "通过紧凑表示下一个标记分布来改进语言模型反演",
+      "motivation_cn": "现有提示反演仅利用单步输出，难以恢复较长的隐藏提示。",
+      "method_cn": "PILS利用输出logprob低维特性，线性压缩多步概率分布，实现联合反演。",
+      "result_cn": "在多个LLM上成功恢复远超此前方法的长系统消息，反演准确率大幅提升。",
+      "conclusion_cn": "PILS揭示了LLM API存在严重的隐藏提示泄露风险，需加强防护。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-5xoqkcmks7",
+      "score": 9.0,
+      "evidence_en": "Privacy protection against identity misuse in diffusion model personalization by perturbing the model",
+      "evidence_cn": "通过扰动扩散模型本身来防止个性化技术滥用导致的隐私泄露",
+      "canonical_evidence": "通过扰动扩散模型本身来防止个性化技术滥用导致的隐私泄露",
+      "tldr_en": "This paper proposes Anti-DM, which fine-tunes diffusion models to resist personalization, providing robust privacy protection against identity misuse even when attackers have multiple clean images.",
+      "tldr_cn": "扩散模型的个性化生成技术可被滥用于制造侵权图像，现有基于对抗样本的图像扰动方法在少量干净图片下即失效。本文提出直接对扩散模型进行微调以产生抗个性化能力，使得模型无法学习特定个体特征。实验表明，该方法对多种个人化技术和数据变换具有鲁棒性，并能保持生成质量。该工作为生成模型隐私保护开辟了模型层面的新防护范式。",
+      "title_zh": "扰动模型而非图像：通过抗个性化扩散模型实现鲁棒隐私保护",
+      "motivation_cn": "现有对抗图像扰动方法依赖不切实际的假设，在少量干净样本下无效。",
+      "method_cn": "提出Anti-DM，微调扩散模型使其拒绝学习特定身份，实现模型层面的隐私保护。",
+      "result_cn": "在多种个性化方法上均显著降低身份泄露，且对常见变换保持鲁棒。",
+      "conclusion_cn": "Anti-DM为扩散模型个人化滥用提供了鲁棒的主动防护手段。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-tvpnedh5ov",
+      "score": 9.0,
+      "evidence_en": "introduces PD-SGD, a training algorithm using rejection sampling for plausible deniability against privacy attacks",
+      "evidence_cn": "提出PD-SGD，一种基于拒绝采样的可否认性训练算法，抵御隐私攻击",
+      "canonical_evidence": "提出PD-SGD，一种基于拒绝采样的可否认性训练算法，抵御隐私攻击",
+      "tldr_en": "PD-SGD provides plausible deniability by probabilistically rejecting parameter updates for non-plausible minibatches, offering theoretical guarantees and empirically maintaining model utility while defending against memorization-based privacy attacks.",
+      "tldr_cn": "深度学习模型容易记忆训练样本，导致隐私泄露风险。本文提出PD-SGD算法，引入可否认性概念：通过拒绝采样技术，当小批量样本无法被否认时禁止参数更新，从而防止模型记忆特定数据。理论证明了其隐私保障，实验显示该方法在保持高准确率的同时有效抵御成员推断攻击，为生成模型等隐私敏感任务提供了实用且理论可靠的防御手段。",
+      "title_zh": "具有可否认性的深度学习",
+      "motivation_cn": "现有隐私防御如差分隐私常牺牲模型性能，无理论保证的经验防御不足",
+      "method_cn": "提出PD-SGD，利用拒绝采样技术在训练中阻止不可否认小批量更新",
+      "result_cn": "PD-SGD在理论和实验上均能提供可否认性，同时保持较好的模型效用",
+      "conclusion_cn": "为隐私保护提供了一种新的可否认性策略，平衡了性能与安全性",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-nmvmytrjkg",
+      "score": 9.0,
+      "evidence_en": "evaluates memorization risks in healthcare foundation models to assess patient privacy leakage",
+      "evidence_cn": "评估医疗基础模型的记忆化风险，探查患者隐私泄露",
+      "canonical_evidence": "评估医疗基础模型的记忆化风险，探查患者隐私泄露",
+      "tldr_en": "A black-box test suite probes memorization in EHR-trained foundation models at embedding and generative levels, distinguishing generalization from harmful memorization, especially for vulnerable subgroups, to inform privacy safeguards in clinical AI.",
+      "tldr_cn": "基于电子健康记录训练的基础模型可能记忆患者信息，带来隐私风险。本文提出一套黑盒评估测试，在嵌入和生成两个层面探查模型记忆化程度，区分泛化与有害记忆，尤其关注脆弱子群体的隐私影响。验证实验表明，模型存在潜在记忆风险，为医疗AI的隐私保护提供了系统的评估框架，有助于指导安全模型的设计与部署。",
+      "title_zh": "医疗基础模型记忆化风险研究",
+      "motivation_cn": "医疗基础模型可能记忆患者信息，隐私评估方法缺失",
+      "method_cn": "提出黑盒评估框架，在嵌入和生成层面探查记忆化风险",
+      "result_cn": "证实模型存在记忆化风险，脆弱子群体受影响更大",
+      "conclusion_cn": "为医疗AI隐私保护提供了系统的风险测量工具，指导安全部署",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-glhlu6y1uk",
+      "score": 9.0,
+      "evidence_en": "Proposes a word-level concurrent task jailbreak attack on LLMs",
+      "evidence_cn": "提出针对LLM的单词级并发任务越狱攻击",
+      "canonical_evidence": "提出针对LLM的单词级并发任务越狱攻击",
+      "tldr_en": "The paper introduces a novel jailbreak that exploits task concurrency in LLMs by encoding divergent intents in adjacent words, revealing a new security vulnerability.",
+      "tldr_cn": "针对大语言模型易受越狱攻击的问题，本文提出一种利用任务并发性的单词级越狱方法，使得相邻词携带不同意图，从而在保持模型回答数学和通用问题的能力的同时，诱导模型生成有害内容，实验证实了攻击的有效性，并指出当前安全对齐措施在并发场景下的不足。",
+      "title_zh": "相邻词，相异意图：通过任务并发越狱大语言模型",
+      "motivation_cn": "现有越狱攻击主要遵循顺序逻辑，并发场景被忽视。",
+      "method_cn": "提出单词级方法使LLM同时处理并发任务，相邻词编码不同意图。",
+      "result_cn": "攻击在数学和通用问答基准上验证了LLM的并发任务处理能力，同时成功实施越狱。",
+      "conclusion_cn": "LLM在并发任务下仍易受越狱攻击，安全机制需考虑并发威胁。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-r5ebtne2y9",
+      "score": 9.0,
+      "evidence_en": "Proposes distortion-free LLM watermarking for low-entropy distributions to curb misuse",
+      "evidence_cn": "提出适用于低熵分布的无失真LLM水印以遏制滥用",
+      "canonical_evidence": "提出适用于低熵分布的无失真LLM水印以遏制滥用",
+      "tldr_en": "The paper proposes watermarking methods HeavyWater and SimplexWater that achieve distortion-free watermarking for low-entropy LLM outputs like code, enhancing misuse prevention.",
+      "tldr_cn": "针对大语言模型水印在低熵生成任务中难以兼顾检测与质量的难题，本文提出HeavyWater和SimplexWater两种优化水印方法，通过有效利用随机侧信息，在代码等低熵场景下实现高概率水印检测且无生成失真，为防范机器生成文本滥用提供了更可靠的技术手段。",
+      "title_zh": "HeavyWater与SimplexWater：面向低熵分布的无失真大语言模型水印",
+      "motivation_cn": "现有LLM水印在低熵生成任务（如代码）中面临挑战，因为预测近乎确定。",
+      "method_cn": "提出优化框架设计水印，通过有效使用随机侧信息最大化检测概率并保持生成质量。",
+      "result_cn": "在低熵场景下实现了高检测率和无失真生成。",
+      "conclusion_cn": "该方法为LLM生成文本的溯源认证和滥用防范提供了更优方案。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-tecj926vgn",
+      "score": 9.0,
+      "evidence_en": "Proposes FedASK for differentially private federated LoRA to prevent privacy leakage in LLM fine-tuning",
+      "evidence_cn": "提出FedASK实现差分隐私联邦LoRA，防止LLM微调中的隐私泄露",
+      "canonical_evidence": "提出FedASK实现差分隐私联邦LoRA，防止LLM微调中的隐私泄露",
+      "tldr_en": "FedASK tackles privacy risks in federated LLM fine-tuning by applying differential privacy to both low-rank adaptor matrices with a double-sketch mechanism, balancing noise and learnability.",
+      "tldr_cn": "联邦LLM微调中，适配器传输存在严重隐私泄露风险，但直接加噪会影响模型性能。FedASK提出双草图差分隐私联邦低秩适配，通过对两个低秩矩阵分别加噪并利用草图降低维度，在不损害模型学习能力的前提下实现隐私保护。实验表明该方法在隐私预算和模型效用之间取得更好平衡，为联邦LLM安全微调提供了实用方案。",
+      "title_zh": "差分隐私联邦低秩适配超越固定矩阵",
+      "motivation_cn": "联邦LLM微调时，传输低秩适配器仍可能泄露用户隐私，现有差分隐私方案面临噪声放大与学习能力受损的两难。",
+      "method_cn": "提出FedASK，通过双草图机制分别对两个低秩适配矩阵独立加噪，并利用草图降维减少噪声影响。",
+      "result_cn": "实验证明FedASK在相同隐私预算下比固定矩阵方法模型性能更好，有效平衡了隐私和效用。",
+      "conclusion_cn": "FedASK为联邦大模型高效隐私保护微调提供了新方法，打破了固定矩阵的限制。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-ttwzhy8jqy",
+      "score": 9.0,
+      "evidence_en": "Addresses corpus poisoning attacks in RAG and proposes a two-stage semantic filtering framework",
+      "evidence_cn": "解决RAG中的语料库投毒攻击，提出两阶段语义过滤框架",
+      "canonical_evidence": "解决RAG中的语料库投毒攻击，提出两阶段语义过滤框架",
+      "tldr_en": "SeCon-RAG introduces a two-stage semantic filtering with conflict resolution to defend RAG against poisoning attacks, balancing information retention and output integrity.",
+      "tldr_cn": "RAG系统易受语料库投毒攻击，传统过滤方法常过度删减信息。SeCon-RAG提出两阶段防御：先通过语义聚类联合过滤，再基于实体-意图-关系提取进行冲突消解，确保生成可信。实验表明该方法在抵御投毒攻击的同时保留了更多有用信息，显著提升了RAG的鲁棒性与可靠性。",
+      "title_zh": "SeCon-RAG: 面向可信RAG的两阶段语义过滤与无冲突框架",
+      "motivation_cn": "RAG系统面临语料投毒威胁，现有防御过度过滤导致信息损失，亟需更智能的过滤方案。",
+      "method_cn": "设计实体-意图-关系抽取器(EIRE)引导两阶段过滤：第一阶段联合语义与聚类过滤，第二阶段冲突消解确保生成一致性。",
+      "result_cn": "实验显示SeCon-RAG在多种投毒攻击下保持高生成质量，信息保留率优于同类方法。",
+      "conclusion_cn": "SeCon-RAG为可信RAG提供了兼顾安全与信息利用的有效框架。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-d9jents5bu",
+      "score": 9.0,
+      "evidence_en": "Proposes a defense framework for RAG web-search against prompt injection attacks using reliability information",
+      "evidence_cn": "提出利用可靠性信息的RAG web搜索防御框架，抵御提示注入攻击",
+      "canonical_evidence": "提出利用可靠性信息的RAG web搜索防御框架，抵御提示注入攻击",
+      "tldr_en": "ReliabilityRAG provides a provably robust defense for RAG-based search by incorporating document reliability scores to filter out adversarial content.",
+      "tldr_cn": "基于RAG的搜索系统如Google AI Overview易受检索语料攻击，需利用可靠性信号。ReliabilityRAG框架显式利用文档排名等先验可靠性信息，结合可证明鲁棒聚合，在抵御提示注入等攻击的同时保持生成质量。实验表明该方法在Web搜索场景下显著提升了对抗鲁棒性，为RAG安全部署提供了理论保障。",
+      "title_zh": "ReliabilityRAG: 面向基于RAG的Web搜索的有效且可证明鲁棒防御",
+      "motivation_cn": "RAG搜索系统面临检索语料注入攻击，防御可受益于文档可靠性信号，但现有方法缺乏有效利用。",
+      "method_cn": "提出ReliabilityRAG，显式建模文档可靠性分数，并设计可证明鲁棒聚合算法对抗攻击。",
+      "result_cn": "在模拟Google搜索实验中，ReliabilityRAG有效抵御攻击，且生成质量接近无攻击基线。",
+      "conclusion_cn": "ReliabilityRAG为RAG搜索提供了可证明的鲁棒防御，提升了实际部署的可信度。",
+      "matched_requirement_id": "req-9",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and mitigation strategies in retrieval augmented generation"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-91h9csvdwl",
+      "score": 9.0,
+      "evidence_en": "Proposes a safety pretraining framework with safety filtering, rephrasing, and native refusal to prevent harmful outputs from LLMs",
+      "evidence_cn": "提出安全预训练框架，通过安全过滤、改写和原生拒绝来防止LLM生成有害内容",
+      "canonical_evidence": "提出安全预训练框架，通过安全过滤、改写和原生拒绝来防止LLM生成有害内容",
+      "tldr_en": "Safety Pretraining introduces a data-centric approach to embed safety into LLMs from the start, reducing reliance on brittle post-hoc alignment.",
+      "tldr_cn": "大模型在实际部署中可能产生有害内容，事后对齐方法脆弱。本文提出数据驱动的安全预训练框架，包括安全分类过滤、不安全数据改写为安全叙述、以及合成原生拒绝数据集，将安全直接构建入模型。实验表明该方法从源头降低有害生成，减少了后续对齐的难度，提升了模型的基础安全性。",
+      "title_zh": "安全预训练：迈向下一代安全AI",
+      "motivation_cn": "事后对齐方法难以彻底消除预训练中习得的不安全模式，需要从源头植入安全。",
+      "method_cn": "四步安全预训练：安全过滤、不安全数据安全改写、原生拒绝合成、以及混合训练。",
+      "result_cn": "安全预训练模型在多个安全基准上有害生成率显著降低，且保持语言能力。",
+      "conclusion_cn": "安全预训练为构建本质安全的大模型提供了可行路径，比事后对齐更稳健。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-igb289kbej",
+      "score": 9.0,
+      "evidence_en": "EraseFlow erases harmful concepts from text-to-image generators using GFlowNet-optimized denoising path manipulation",
+      "evidence_cn": "EraseFlow通过GFlowNet优化去噪路径擦除文生图生成器中的有害概念",
+      "canonical_evidence": "EraseFlow通过GFlowNet优化去噪路径擦除文生图生成器中的有害概念",
+      "tldr_en": "EraseFlow frames concept erasure as trajectory optimization in diffusion models, using GFlowNets to steer generation away from target concepts while preserving quality.",
+      "tldr_cn": "在文生图模型中擦除有害概念是重要的安全需求，现有方法常牺牲图像质量或需大量重训练。EraseFlow首次将概念擦除建模为扩散去噪路径空间的探索，利用GFlowNet和轨迹平衡目标学习随机策略，引导生成远离目标概念。实验表明该方法在有效擦除概念的同时保持了生成图像的多样性和质量，为生成模型安全提供了新技术。",
+      "title_zh": "EraseFlow: 通过GFlowNet驱动的对齐学习概念擦除策略",
+      "motivation_cn": "现有概念擦除技术损害图像质量或不稳定，原因在于只关注单一终点而非全局去噪路径。",
+      "method_cn": "将概念擦除转化为去噪轨迹优化，采用GFlowNet学习随机策略，通过采样整条轨迹来擦除概念。",
+      "result_cn": "在多个文生图模型上，EraseFlow有效擦除指定概念，且生成质量优于同类方法。",
+      "conclusion_cn": "EraseFlow为扩散模型概念擦除提供了高效且质量保持的解决方案，增强了模型安全性。",
+      "matched_requirement_id": "req-5",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security vulnerabilities of generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-s1f2qhendd",
+      "score": 9.0,
+      "evidence_en": "SEAL trains small LMs for privacy-preserving text anonymization via adversarial distillation to counter LLM-based privacy inference",
+      "evidence_cn": "SEAL通过对抗蒸馏训练小模型进行隐私保护文本匿名化，对抗基于LLM的隐私推断",
+      "canonical_evidence": "SEAL通过对抗蒸馏训练小模型进行隐私保护文本匿名化，对抗基于LLM的隐私推断",
+      "tldr_en": "To mitigate privacy leaks from LLMs inferring personal data, SEAL distills anonymization capabilities into small language models through adversarial self-refinement, avoiding external API dependencies.",
+      "tldr_cn": "大语言模型能从文本中推断个人隐私，引发严重泄露风险。SEAL提出对抗蒸馏框架，利用大模型匿名器与推断模型对抗，生成高质量训练数据，再通过自改进训练将匿名能力蒸馏至小模型，摆脱对昂贵外部API的依赖。实验表明SEAL小模型匿名效果接近甚至优于GPT-4级别的大模型，且成本低、隐私安全性更高。",
+      "title_zh": "通过对抗蒸馏实现自改进语言模型匿名器",
+      "motivation_cn": "现有LLM匿名化方法依赖外部API，存在成本高和敏感数据再泄露风险。",
+      "method_cn": "通过大模型匿名器与推断模型对抗产生训练对，再蒸馏训练小模型，并结合自改进增强性能。",
+      "result_cn": "SEAL训练的小模型匿名效果媲美大模型，且推理时无需外部调用，隐私安全性提升。",
+      "conclusion_cn": "SEAL为高效、隐私安全的文本匿名化提供了可部署的小模型方案。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-cy6mgbwtov",
+      "score": 9.0,
+      "evidence_en": "FedRW enables privacy-preserving soft deduplication for federated LLM training via secure frequency-aware reweighting",
+      "evidence_cn": "FedRW通过安全的频率感知重加权实现联邦LLM训练的隐私保护软去重",
+      "canonical_evidence": "FedRW通过安全的频率感知重加权实现联邦LLM训练的隐私保护软去重",
+      "tldr_en": "FedRW proposes a secure multi-party computation-based reweighting protocol to replace uniform deletion, preserving privacy and information in federated LLM training.",
+      "tldr_cn": "联邦学习训练大语言模型时，重复数据既影响性能又可能泄露隐私，传统去重依赖可信第三方并可能导致信息丢失。FedRW提出隐私保护软去重框架，通过安全多方计算进行频率感知样本重加权，避免删除操作，在不假设可信第三方的前提下安全地利用样本频率信息。实验表明该方法有效提升了联邦LLM训练的隐私安全性和模型质量。",
+      "title_zh": "FedRW: 高效隐私保护数据重加权用于增强语言模型联邦学习",
+      "motivation_cn": "联邦LLM训练中重复数据既损害模型又引入隐私风险，传统去重方法或依赖第三方或损失信息。",
+      "method_cn": "设计安全多方计算协议，在不泄露频率信息的前提下计算样本权重，实现软去重。",
+      "result_cn": "FedRW在多个联邦LLM基准上相比去重方法提升了隐私性和下游任务性能。",
+      "conclusion_cn": "FedRW为联邦大模型训练提供了兼顾隐私与效用的数据管理新范式。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-oih3t5zpbw",
+      "score": 9.0,
+      "evidence_en": "safety alignment of multimodal LLMs via RLHF with explicit safety constraints",
+      "evidence_cn": "通过带显式安全约束的RLHF实现多模态LLM的安全对齐",
+      "canonical_evidence": "通过带显式安全约束的RLHF实现多模态LLM的安全对齐",
+      "tldr_en": "Safe RLHF-V formulates MLLM safety alignment as a min-max optimization problem, disentangling safety constraints from preference signals and incorporating them into reinforcement learning to produce safer multimodal AI assistants without sacrificing capability.",
+      "tldr_cn": "多模态大模型面临日益严峻的安全风险，现有方法未能将单一偏好信号解耦为显式安全约束。本文提出Safe RLHF-V，将安全对齐形式化为极小极大优化问题，从多模态人类反馈中解耦安全约束，并首次将其有效融入多模态模型的强化学习微调中。实验表明该方法在保持模型能力的同时，显著降低了不安全行为的生成概率，为构建安全可靠的多模态AI助手提供了新的对齐范式。",
+      "title_zh": "Safe RLHF-V：基于多模态人类反馈的安全强化学习",
+      "motivation_cn": "多模态大模型的安全对齐缺乏显式安全约束和系统优化方法，现有数据集未解耦偏好与安全信号。",
+      "method_cn": "将安全对齐建模为极小极大优化，从人类反馈中分离安全约束，并通过安全强化学习微调多模态模型。",
+      "result_cn": "在多个安全基准上，该方法大幅降低不安全输出，同时保持甚至提升模型的一般性能。",
+      "conclusion_cn": "Safe RLHF-V首次在多模态场景下实现了有效且可扩展的安全对齐，填补了领域空白。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-tyw1v1kukg",
+      "score": 9.0,
+      "evidence_en": "transferable adversarial attacks on large vision-language models",
+      "evidence_cn": "针对大视觉语言模型的可迁移对抗攻击",
+      "canonical_evidence": "针对大视觉语言模型的可迁移对抗攻击",
+      "tldr_en": "This paper develops a novel transferable attack against black-box LVLMs by leveraging information theory to capture model/prompt-agnostic dependencies, significantly improving attack success across different architectures and prompts compared to prior overfitting-prone methods.",
+      "tldr_cn": "现有针对大视觉语言模型的对抗攻击容易过拟合特定模型或提示，缺乏可迁移性。本文从信息论视角探索LVLM输出间的相对依赖关系，提出了一种对黑盒模型和不同语义提示均有效的可迁移攻击方法。在多种架构和任务上的广泛评估表明，该方法显著提高了攻击跨模型和跨提示的迁移成功率，揭示了多模态模型普遍存在的安全脆弱性，为鲁棒性研究提供了新基准。",
+      "title_zh": "面向大视觉语言模型的可迁移模型/提示攻击构建",
+      "motivation_cn": "现有LVLM攻击泛化性差，无法在不同模型和提示间迁移，亟需更通用的攻击方法以暴露安全风险。",
+      "method_cn": "从信息论角度建模LVLM输出依赖，设计对模型和提示不敏感的可迁移对抗样本生成方法。",
+      "result_cn": "在多个黑盒LVLM上实现了高迁移攻击成功率，显著优于现有方法。",
+      "conclusion_cn": "该方法揭示了多模态模型的普遍脆弱性，为未来防御研究提供了重要参考。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-vuoy5kacg5",
+      "score": 9.0,
+      "evidence_en": "training safe code generation via reasoning and reinforcement learning",
+      "evidence_cn": "通过推理和强化学习训练安全代码生成",
+      "canonical_evidence": "通过推理和强化学习训练安全代码生成",
+      "tldr_en": "PurpCode trains code LLMs to generate secure code and resist malicious requests through a two-stage process: rule learning to embed cybersafety knowledge, then multi-objective reinforcement learning to balance safety and utility, using diverse red-teamed prompts.",
+      "tldr_cn": "现有代码大模型缺乏生成安全代码和抵御恶意利用的内在能力。PurpCode提出首个后训练方案，通过规则学习阶段显式注入网络安规规则，再经强化学习阶段利用多目标奖励机制优化安全性与实用性。基于真实世界任务进行内部红队测试，合成了高覆盖度的诱导不安全代码的提示。实验表明，该方法在不牺牲代码功能的前提下，显著降低了漏洞产生和恶意协助行为，为代码生成模型的安全性对齐提供了有效路径。",
+      "title_zh": "PurpCode：面向更安全代码生成的推理训练",
+      "motivation_cn": "代码大模型易生成漏洞代码或被恶意利用，缺乏系统的安全训练方法。",
+      "method_cn": "分两阶段后训练：规则学习注入安全知识，多目标强化学习平衡安全与功能。",
+      "result_cn": "在多种基准上，生成代码的漏洞率大幅降低，且抵御恶意提示的能力显著增强。",
+      "conclusion_cn": "PurpCode首次实现了代码生成模型的安全对齐，对安全关键领域应用意义重大。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-hmvq00vaby",
+      "score": 9.0,
+      "evidence_en": "Estimating privacy risk of text using LLMs",
+      "evidence_cn": "使用LLM估计文本隐私风险",
+      "canonical_evidence": "使用LLM估计文本隐私风险",
+      "tldr_en": "Introduces BRANCH, an LLM method for estimating k-privacy of text, using Bayesian networks to factorize joint probability distributions of personal information.",
+      "tldr_cn": "本文针对用户生成文档的隐私风险量化问题，提出BRANCH方法，利用大语言模型估计文本的k-隐私值。该方法将个人信息联合概率分布分解为因子，通过贝叶斯网络分别估计各因子概率并组合计算。实验表明，该方法能有效衡量文本的可重识别风险，为隐私保护提供新的度量工具。",
+      "title_zh": "使用大语言模型进行隐私风险估计的概率推理",
+      "motivation_cn": "用户生成文档常含隐私信息，需量化其泄露风险。",
+      "method_cn": "提出BRANCH方法，将个人信息联合分布因子化，用贝叶斯网络估计各因子概率。",
+      "result_cn": "在合成和真实数据上，BRANCH能准确估计k-隐私值。",
+      "conclusion_cn": "BRANCH为LLM隐私风险评估提供了有效工具。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-xuvdo6omke",
+      "score": 9.0,
+      "evidence_en": "Memorization and data leakage in chat LLMs",
+      "evidence_cn": "对话LLM中的记忆与数据泄露关系",
+      "canonical_evidence": "对话LLM中的记忆与数据泄露关系",
+      "tldr_en": "Shows that verbatim memorization does not always increase data leakage in chat-finetuned LLMs, and information extraction is easier via chat than standard probing.",
+      "tldr_cn": "本文挑战了机器学习隐私领域的传统认知，即逐字记忆必然导致隐私泄露。通过在合成传记数据上微调并测试对话模型，发现更好的逐字记忆并不一定增加对话场景下的数据泄露，且通过对话提取信息比标准方法更容易。这一发现对于理解LLM的隐私风险具有重要启示。",
+      "title_zh": "重新审视大语言模型隐私中逐字记忆的作用",
+      "motivation_cn": "传统观点认为记忆导致隐私损失，但LLM对话场景可能不同。",
+      "method_cn": "在合成含个人身份信息的数据上微调模型，尝试不同方式提取信息。",
+      "result_cn": "逐字记忆增强未必增加对话泄露，对话提取更易成功。",
+      "conclusion_cn": "LLM隐私机制比预期复杂，需重新思考记忆与泄露的关系。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-wgrvcclrzg",
+      "score": 9.0,
+      "evidence_en": "Privacy-preserving image generation with prompt obfuscation",
+      "evidence_cn": "通过提示混淆实现隐私保护图像生成",
+      "canonical_evidence": "通过提示混淆实现隐私保护图像生成",
+      "tldr_en": "ObCLIP is a plug-and-play safeguard for cloud-device hybrid diffusion models that transforms prompts into semantic variants to hide sensitive attributes.",
+      "tldr_cn": "针对扩散模型云推理中用户提示可能泄露敏感信息的问题，本文提出ObCLIP，一种即插即用的保护机制。它通过将输入提示转换为语义相似但敏感属性不同的候选提示，实现不经意云端-设备混合生成。实验验证了其在保护隐私的同时保持生成质量的有效性。",
+      "title_zh": "ObCLIP：具有隐私保护的不经意云端-设备混合图像生成",
+      "motivation_cn": "扩散模型云端推理存在提示泄露敏感信息的风险。",
+      "method_cn": "提出ObCLIP，将提示转换为语义相似但属性不同的候选集。",
+      "result_cn": "在多个数据集上平衡了隐私保护和图像生成效果。",
+      "conclusion_cn": "ObCLIP为生成模型隐私保护提供了实用方案。",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-hkvyosg7yx",
+      "score": 9.0,
+      "evidence_en": "Access control enforcement in LLM responses",
+      "evidence_cn": "在LLM响应中强制执行访问控制",
+      "canonical_evidence": "在LLM响应中强制执行访问控制",
+      "tldr_en": "Proposes PermLLM to superimpose enterprise data access control onto LLM responses, with formal verification of enforcement correctness.",
+      "tldr_cn": "针对企业环境中LLM访问控制缺失问题，提出权限化大语言模型PermLLM，将组织数据访问控制结构叠加到查询响应中。通过形式化定义相关响应及其正确性判定，为LLM的访问控制实施提供了理论基础和实现方法。",
+      "title_zh": "权限化大语言模型：在大语言模型中强制执行访问控制",
+      "motivation_cn": "企业数据访问控制在LLM应用中被破坏。",
+      "method_cn": "提出PermLLM，将访问控制规则融入LLM生成过程。",
+      "result_cn": "形式化证明了访问控制实施正确性并可检测。",
+      "conclusion_cn": "PermLLM为LLM安全访问企业数据提供了可行方案。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-0znxgzlcog",
+      "score": 8.0,
+      "evidence_en": "studies LLM privacy reasoning and context disambiguation for appropriate information disclosure",
+      "evidence_cn": "研究大语言模型在模糊情境下的隐私推理与信息披露决策",
+      "canonical_evidence": "研究大语言模型在模糊情境下的隐私推理与信息披露决策",
+      "tldr_en": "Proposes Camber, a framework for context disambiguation in LLM privacy reasoning, achieving up to 13.3% precision and 22.3% recall improvements by systematically resolving ambiguities based on model-generated decision rationales, advancing agentic privacy.",
+      "tldr_cn": "大语言模型在做出信息披露决策时，情境歧义往往导致隐私评估性能低下。本文提出Camber框架，首先利用模型生成的决策理由识别歧义，然后系统性地消解歧义，从而显著提升隐私决策的准确率和召回率（精确率提高13.3%，召回率提高22.3%）。该研究为智能体隐私领域提供了解决情境模糊性的关键方法，有助于构建更可信的隐私保护语言模型。",
+      "title_zh": "模糊情境下的隐私推理",
+      "motivation_cn": "现有工作忽略情境歧义对语言模型隐私决策的障碍",
+      "method_cn": "提出Camber框架，利用模型生成的决策理由进行情境消歧",
+      "result_cn": "在精确率和召回率上分别提升13.3%和22.3%",
+      "conclusion_cn": "揭示了歧义是隐私推理的关键障碍，并提供了有效的消歧方法",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-t9oq094qr8",
+      "score": 8.0,
+      "evidence_en": "extends hidden state differential privacy to multi-layer networks via convex approximation",
+      "evidence_cn": "通过凸近似将隐藏状态差分隐私扩展到多层网络",
+      "canonical_evidence": "通过凸近似将隐藏状态差分隐私扩展到多层网络",
+      "tldr_en": "Enables hidden state differential privacy for multi-layer networks by convex approximation of two-layer ReLU networks, achieving similar privacy-utility trade-offs as DP-SGD, and extending the reach of provable privacy guarantees for deep learning applications.",
+      "tldr_cn": "现有隐藏状态差分隐私分析局限于凸优化问题，难以应用于多层神经网络。本文提出将两层ReLU网络通过凸松弛转化为凸问题，从而能在隐藏状态威胁模型下实现差分隐私训练。实验表明，该方法在标准数据集上的隐私-效用权衡与DP-SGD相当，但提供了更强的隐私保障（仅暴露最终模型）。这项工作将差分隐私的理论保证扩展到了重要的深度学习模型，为诸如医学AI等敏感领域提供了新的隐私保护手段。",
+      "title_zh": "两层ReLU网络的凸近似以实现隐藏状态差分隐私",
+      "motivation_cn": "隐藏状态差分隐私分析限于凸模型，无法直接用于多层网络",
+      "method_cn": "提出凸松弛技术，将两层ReLU网络转换为凸优化问题进行隐私训练",
+      "result_cn": "在隐私-效用权衡上达到与DP-SGD相近的性能",
+      "conclusion_cn": "为神经网络训练提供了一种新的差分隐私机制，拓展了隐蔽状态隐私保护的应用范围",
+      "matched_requirement_id": "req-4",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy risks in generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-sr6ivhzcqk",
+      "score": 8.0,
+      "evidence_en": "Analyzes membership inference vulnerability in fine-tuned models, showing dataset size reduces risk via a power law",
+      "evidence_cn": "分析微调模型中的成员推断攻击脆弱性，表明数据集大小通过幂律降低风险",
+      "canonical_evidence": "分析微调模型中的成员推断攻击脆弱性，表明数据集大小通过幂律降低风险",
+      "tldr_en": "This paper empirically and theoretically studies how membership inference attack vulnerability decreases with more training examples in fine-tuned neural networks, offering insights for practical privacy protection.",
+      "tldr_cn": "成员推断攻击是检验模型隐私的实用手段。本文通过实证和简化模型的理论分析，发现非差分隐私微调模型的成员推断脆弱性随每类样本数增加呈幂律下降，但保护最脆弱点所需的样本量极大。这一发现为理解数据规模与隐私风险的关系提供了定量视角，指导了隐私保护策略的制定。",
+      "title_zh": "数据集性质对深度迁移学习成员推断脆弱性的影响",
+      "motivation_cn": "微调模型在成员推断攻击下的隐私脆弱性缺乏系统分析，数据量影响规律不清。",
+      "method_cn": "结合经验实验与简化微调模型的理论分析，研究攻击优势与每类样本数的关系。",
+      "result_cn": "发现脆弱性随样本量增加以幂律下降，但最脆弱点需极大样本量才能保护。",
+      "conclusion_cn": "揭示了数据量对微调模型隐私的定量影响，为隐私评估提供了基准。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-tu3p6kshgn",
+      "score": 8.0,
+      "evidence_en": "Safety depth to defend against jailbreak attacks",
+      "evidence_cn": "安全深度防御LLM越狱攻击",
+      "canonical_evidence": "安全深度防御LLM越狱攻击",
+      "tldr_en": "Introduces safety depth, a designated output position for refusal, and uses Markov chain analysis to optimize it, improving LLM robustness against jailbreaks.",
+      "tldr_cn": "针对大语言模型容易遭受越狱攻击的安全漏洞，本文提出安全深度概念，即模型在生成过程的特定位置输出拒绝响应。通过利用自回归与马尔可夫链的等价性进行分析，发现更深层的对齐能提高安全性，并给出优化安全深度的方法。实验表明该方法能有效抵御越狱攻击。",
+      "title_zh": "大语言模型的安全深度：马尔可夫链视角",
+      "motivation_cn": "LLM对齐仅限初始令牌，易被越狱绕过。",
+      "method_cn": "定义安全深度，用马尔可夫链分析输出位置与安全性的关系。",
+      "result_cn": "深层对齐提升安全性，并找到最佳安全深度。",
+      "conclusion_cn": "安全深度为LLM安全防护提供了新视角。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-zocengh1jg",
+      "score": 7.0,
+      "evidence_en": "Provides theoretical convergence conditions for Private Evolution, a DP synthetic data generation method useful for privacy-preserving generative modeling",
+      "evidence_cn": "为差分隐私合成数据生成方法Private Evolution提供理论收敛条件，可应用于生成模型的隐私保护",
+      "canonical_evidence": "为差分隐私合成数据生成方法Private Evolution提供理论收敛条件，可应用于生成模型的隐私保护",
+      "tldr_en": "This work establishes theoretical guarantees for Private Evolution, a training-free DP synthetic data generation method, by analyzing convergence under realistic assumptions.",
+      "tldr_cn": "Private Evolution是一种免训练的差分隐私合成数据生成方法，但已有理论分析假设不切实际，且实际表现不一致。本文在更现实的假设下，为PE在凸紧域敏感数据集上的收敛性建立了充分条件，并证明在恰当超参数下，通过高斯变异API可以实现收敛。该理论为PE在生成模型隐私保护中的应用提供了可靠基础。",
+      "title_zh": "差分隐私进化方法收敛性分析",
+      "motivation_cn": "Private Evolution的现有理论分析依赖不现实假设，缺乏对实际行为的充分解释。",
+      "method_cn": "建立新理论框架，在凸紧域数据集和高斯变异API假设下，推导PE收敛的充分条件。",
+      "result_cn": "证明在满足特定超参数设置时，PE能够收敛到真实数据分布附近。",
+      "conclusion_cn": "为PE提供了更贴近实际的理论保障，有助于其在隐私保护生成建模中的可靠应用。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-aaxmcaynf6",
+      "score": 7.0,
+      "evidence_en": "Identifies safety neurons in LLMs to understand and restore safety alignment, contributing to defenses against harmful generation",
+      "evidence_cn": "识别LLM中的安全神经元以理解和恢复安全对齐，有助于防御有害内容生成",
+      "canonical_evidence": "识别LLM中的安全神经元以理解和恢复安全对齐，有助于防御有害内容生成",
+      "tldr_en": "The paper locates safety neurons in LLMs and shows that patching their activations can largely restore safety, providing mechanistic insight for improving alignment.",
+      "tldr_cn": "尽管经过安全对齐，大语言模型仍可能生成有害内容。本文从机械可解释性角度探索安全对齐机制，提出推理时激活对比定位安全神经元，并通过动态激活修补验证其因果作用。实验发现约5%的神经元负责安全行为，仅修补其激活即可恢复超90%的安全性能，为理解并加固模型安全提供了新思路。",
+      "title_zh": "理解安全对齐：从安全神经元的机械视角",
+      "motivation_cn": "安全对齐后LLM仍存在安全风险，内部机制不清，缺乏有效的定位与修复方法。",
+      "method_cn": "提出推理时激活对比法定位安全神经元，并用动态激活修补检验因果效应。",
+      "result_cn": "在多个LLM中稳定识别出约5%的安全神经元，修补后安全性能恢复超过90%。",
+      "conclusion_cn": "揭示了LLM安全的神经元基础，为可解释安全防御提供了新方向。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-mzxggzelcl",
+      "score": 7.0,
+      "evidence_en": "privacy-sensitive document assessment for RAG without plain text access",
+      "evidence_cn": "无需访问原始文本即可评估RAG文档的隐私敏感评估",
+      "canonical_evidence": "无需访问原始文本即可评估RAG文档的隐私敏感评估",
+      "tldr_en": "EAReranker evaluates document adequacy for RAG using only embeddings, avoiding plain text exposure to enable use in sensitive scenarios while reducing computational cost and improving utility assessment over relevance-only metrics.",
+      "tldr_cn": "传统RAG重排序依赖明文文本，在隐私敏感场景中受限，且评估仅基于相关性。EAReranker提出基于嵌入的文档充分性评估框架，无需访问原始内容，通过综合指标量化文档对RAG的效用，从而在保护隐私的同时提升生成质量。实验表明该方法在降低计算开销的同时，比仅相关性指标更准确地选择有益文档，为隐私敏感的RAG应用提供了实用方案。",
+      "title_zh": "EAReranker：面向检索增强生成的高效嵌入充分性评估",
+      "motivation_cn": "解决RAG系统在敏感场景下因依赖明文文本而受限，以及传统重排序仅评估相关性而忽略文档真实效用的问题。",
+      "method_cn": "提出EAReranker，一个基于嵌入的框架，仅用嵌入评估文档对RAG的充分性，无需访问原始文本。",
+      "result_cn": "实验表明该框架在保护隐私的同时，比仅相关性指标更准确地识别高价值文档，并降低计算开销。",
+      "conclusion_cn": "EAReranker为隐私敏感的RAG提供了一种实用文档评估方案，提升了安全性和效率。",
+      "matched_requirement_id": "req-6",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security aspects of retrieval augmented generation"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-4hzafk9o4r",
+      "score": 6.0,
+      "evidence_en": "differential privacy in federated learning for speech models",
+      "evidence_cn": "语音模型联邦学习中的差分隐私技术",
+      "canonical_evidence": "语音模型联邦学习中的差分隐私技术",
+      "tldr_en": "This work provides the first practical recipe for differentially private federated learning in large speech recognition models, addressing gradient heterogeneity with adaptive optimizers and per-layer clipping to enable privacy-preserving ASR training without significant accuracy loss.",
+      "tldr_cn": "尽管联邦学习和差分隐私被广泛研究，但在大语音模型中的应用因梯度异质性和优化困难而几近空白。本文针对自动语音识别，首次提出了实用的差分隐私联邦学习方案，通过自适应优化器和逐层梯度裁剪解决训练不稳定问题。在基准测试上，该方法在不降低识别性能的前提下实现了严格的隐私保护，为医疗、车载等敏感语音应用提供了可行的隐私保护技术路线。",
+      "title_zh": "面向语音识别的差分隐私联邦学习：基准、自适应优化器与梯度裁剪",
+      "motivation_cn": "大语音模型在联邦学习中面临梯度异质性，结合差分隐私后难以收敛，缺乏实用方案。",
+      "method_cn": "提出自适应优化器和逐层梯度裁剪策略，首次实现语音识别大模型的差分隐私联邦学习。",
+      "result_cn": "在多个ASR基准上，该方法达到与集中训练相当的准确率，同时满足差分隐私。",
+      "conclusion_cn": "为语音隐私保护提供了首个可扩展方案，推动医疗、辅助等敏感场景的隐私合规部署。",
+      "matched_requirement_id": "req-8",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy preserving techniques for medical AI and generative models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-gsi42ohbom",
+      "score": 6.0,
+      "evidence_en": "Personalized safety benchmarking for LLM threat evaluation",
+      "evidence_cn": "LLM个性化安全基准评估",
+      "canonical_evidence": "LLM个性化安全基准评估",
+      "tldr_en": "Proposes personalized safety concept and PENGUIN benchmark with 14k scenarios to evaluate LLM safety considering user-specific risks, along with a planning-based agent method.",
+      "tldr_cn": "现有LLM安全评估忽略用户差异性，本文提出个性化安全概念，并构建PENGUIN基准，包含7个敏感领域、1.4万个场景。评估显示，结合个性化用户信息能显著提升安全分数，并提出了基于规划的安全代理方法。",
+      "title_zh": "大语言模型中的个性化安全：基准与基于规划的智能体方法",
+      "motivation_cn": "不同用户对LLM响应安全性的需求存在差异。",
+      "method_cn": "构建PENGUIN基准，提出基于规划的个性化安全代理。",
+      "result_cn": "个性化信息使LLM安全评分显著提升。",
+      "conclusion_cn": "个性化安全是LLM安全部署的重要维度。",
+      "matched_requirement_id": "req-2",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "security threats and defenses for large language models"
+    },
+    {
+      "paper_id": "openreview-neurips-2025-004utlsufe",
+      "score": 4.0,
+      "evidence_en": "General differential privacy auditing method, applicable to any ML algorithm",
+      "evidence_cn": "通用差分隐私审计方法，适用于任何机器学习算法",
+      "canonical_evidence": "通用差分隐私审计方法，适用于任何机器学习算法",
+      "tldr_en": "The paper analyzes the efficacy of one-run DP auditing, showing interference limits precision and proposing mitigation approaches.",
+      "tldr_cn": "该论文研究机器学习算法差分隐私一次性审计的精度上限，发现同时干预多个训练样本时，不同数据元素的效应间干扰是制约审计精度的关键瓶颈，并提出了降低干扰的新思路，虽然未直接针对大语言模型或医学AI等具体场景，但其方法论可迁移应用于评估这些领域中的差分隐私实现。",
+      "title_zh": "差分隐私在一次运行中的审计效果如何？",
+      "motivation_cn": "现有一次性隐私审计方法虽下界真实隐私参数，但其精度和依赖性不清。",
+      "method_cn": "通过分析不同数据元素介入间的干扰，刻画一次性审计的最大效能。",
+      "result_cn": "揭示了干扰是限制审计精度的关键因素，并提出新方法减轻干扰。",
+      "conclusion_cn": "为高效隐私审计提供了理论指导，可迁移至特定应用领域评估差分隐私。",
+      "matched_requirement_id": "req-1",
+      "matched_query_tag": "query:priv-sec",
+      "matched_query_text": "privacy issues and solutions for large language models"
+    }
+  ],
+  "llm_ranked_at": "2026-06-30T08:55:48.461220+00:00",
+  "display_min_score": 4.0,
+  "pruned_at": "2026-06-30T08:55:48.495276+00:00"
+}
